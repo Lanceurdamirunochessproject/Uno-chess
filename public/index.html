@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UNO.CHESS</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111827;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 25px 10px;
+    }
+    h1 { color: #facc15; font-size: 38px; }
+    button {
+      background: #facc15;
+      border: 0;
+      border-radius: 10px;
+      padding: 14px 25px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #status { margin: 20px; color: #93c5fd; }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      max-width: 400px;
+      margin: 25px auto;
+      border: 4px solid #facc15;
+    }
+    .square {
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      font-size: clamp(18px, 6vw, 35px);
+    }
+    .light { background: #eee; color: #111; }
+    .dark { background: #64748b; color: #111; }
+    .cards { font-size: 35px; margin: 20px; }
+  </style>
+</head>
+<body>
+  <h1>UNO.CHESS</h1>
+  <p>Échecs + UNO : un seul jeu !</p>
+  <button id="play">JOUER EN LIGNE</button>
+  <p id="status">Prêt à jouer</p>
+  <div id="board"></div>
+  <div class="cards">🟥 🟦 🟩 🟨</div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const status = document.getElementById("status");
+
+    document.getElementById("play").onclick = () => {
+      status.textContent = "Recherche d'un adversaire...";
+      socket.emit("find-game");
+    };
+
+    socket.on("waiting", () => {
+      status.textContent = "En attente d'un autre joueur...";
+    });
+
+    socket.on("game-found", (data) => {
+      status.textContent = "Partie trouvée ! Tu joues avec les blancs.";
+      if (data.color === "black") {
+        status.textContent = "Partie trouvée ! Tu joues avec les noirs.";
+      }
+    });
+
+    const pieces = [
+      "♜","♞","♝","♛","♚","♝","♞","♜",
+      "♟","♟","♟","♟","♟","♟","♟","♟",
+      "","","","","","","","",
+      "","","","","","","","",
+      "","","","","","","","",
+      "","","","","","","","",
+      "♙","♙","♙","♙","♙","♙","♙","♙",
+      "♖","♘","♗","♕","♔","♗","♘","♖"
+    ];
+
+    const board = document.getElementById("board");
+    pieces.forEach((piece, i) => {
+      const square = document.createElement("div");
+      square.className = "square " +
+        (Math.floor(i / 8) + i % 8) % 2 === 0 ? "light" : "dark";
+      square.textContent = piece;
+      board.appendChild(square);
+    });
+  </script>
+</body>
+</html>
