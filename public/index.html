@@ -173,7 +173,10 @@ drawBoard();
   font-weight: bold;
 }
 </style>
-
+.uno-card.selected {
+  outline: 4px solid black;
+  transform: translateY(-8px);
+}
 <script>
 const cardArea = document.getElementById("uno-cards");
 
@@ -199,7 +202,9 @@ function addCard(value, color) {
   card.className = "uno-card";
   card.style.backgroundColor = color;
   card.textContent = value;
-  card.onclick = () => alert("Carte " + value);
+card.onclick = () => {
+  card.classList.toggle("selected");
+};
   cardArea.appendChild(card);
 }
 </script>
