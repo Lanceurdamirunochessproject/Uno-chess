@@ -93,3 +93,49 @@
   </script>
 </body>
 </html>
+<h2>Cartes UNO CHESS</h2>
+<div id="uno-cards"></div>
+
+<style>
+#uno-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 15px;
+}
+.uno-card {
+  width: 65px;
+  height: 95px;
+  border: 3px solid white;
+  border-radius: 12px;
+  color: white;
+  font-size: 25px;
+  font-weight: bold;
+  cursor: pointer;
+}
+</style>
+
+<script>
+const colors = ["red", "yellow", "green", "blue"];
+const cards = [];
+
+colors.forEach(color => {
+  for (let n = 0; n <= 9; n++) {
+    cards.push({color, value: n});
+  }
+  ["+2", "INVERSION", "PASSE"].forEach(value => {
+    cards.push({color, value});
+  });
+});
+
+const container = document.getElementById("uno-cards");
+
+cards.forEach(card => {
+  const button = document.createElement("button");
+  button.className = "uno-card";
+  button.style.background = card.color;
+  button.textContent = card.value;
+  button.onclick = () => alert("Carte " + card.value + " " + card.color);
+  container.appendChild(button);
+});
+</script>
