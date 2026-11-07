@@ -112,6 +112,9 @@
   font-size: 25px;
   font-weight: bold;
   cursor: pointer;
+.uno-card.selected {
+  outline: 4px solid black;
+  transform: translateY(-8px);
 }
 </style>
 
@@ -135,7 +138,9 @@ cards.forEach(card => {
   button.className = "uno-card";
   button.style.background = card.color;
   button.textContent = card.value;
-  button.onclick = () => alert("Carte " + card.value + " " + card.color);
+  button.onclick = () => {
+  button.classList.toggle("selected");
+};
   container.appendChild(button);
 });
 </script>
