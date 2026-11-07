@@ -195,5 +195,52 @@ cards.forEach(card => {
   container.appendChild(button);
 });
 </script>
+  <h2>Mes cartes UNO</h2>
+<div id="uno-cards"></div>
+
+<style>
+#uno-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.uno-card {
+  width: 65px;
+  height: 95px;
+  border: 4px solid white;
+  border-radius: 12px;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+}
+</style>
+
+<script>
+const colors = [
+  ["🔴", "#e52521"],
+  ["🟡", "#f5d51b"],
+  ["🟢", "#16a34a"],
+  ["🔵", "#1769e0"]
+];
+
+const area = document.getElementById("uno-cards");
+
+colors.forEach(([emoji, color]) => {
+  for (let n = 0; n <= 9; n++) {
+    addCard(n, color);
+  }
+  ["+2", "↔", "PASS"].forEach(value => addCard(value, color));
+});
+
+function addCard(value, color) {
+  const card = document.createElement("button");
+  card.className = "uno-card";
+  card.style.background = color;
+  card.textContent = value;
+  card.onclick = () => alert("Carte " + value);
+  area.appendChild(card);
+}
+</script>
 </body>
 </html>
