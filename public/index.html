@@ -150,97 +150,59 @@ function resetGame() {
 drawBoard();
 </script>
   <h2>Cartes UNO CHESS</h2>
+
 <div id="uno-cards"></div>
 
 <style>
 #uno-cards {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 10px;
-  padding: 15px;
+  max-width: 500px;
+  margin: 20px auto;
 }
+
 .uno-card {
-  width: 65px;
-  height: 95px;
+  width: 68px;
+  height: 100px;
   border: 3px solid white;
-  border-radius: 12px;
+  border-radius: 14px;
   color: white;
-  font-size: 25px;
+  font-size: 24px;
   font-weight: bold;
-  cursor: pointer;
 }
 </style>
 
 <script>
-const colors = ["red", "yellow", "green", "blue"];
-const cards = [];
+const cardArea = document.getElementById("uno-cards");
+
+const colors = [
+  "#e52521",
+  "#d6a900",
+  "#16a34a",
+  "#1769e0"
+];
 
 colors.forEach(color => {
   for (let n = 0; n <= 9; n++) {
-    cards.push({color, value: n});
-  }
-  ["+2", "INVERSION", "PASSE"].forEach(value => {
-    cards.push({color, value});
-  });
-});
-
-const container = document.getElementById("uno-cards");
-
-cards.forEach(card => {
-  const button = document.createElement("button");
-  button.className = "uno-card";
-  button.style.background = card.color;
-  button.textContent = card.value;
-  button.onclick = () => alert("Carte " + card.value + " " + card.color);
-  container.appendChild(button);
-});
-</script>
-  <h2>Mes cartes UNO</h2>
-<div id="uno-cards"></div>
-
-<style>
-#uno-cards {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
-}
-.uno-card {
-  width: 65px;
-  height: 95px;
-  border: 4px solid white;
-  border-radius: 12px;
-  color: white;
-  font-size: 20px;
-  font-weight: bold;
-}
-</style>
-
-<script>
-const colors = [
-  ["🔴", "#e52521"],
-  ["🟡", "#f5d51b"],
-  ["🟢", "#16a34a"],
-  ["🔵", "#1769e0"]
-];
-
-const area = document.getElementById("uno-cards");
-
-colors.forEach(([emoji, color]) => {
-  for (let n = 0; n <= 9; n++) {
     addCard(n, color);
   }
-  ["+2", "↔", "PASS"].forEach(value => addCard(value, color));
+
+  ["+2", "↔", "PASSE"].forEach(value => {
+    addCard(value, color);
+  });
 });
 
 function addCard(value, color) {
   const card = document.createElement("button");
   card.className = "uno-card";
-  card.style.background = color;
+  card.style.backgroundColor = color;
   card.textContent = value;
   card.onclick = () => alert("Carte " + value);
-  area.appendChild(card);
+  cardArea.appendChild(card);
 }
 </script>
+</body>
 </body>
 </html>
