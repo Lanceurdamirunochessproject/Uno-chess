@@ -172,6 +172,9 @@ function addCard(value, color) {
   container.appendChild(card);
 }
 </script>
+  .uno-card.selected {
+  outline: 4px solid black;
+  transform: translateY(-8px
 <style>
 #uno-cards {
   display: flex;
@@ -192,9 +195,7 @@ function addCard(value, color) {
   font-weight: bold;
 }
 </style>
-.uno-card.selected {
-  outline: 4px solid black;
-  transform: translateY(-8px);
+);
 }
 <script>
 const cardArea = document.getElementById("uno-cards");
