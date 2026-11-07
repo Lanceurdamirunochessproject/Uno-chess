@@ -156,16 +156,32 @@ drawBoard();
 
 <script>
 const container = document.getElementById("uno-cards");
-const colors = ["red", "yellow", "green", "blue"];
 
-colors.forEach(color => {
+const colors = {
+  red: "#ef4444",
+  yellow: "#eab308",
+  green: "#16a34a",
+  blue: "#2563eb"
+};
+
+Object.entries(colors).forEach(([color, hex]) => {
   for (let n = 0; n <= 9; n++) {
-    addCard(n, color);
+    addCard(n, hex);
   }
-  ["+2", "↔", "PASSE"].forEach(value => addCard(value, color));
+
+  ["+2", "↔", "PASSE"].forEach(value => {
+    addCard(value, hex);
+  });
 });
 
 function addCard(value, color) {
+  const card = document.createElement("button");
+  card.className = "uno-card";
+  card.style.backgroundColor = color;
+  card.textContent = value;
+  card.onclick = () => card.classList.toggle("selected");
+  container.appendChild(card);
+}
   const card = document.createElement("button");
   card.className = "uno-card";
   card.style.background = color;
