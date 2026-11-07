@@ -189,6 +189,7 @@ const colors = [
 
 colors.forEach(color => {
   for (let n = 0; n <= 9; n++) {
+    colors.forEach(color => {
     addCard(n, color);
   }
 
@@ -196,7 +197,7 @@ colors.forEach(color => {
     addCard(value, color);
   });
 });
-
+colors.forEach(color => {
 function addCard(value, color) {
   const card = document.createElement("button");
   card.className = "uno-card";
