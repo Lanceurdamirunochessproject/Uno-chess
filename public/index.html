@@ -152,7 +152,7 @@ drawBoard();
 </script>
   <h2>Cartes UNO CHESS</h2>
 
-<div id="uno-cards"></div>
+
 <script>
 const container = document.getElementById("uno-cards");
 const colors = ["red", "yellow", "green", "blue"];
@@ -173,9 +173,7 @@ function addCard(value, color) {
   container.appendChild(card);
 }
 </script>
-  .uno-card.selected {
-  outline: 4px solid black;
-  transform: translateY(-8px
+
 <style>
 #uno-cards {
   display: flex;
@@ -195,41 +193,10 @@ function addCard(value, color) {
   font-size: 24px;
   font-weight: bold;
 }
+  .uno-card.selected {
+  outline: 4px solid black;
+  transform: translateY(-8px);
+}
 </style>
-);
-}
-<script>
-const cardArea = document.getElementById("uno-cards");
-
-const colors = [
-  "#e52521",
-  "#d6a900",
-  "#16a34a",
-  "#1769e0"
-];
-
-colors.forEach(color => {
-  for (let n = 0; n <= 9; n++) {
-    colors.forEach(color => {
-    addCard(n, color);
-  }
-
-  ["+2", "↔", "PASSE"].forEach(value => {
-    addCard(value, color);
-  });
-});
-colors.forEach(color => {
-function addCard(value, color) {
-  const card = document.createElement("button");
-  card.className = "uno-card";
-  card.style.backgroundColor = color;
-  card.textContent = value;
-card.onclick = () => {
-  card.classList.toggle("selected");
-};
-  cardArea.appendChild(card);
-}
-</script>
 </body>
-
 </html>
