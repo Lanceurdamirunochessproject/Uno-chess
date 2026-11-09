@@ -100,6 +100,7 @@ button {
 <p id="status">Tour des blancs</p>
 <div id="board"></div>
 
+<button onclick="findGame()">JOUER EN LIGNE</button>
 <button onclick="resetGame()">Nouvelle partie</button>
 
 <div class="cards">🟥 🟦 🟩 🟨</div>
@@ -108,6 +109,39 @@ button {
 
 <script>
 const game = new Chess();
+const socket = io("https://uno-chess-server.onrender.com");
+socket.on("game-action", (data) => {
+  if (data.move) {
+    game.move({
+      from: data.move.from,
+      to: data.move.to,
+      promotion: data.move.promotion || "q"
+    });
+
+    selected = null;
+    possible = [];
+    drawBoard();
+  }
+});
+let room = null;
+let myColor = null;
+socket.on("connect", () => {
+  status.textContent = "Connecté au serveur !";
+});
+
+socket.on("waiting", () => {
+  status.textContent = "En attente d'un adversaire...";
+});
+
+socket.on("game-found", (data) => {
+  room = data.room;
+  myColor = data.color;
+  status.textContent = "Adversaire trouvé ! Tu joues les " + myColor;
+});
+
+function findGame() {
+  socket.emit("find-game");
+}
 const board = document.getElementById("board");
 const status = document.getElementById("status");
 
@@ -164,12 +198,20 @@ function playSquare(name) {
       promotion: "q"
     });
 
-    if (move) {
-      selected = null;
-      possible = [];
-      drawBoard();
-      return;
-    }
+   if (move) {
+  selected = null;
+  possible = [];
+
+  if (room) {
+    socket.emit("game-action", {
+      room: room,
+      move: move
+    });
+  }
+
+  drawBoard();
+  return;
+}
   }
 
   const moves = game.moves({
