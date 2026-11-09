@@ -106,7 +106,7 @@ button {
 <div class="cards">🟥 🟦 🟩 🟨</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 <script>
 const game = new Chess();
 const socket = io("https://uno-chess-server.onrender.com");
