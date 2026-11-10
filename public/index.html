@@ -378,19 +378,17 @@ function botTurn() {
 
 function drawForHuman() {
   if(locked || finished || game.turn()!=="w") return;
-  const card=drawCard();
+
+  const card = drawCard();
   hand.push(card);
   renderCards();
 
   if(hasPlayableCard(hand)) {
-    status.textContent="Carte piochée ! Tu peux maintenant la jouer.";
+    status.textContent="Carte piochée ! Tu peux jouer une carte ou piocher encore.";
   } else {
-    status.textContent="Aucune carte jouable. Tour du bot.";
-    locked=true;
-    setTimeout(botTurn,800);
+    status.textContent="Aucune carte jouable. Tu peux piocher encore.";
   }
 }
-
 function checkWinner() {
   if(hand.length===0) {
     finished=true;
