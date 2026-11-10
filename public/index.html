@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -64,6 +65,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 #reset{background:#16a34a;color:white}
 #draw{background:#eab308;color:#111827}
 #online{background:#2563eb;color:white}
+#reportBtn{background:#facc15;color:#111827;font-size:16px}
 #discard{
  display:inline-block;padding:12px 22px;
  border:3px solid white;border-radius:10px;
@@ -71,6 +73,51 @@ button:disabled{opacity:.5;cursor:not-allowed}
 }
 .small{color:#cbd5e1;font-size:13px}
 #thinking{color:#facc15;min-height:18px;font-size:13px}
+
+#report{
+ display:none;
+ max-width:650px;
+ margin:20px auto;
+ padding:16px;
+ background:#1f2937;
+ border:2px solid #475569;
+ border-radius:14px;
+ text-align:left
+}
+#report h2{text-align:center}
+#reportSummary{
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:9px
+}
+.report-stat{
+ padding:12px;
+ border-radius:9px;
+ background:#374151;
+ text-align:center;
+ font-weight:bold
+}
+.report-stat span{
+ display:block;
+ font-size:25px;
+ margin-bottom:5px
+}
+.report-move{
+ padding:11px;
+ margin:8px 0;
+ background:#374151;
+ border-radius:8px;
+ border-left:5px solid #64748b
+}
+.report-move.excellent{border-left-color:#22c55e}
+.report-move.gambling{border-left-color:#a78bfa}
+.report-move.error{border-left-color:#f97316}
+.report-move.blunder{border-left-color:#ef4444}
+.report-note{
+ color:#cbd5e1;
+ font-size:12px;
+ line-height:1.5
+}
 </style>
 </head>
 
@@ -112,6 +159,27 @@ button:disabled{opacity:.5;cursor:not-allowed}
  <button id="online" onclick="onlineLater()">JOUER EN LIGNE</button>
 </p>
 
+<p>
+ <button id="reportBtn" onclick="showReport()" disabled>
+ 📊 BILAN DE PARTIE
+ </button>
+</p>
+
+<div id="report">
+ <h2>📊 BILAN DE PARTIE</h2>
+ <p id="reportTitle" style="text-align:center"></p>
+
+ <div id="reportSummary"></div>
+
+ <h3>Analyse des coups</h3>
+ <div id="reportMoves"></div>
+
+ <p class="report-note">
+ Analyse indicative de UNO.CHESS AI. Les catégories sont calculées
+ à partir de l'évolution de la position et des effets des cartes UNO.
+ </p>
+</div>
+
 <h2>Défausse</h2>
 <div id="discard">Aucune</div>
 <p id="active">Couleur active : rouge</p>
@@ -136,6 +204,9 @@ const cardsBox = document.getElementById("uno-cards");
 const discardBox = document.getElementById("discard");
 const activeBox = document.getElementById("active");
 const thinkingBox = document.getElementById("thinking");
+
+const reportBox = document.getElementById("report");
+const reportBtn = document.getElementById("reportBtn");
 
 const colors = {
  rouge:"#ef4444",
@@ -170,6 +241,17 @@ let selectedSquare=null;
 let possible=[];
 let locked=false;
 let finished=true;
+
+/* NOUVEAU : HISTORIQUE DU BILAN */
+
+let moveHistory=[];
+
+const categoryNames={
+ excellent:"🟢 Excellent",
+ gambling:"🎲 Gambling Move",
+ error:"🟠 Erreur",
+ blunder:"🔴 Grosse erreur"
+};
 
 /* NIVEAUX */
 
@@ -371,6 +453,11 @@ function startGame(){
  hand=[];
  botHand=[];
 
+ moveHistory=[];
+
+ reportBox.style.display="none";
+ reportBtn.disabled=true;
+
  for(let i=0;i<5;i++){
   hand.push(drawCard());
   botHand.push(drawCard());
@@ -462,8 +549,56 @@ function clickSquare(name){
  drawBoard();
 }
 
+/* NOUVEAU : ANALYSE D'UN COUP */
+
+function recordMove(side,beforeScore,move,card){
+ const afterScore=evaluatePosition();
+
+ const beforeAdvantage=side==="b"?
+  beforeScore:-beforeScore;
+
+ const afterAdvantage=side==="b"?
+  afterScore:-afterScore;
+
+ const change=afterAdvantage-beforeAdvantage;
+
+ const risky=
+  !!move.captured||
+  (move.san&&move.san.includes("+"))||
+  card.value==="+2"||
+  card.value==="+4"||
+  card.value==="PASSE"||
+  card.value==="JOKER";
+
+ let category;
+
+ if(change>=80){
+  category="excellent";
+ }else if(risky&&change>=-180){
+  category="gambling";
+ }else if(change>=-250){
+  category="error";
+ }else{
+  category="blunder";
+ }
+
+ moveHistory.push({
+  number:moveHistory.length+1,
+  side:side==="w"?"Toi":"UNO.CHESS AI",
+  san:move.san,
+  card:card.value,
+  color:card.color,
+  category,
+  change
+ });
+}
+
+/* JOUER UN COUP HUMAIN */
+
 function playHumanMove(from,to){
  const card=hand[chosenCard];
+
+ const beforeScore=evaluatePosition();
 
  const move=game.move({
   from,
@@ -481,6 +616,8 @@ function playHumanMove(from,to){
  discard=card;
 
  applyCardEffect(card,botHand,hand);
+
+ recordMove("w",beforeScore,move,card);
 
  chosenCard=null;
  selectedSquare=null;
@@ -511,36 +648,36 @@ function drawForHuman(){
 
 /* FIN DE PARTIE */
 
+function endGame(message){
+ finished=true;
+ locked=true;
+
+ status.textContent=message;
+
+ reportBtn.disabled=false;
+}
+
 function checkWinner(){
  if(game.in_checkmate()){
-  finished=true;
-  locked=true;
-
-  status.textContent=game.turn()==="w"?
+  endGame(game.turn()==="w"?
    "ÉCHEC ET MAT ! Le bot gagne.":
-   "ÉCHEC ET MAT ! Tu gagnes !";
+   "ÉCHEC ET MAT ! Tu gagnes !");
 
   return true;
  }
 
  if(game.in_draw()||game.in_stalemate()){
-  finished=true;
-  locked=true;
-  status.textContent="Match nul !";
+  endGame("Match nul !");
   return true;
  }
 
  if(hand.length===0){
-  finished=true;
-  locked=true;
-  status.textContent="Tu as gagné : plus de cartes !";
+  endGame("Tu as gagné : plus de cartes !");
   return true;
  }
 
  if(botHand.length===0){
-  finished=true;
-  locked=true;
-  status.textContent="Le bot a gagné : plus de cartes !";
+  endGame("Le bot a gagné : plus de cartes !");
   return true;
  }
 
@@ -623,10 +760,8 @@ function evaluatePosition(){
   }
  }
 
- // Avantage lié au nombre de cartes.
  score+=(hand.length-botHand.length)*65;
 
- // Valeur stratégique des jokers.
  score+=botHand.filter(c=>c.color==="joker").length*18;
  score-=hand.filter(c=>c.color==="joker").length*18;
 
@@ -656,7 +791,6 @@ function getActions(side){
    if(card.value==="PASSE")score+=15;
    if(card.color==="joker")score+=5;
 
-   // Les coups du joueur sont ordonnés dans le sens opposé.
    if(side==="w")score=-score;
 
    actions.push({
@@ -724,7 +858,7 @@ function simulateAction(action,side){
  };
 }
 
-/* RECHERCHE MINIMAX AVEC ÉLAGAGE ALPHA-BETA */
+/* RECHERCHE MINIMAX */
 
 function searchAI(depth,alpha,beta){
  if(depth<=0||game.game_over()){
@@ -789,7 +923,6 @@ function botTurn(){
  let actions=[];
  let safety=0;
 
- // Le bot pioche jusqu'à trouver une combinaison jouable.
  while(actions.length===0&&safety<200){
   actions=getActions("b");
 
@@ -800,9 +933,8 @@ function botTurn(){
  }
 
  if(actions.length===0){
-  locked=false;
+  endGame("Le bot n'a pas trouvé de combinaison jouable.");
   thinkingBox.textContent="";
-  status.textContent="Le bot n'a pas trouvé de combinaison jouable.";
   return;
  }
 
@@ -833,9 +965,10 @@ function botTurn(){
   return;
  }
 
- // Jouer réellement le meilleur coup.
  const chosen=bestAction;
  const card=botHand[chosen.index];
+
+ const beforeScore=evaluatePosition();
 
  const move=game.move({
   from:chosen.move.from,
@@ -856,6 +989,8 @@ function botTurn(){
 
  applyCardEffect(card,hand,botHand);
 
+ recordMove("b",beforeScore,move,card);
+
  drawBoard();
  renderCards();
  updateDiscard();
@@ -868,6 +1003,91 @@ function botTurn(){
 
  status.textContent=
  "Le bot a joué "+card.value+" et "+move.san+". À toi !";
+}
+
+/* AFFICHER LE BILAN */
+
+function showReport(){
+ if(!finished){
+  status.textContent="Termine la partie pour consulter le bilan.";
+  return;
+ }
+
+ reportBox.style.display="block";
+
+ const counts={
+  excellent:0,
+  gambling:0,
+  error:0,
+  blunder:0
+ };
+
+ moveHistory.forEach(m=>{
+  counts[m.category]++;
+ });
+
+ document.getElementById("reportTitle").textContent=
+ "Partie terminée · "+moveHistory.length+" coups analysés";
+
+ const summary=document.getElementById("reportSummary");
+
+ summary.innerHTML="";
+
+ const stats=[
+  ["excellent","🟢","Excellent"],
+  ["gambling","🎲","Gambling Move"],
+  ["error","🟠","Erreur"],
+  ["blunder","🔴","Grosse erreur"]
+ ];
+
+ stats.forEach(item=>{
+  const div=document.createElement("div");
+  div.className="report-stat";
+
+  const number=document.createElement("span");
+  number.textContent=counts[item[0]];
+
+  const label=document.createElement("div");
+  label.textContent=item[1]+" "+item[2];
+
+  div.appendChild(number);
+  div.appendChild(label);
+  summary.appendChild(div);
+ });
+
+ const movesBox=document.getElementById("reportMoves");
+ movesBox.innerHTML="";
+
+ if(moveHistory.length===0){
+  movesBox.textContent="Aucun coup n'a été enregistré.";
+  return;
+ }
+
+ moveHistory.forEach(m=>{
+  const div=document.createElement("div");
+  div.className="report-move "+m.category;
+
+  const title=document.createElement("strong");
+  title.textContent=
+   "#"+m.number+" · "+m.side+" · "+categoryNames[m.category];
+
+  const detail=document.createElement("p");
+  detail.textContent=
+   "Coup : "+m.san+" | Carte UNO : "+m.card+
+   " ("+m.color+")";
+
+  const change=document.createElement("p");
+  change.className="report-note";
+  change.textContent=
+   "Variation estimée : "+(m.change>=0?"+":"")+
+   Math.round(m.change)+" points";
+
+  div.appendChild(title);
+  div.appendChild(detail);
+  div.appendChild(change);
+
+  movesBox.appendChild(div);
+ });
 }
 
 /* COMMANDES */
