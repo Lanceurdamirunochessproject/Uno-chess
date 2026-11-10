@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -8,134 +6,71 @@
 <title>UNO.CHESS</title>
 
 <style>
-body {
-  margin:0;
-  padding:18px 8px;
-  background:#111827;
-  color:white;
-  font-family:Arial,sans-serif;
-  text-align:center;
+*{box-sizing:border-box}
+body{
+ margin:0;padding:18px 8px;background:#111827;color:white;
+ font-family:Arial,sans-serif;text-align:center
 }
-h1 {color:#facc15}
-h2 {color:#93c5fd}
-
-button {
-  cursor:pointer;
-  border:0;
-  border-radius:8px;
-  padding:10px 13px;
-  margin:5px;
-  font-weight:bold;
+h1{color:#facc15}
+h2{color:#93c5fd}
+button{
+ cursor:pointer;border:0;border-radius:8px;
+ padding:10px 13px;margin:5px;font-weight:bold
 }
-
-#levels {
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-  gap:8px;
-  margin:15px auto;
-  max-width:600px;
+button:disabled{opacity:.5;cursor:not-allowed}
+#levels{
+ display:flex;flex-wrap:wrap;justify-content:center;
+ gap:8px;margin:15px auto;max-width:600px
 }
-
-.level {
-  min-width:125px;
-  padding:14px 10px;
-  color:white;
-  border:3px solid transparent;
-  border-radius:12px;
-  font-size:15px;
+.level{
+ min-width:125px;padding:14px 10px;color:white;
+ border:3px solid transparent;border-radius:12px;font-size:15px
 }
-
-.level small {
-  display:block;
-  margin-top:6px;
+.level small{display:block;margin-top:6px}
+.level.selected{border-color:white;transform:scale(1.05)}
+.easy{background:#16a34a}
+.medium{background:#ca8a04}
+.hard{background:#dc2626}
+.savage{background:#7e22ce}
+#start{background:#facc15;color:#111827;font-size:17px;padding:13px 25px}
+#board{
+ display:grid;
+ grid-template-columns:repeat(8,min(11vw,60px));
+ grid-template-rows:repeat(8,min(11vw,60px));
+ justify-content:center;margin:18px auto;
+ border:4px solid #d1d5db;width:fit-content
 }
-
-.level.selected {
-  border-color:white;
-  transform:scale(1.05);
+.square{
+ display:flex;align-items:center;justify-content:center;
+ font-size:min(8vw,40px);cursor:pointer;user-select:none
 }
-
-.easy {background:#16a34a}
-.medium {background:#ca8a04}
-.hard {background:#dc2626}
-.savage {background:#7e22ce}
-
-#start {
-  background:#facc15;
-  color:#111827;
-  font-size:17px;
-  padding:13px 25px;
+.light{background:#f0d9b5}
+.dark{background:#b58863}
+.selected-square{background:#facc15!important}
+.possible{box-shadow:inset 0 0 0 5px #22c55e}
+#status{color:#93c5fd;font-weight:bold;min-height:24px}
+#uno-cards{
+ display:flex;flex-wrap:wrap;justify-content:center;
+ gap:7px;max-width:650px;margin:14px auto
 }
-
-#board {
-  display:grid;
-  grid-template-columns:repeat(8,min(11vw,60px));
-  grid-template-rows:repeat(8,min(11vw,60px));
-  justify-content:center;
-  margin:18px auto;
-  border:4px solid #d1d5db;
-  width:fit-content;
+.uno-card{
+ width:49px;height:70px;color:white;font-size:16px;
+ border:3px solid white;border-radius:9px;
+ box-shadow:0 3px 6px #0008
 }
-
-.square {
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:min(8vw,40px);
-  cursor:pointer;
-  user-select:none;
+.uno-card.selected{
+ transform:translateY(-8px);outline:3px solid #facc15
 }
-
-.light {background:#f0d9b5}
-.dark {background:#b58863}
-.selected-square {background:#facc15!important}
-.possible {box-shadow:inset 0 0 0 5px #22c55e}
-
-#status {
-  color:#93c5fd;
-  font-weight:bold;
-  min-height:24px;
+#reset{background:#16a34a;color:white}
+#draw{background:#eab308;color:#111827}
+#online{background:#2563eb;color:white}
+#discard{
+ display:inline-block;padding:12px 22px;
+ border:3px solid white;border-radius:10px;
+ font-weight:bold;min-width:55px
 }
-
-#uno-cards {
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-  gap:7px;
-  max-width:650px;
-  margin:14px auto;
-}
-
-.uno-card {
-  width:49px;
-  height:70px;
-  color:white;
-  font-size:16px;
-  border:3px solid white;
-  border-radius:9px;
-  box-shadow:0 3px 6px #0008;
-}
-
-.uno-card.selected {
-  transform:translateY(-8px);
-  outline:3px solid #facc15;
-}
-
-#reset {background:#16a34a;color:white}
-#draw {background:#eab308;color:#111827}
-#online {background:#2563eb;color:white}
-
-#discard {
-  display:inline-block;
-  padding:12px 22px;
-  border:3px solid white;
-  border-radius:10px;
-  font-weight:bold;
-  min-width:55px;
-}
-
-.small {color:#cbd5e1;font-size:13px}
+.small{color:#cbd5e1;font-size:13px}
+#thinking{color:#facc15;min-height:18px;font-size:13px}
 </style>
 </head>
 
@@ -147,25 +82,18 @@ button {
 <h2>⚡ CHOOSE YOUR BOT</h2>
 
 <div id="levels">
-  <button class="level easy" onclick="selectLevel('easy')">
-    EASY
-    <small>300 KILO</small>
-  </button>
-
-  <button class="level medium selected" onclick="selectLevel('medium')">
-    MEDIUM
-    <small>1 200 KILO</small>
-  </button>
-
-  <button class="level hard" onclick="selectLevel('hard')">
-    HARD
-    <small>2 100 KILO</small>
-  </button>
-
-  <button class="level savage" onclick="selectLevel('savage')">
-    SAVAGE
-    <small>3 000 KILO</small>
-  </button>
+ <button class="level easy" onclick="selectLevel('easy')">
+ EASY<small>300 KILO</small>
+ </button>
+ <button class="level medium selected" onclick="selectLevel('medium')">
+ MEDIUM<small>1 200 KILO</small>
+ </button>
+ <button class="level hard" onclick="selectLevel('hard')">
+ HARD<small>2 100 KILO</small>
+ </button>
+ <button class="level savage" onclick="selectLevel('savage')">
+ SAVAGE<small>3 000 KILO</small>
+ </button>
 </div>
 
 <p id="level-info">Niveau choisi : MEDIUM — 1 200 KILO</p>
@@ -176,11 +104,12 @@ button {
 <div id="uno-cards"></div>
 
 <p id="status">Choisis ton niveau et commence !</p>
+<p id="thinking"></p>
 
 <p>
-  <button id="draw" onclick="drawForHuman()">PIOCHER UNE CARTE</button>
-  <button id="reset" onclick="resetGame()">NOUVELLE PARTIE</button>
-  <button id="online" onclick="onlineLater()">JOUER EN LIGNE</button>
+ <button id="draw" onclick="drawForHuman()">PIOCHER UNE CARTE</button>
+ <button id="reset" onclick="resetGame()">NOUVELLE PARTIE</button>
+ <button id="online" onclick="onlineLater()">JOUER EN LIGNE</button>
 </p>
 
 <h2>Défausse</h2>
@@ -191,12 +120,14 @@ button {
 <div id="board"></div>
 
 <p class="small">
-Rouge : tour ou dame · Bleu : cavalier · Vert : fou · Jaune : pion · Joker : toutes les pièces
+ Rouge : tour ou dame · Bleu : cavalier · Vert : fou · Jaune : pion · Joker : toutes les pièces
 </p>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 
 <script>
+"use strict";
+
 const game = new Chess();
 
 const board = document.getElementById("board");
@@ -204,561 +135,753 @@ const status = document.getElementById("status");
 const cardsBox = document.getElementById("uno-cards");
 const discardBox = document.getElementById("discard");
 const activeBox = document.getElementById("active");
+const thinkingBox = document.getElementById("thinking");
 
 const colors = {
-  rouge:"#ef4444",
-  jaune:"#eab308",
-  vert:"#16a34a",
-  bleu:"#2563eb",
-  joker:"#7c3aed"
+ rouge:"#ef4444",
+ jaune:"#eab308",
+ vert:"#16a34a",
+ bleu:"#2563eb",
+ joker:"#7c3aed"
 };
 
-const colorNames = Object.keys(colors);
+const colorNames = ["rouge","jaune","vert","bleu"];
 
 const pieces = {
-  wK:"♔",wQ:"♕",wR:"♖",wB:"♗",wN:"♘",wP:"♙",
-  bK:"♚",bQ:"♛",bR:"♜",bB:"♝",bN:"♞",bP:"♟"
+ wK:"♔",wQ:"♕",wR:"♖",wB:"♗",wN:"♘",wP:"♙",
+ bK:"♚",bQ:"♛",bR:"♜",bN:"♞",bB:"♝",bP:"♟"
 };
 
 const levels = {
-  easy: {
-    name:"EASY",
-    power:"300 KILO",
-    randomness:100
-  },
-  medium: {
-    name:"MEDIUM",
-    power:"1 200 KILO",
-    randomness:35
-  },
-  hard: {
-    name:"HARD",
-    power:"2 100 KILO",
-    randomness:10
-  },
-  savage: {
-    name:"SAVAGE",
-    power:"3 000 KILO",
-    randomness:0
-  }
+ easy:{name:"EASY",power:"300 KILO",depth:1,width:3},
+ medium:{name:"MEDIUM",power:"1 200 KILO",depth:2,width:4},
+ hard:{name:"HARD",power:"2 100 KILO",depth:2,width:5},
+ savage:{name:"SAVAGE",power:"3 000 KILO",depth:3,width:6}
 };
 
-let selectedLevel = "medium";
+let selectedLevel="medium";
+let deck=[];
+let hand=[];
+let botHand=[];
+let discard=null;
+let activeColor="rouge";
+let chosenCard=null;
+let selectedSquare=null;
+let possible=[];
+let locked=false;
+let finished=true;
 
-let deck = [];
-let hand = [];
-let botHand = [];
-let discard = null;
-let activeColor = "rouge";
-let chosenCard = null;
-let selectedSquare = null;
-let possible = [];
-let locked = false;
-let finished = true;
+/* NIVEAUX */
 
-function selectLevel(level) {
-  selectedLevel = level;
+function selectLevel(level){
+ selectedLevel=level;
 
-  document.querySelectorAll(".level").forEach(button => {
-    button.classList.remove("selected");
-  });
+ document.querySelectorAll(".level").forEach(b=>{
+  b.classList.remove("selected");
+ });
 
-  document.querySelector(".level." + level).classList.add("selected");
+ document.querySelector(".level."+level).classList.add("selected");
 
-  document.getElementById("level-info").textContent =
-    "Niveau choisi : " + levels[level].name +
-    " — " + levels[level].power;
+ document.getElementById("level-info").textContent=
+ "Niveau choisi : "+levels[level].name+" — "+levels[level].power;
 }
 
-function makeDeck() {
-  let d = [];
+/* CARTES */
 
-  for (const color of ["rouge","jaune","vert","bleu"]) {
-    for (let n=0;n<=9;n++) {
-      d.push({value:String(n),color});
-    }
+function makeDeck(){
+ let d=[];
 
-    for (const value of ["+2","↔","PASSE"]) {
-      d.push({value,color});
-    }
+ for(const color of colorNames){
+  for(let n=0;n<=9;n++){
+   d.push({value:String(n),color});
   }
 
-  for (let i=0;i<4;i++) {
-    d.push({value:"JOKER",color:"joker"});
-    d.push({value:"+4",color:"joker"});
+  for(const value of ["+2","↔","PASSE"]){
+   d.push({value,color});
   }
+ }
 
-  return d.sort(()=>Math.random()-0.5);
+ for(let i=0;i<4;i++){
+  d.push({value:"JOKER",color:"joker"});
+  d.push({value:"+4",color:"joker"});
+ }
+
+ for(let i=d.length-1;i>0;i--){
+  const j=Math.floor(Math.random()*(i+1));
+  [d[i],d[j]]=[d[j],d[i]];
+ }
+
+ return d;
 }
 
-function drawCard() {
-  if (deck.length===0) deck=makeDeck();
-  return deck.pop();
-}
-
-function startGame() {
-  game.reset();
-
+function drawCard(){
+ if(deck.length===0){
   deck=makeDeck();
-  hand=[];
-  botHand=[];
+ }
+ return deck.pop();
+}
 
-  for(let i=0;i<5;i++) {
-    hand.push(drawCard());
-    botHand.push(drawCard());
+function cardMatches(card,color=activeColor,top=discard){
+ if(!card||!top)return false;
+
+ return card.color==="joker"||
+        card.color===color||
+        card.value===top.value;
+}
+
+function allowedPiece(card,piece){
+ if(card.color==="joker")return true;
+
+ if(card.color==="rouge"){
+  return piece==="r"||piece==="q";
+ }
+
+ if(card.color==="bleu")return piece==="n";
+ if(card.color==="vert")return piece==="b";
+ if(card.color==="jaune")return piece==="p";
+
+ return false;
+}
+
+function hasPlayableCard(cards){
+ return cards.some(c=>cardMatches(c));
+}
+
+/* CHOIX DE COULEUR */
+
+function bestColorFor(cards){
+ const counts={
+  rouge:0,
+  jaune:0,
+  vert:0,
+  bleu:0
+ };
+
+ cards.forEach(c=>{
+  if(counts[c.color]!==undefined){
+   counts[c.color]++;
+  }
+ });
+
+ let best="rouge";
+
+ for(const color of colorNames){
+  if(counts[color]>counts[best]){
+   best=color;
+  }
+ }
+
+ return best;
+}
+
+/* EFFETS UNO */
+
+function applyCardEffect(card,opponentHand,actingHand){
+ if(card.value==="+2"){
+  opponentHand.push(drawCard(),drawCard());
+ }
+
+ if(card.value==="+4"){
+  for(let i=0;i<4;i++){
+   opponentHand.push(drawCard());
+  }
+ }
+
+ if(card.value==="PASSE"&&opponentHand.length>0){
+  opponentHand.splice(0,1);
+ }
+
+ if(card.value==="↔"||card.color==="joker"){
+  activeColor=bestColorFor(actingHand);
+ }else{
+  activeColor=card.color;
+ }
+}
+
+/* AFFICHAGE */
+
+function renderCards(){
+ cardsBox.innerHTML="";
+
+ hand.forEach((card,index)=>{
+  const b=document.createElement("button");
+
+  b.className="uno-card";
+
+  if(chosenCard===index){
+   b.classList.add("selected");
   }
 
+  b.style.background=colors[card.color];
+  b.textContent=card.value;
+
+  b.onclick=()=>chooseCard(index);
+
+  cardsBox.appendChild(b);
+ });
+}
+
+function drawBoard(){
+ board.innerHTML="";
+
+ const position=game.board();
+
+ for(let r=0;r<8;r++){
+  for(let c=0;c<8;c++){
+   const square=document.createElement("div");
+   const name="abcdefgh"[c]+(8-r);
+   const piece=position[r][c];
+
+   square.className="square "+((r+c)%2===0?"light":"dark");
+
+   if(piece){
+    square.textContent=pieces[piece.color+piece.type.toUpperCase()];
+   }
+
+   if(selectedSquare===name){
+    square.classList.add("selected-square");
+   }
+
+   if(possible.includes(name)){
+    square.classList.add("possible");
+   }
+
+   square.onclick=()=>clickSquare(name);
+
+   board.appendChild(square);
+  }
+ }
+}
+
+function updateDiscard(){
+ discardBox.textContent=discard?discard.value:"Aucune";
+
+ discardBox.style.background=
+ discard?colors[discard.color]:"#374151";
+
+ activeBox.textContent="Couleur active : "+activeColor;
+}
+
+/* NOUVELLE PARTIE */
+
+function startGame(){
+ game.reset();
+
+ deck=makeDeck();
+ hand=[];
+ botHand=[];
+
+ for(let i=0;i<5;i++){
+  hand.push(drawCard());
+  botHand.push(drawCard());
+ }
+
+ discard=drawCard();
+
+ while(discard.value==="JOKER"||discard.value==="+4"){
+  deck.push(discard);
   discard=drawCard();
+ }
 
-  while(discard.value==="JOKER" || discard.value==="+4") {
-    deck.push(discard);
-    discard=drawCard();
-  }
+ activeColor=discard.color;
 
-  activeColor=discard.color;
-  chosenCard=null;
-  selectedSquare=null;
-  possible=[];
-  locked=false;
-  finished=false;
+ chosenCard=null;
+ selectedSquare=null;
+ possible=[];
+ locked=false;
+ finished=false;
 
-  drawBoard();
-  renderCards();
-  updateDiscard();
+ drawBoard();
+ renderCards();
+ updateDiscard();
 
-  status.textContent=
-    "Partie lancée ! Bot : " +
-    levels[selectedLevel].name + " (" +
-    levels[selectedLevel].power + ").";
+ thinkingBox.textContent="";
+
+ status.textContent=
+ "Partie lancée ! Bot : "+levels[selectedLevel].name+
+ " ("+levels[selectedLevel].power+").";
 }
 
-function cardMatches(card) {
-  return card.color==="joker" ||
-    card.color===activeColor ||
-    card.value===discard.value;
+/* TOUR DU JOUEUR */
+
+function chooseCard(index){
+ if(locked||finished||game.turn()!=="w")return;
+
+ const card=hand[index];
+
+ if(!cardMatches(card)){
+  status.textContent="Cette carte ne correspond pas à la couleur ou au symbole actif.";
+  return;
+ }
+
+ chosenCard=index;
+ selectedSquare=null;
+ possible=[];
+
+ renderCards();
+ drawBoard();
+
+ status.textContent="Carte choisie ! Clique sur une pièce autorisée.";
 }
 
-function allowedPiece(card,piece) {
-  if(card.color==="joker") return true;
-  if(card.color==="rouge") return piece==="r" || piece==="q";
-  if(card.color==="bleu") return piece==="n";
-  if(card.color==="vert") return piece==="b";
-  if(card.color==="jaune") return piece==="p";
-  return false;
-}
+function clickSquare(name){
+ if(locked||finished||game.turn()!=="w")return;
 
-function hasPlayableCard(cards) {
-  return cards.some(card=>cardMatches(card));
-}
+ if(chosenCard===null){
+  status.textContent="Choisis d'abord une carte UNO.";
+  return;
+ }
 
-function renderCards() {
-  cardsBox.innerHTML="";
+ const piece=game.get(name);
 
-  hand.forEach((card,index)=>{
-    const b=document.createElement("button");
+ if(selectedSquare&&possible.includes(name)){
+  playHumanMove(selectedSquare,name);
+  return;
+ }
 
-    b.className="uno-card";
-
-    if(chosenCard===index) {
-      b.classList.add("selected");
-    }
-
-    b.style.background=colors[card.color];
-    b.textContent=card.value;
-    b.onclick=()=>chooseCard(index);
-
-    cardsBox.appendChild(b);
-  });
-}
-
-function chooseCard(index) {
-  if(locked || finished || game.turn()!=="w") return;
-
-  const card=hand[index];
-
-  if(!cardMatches(card)) {
-    status.textContent=
-      "Cette carte ne correspond pas à la couleur ou au symbole actif.";
-    return;
-  }
-
-  chosenCard=index;
-  selectedSquare=null;
-  possible=[];
-
-  renderCards();
-  drawBoard();
-
-  status.textContent="Carte choisie ! Clique sur une pièce autorisée.";
-}
-
-function drawBoard() {
-  board.innerHTML="";
-
-  const position=game.board();
-
-  for(let r=0;r<8;r++) {
-    for(let c=0;c<8;c++) {
-      const square=document.createElement("div");
-      const name="abcdefgh"[c]+(8-r);
-      const piece=position[r][c];
-
-      square.className="square "+
-        ((r+c)%2===0?"light":"dark");
-
-      if(piece) {
-        square.textContent=
-          pieces[piece.color+piece.type.toUpperCase()];
-      }
-
-      if(selectedSquare===name) {
-        square.classList.add("selected-square");
-      }
-
-      if(possible.includes(name)) {
-        square.classList.add("possible");
-      }
-
-      square.onclick=()=>clickSquare(name);
-      board.appendChild(square);
-    }
-  }
-}
-
-function clickSquare(name) {
-  if(locked || finished || game.turn()!=="w") return;
-
-  if(chosenCard===null) {
-    status.textContent="Choisis d'abord une carte UNO.";
-    return;
-  }
-
-  const piece=game.get(name);
-
-  if(selectedSquare && possible.includes(name)) {
-    playHumanMove(selectedSquare,name);
-    return;
-  }
-
-  if(piece && piece.color==="w") {
-    const card=hand[chosenCard];
-
-    if(!allowedPiece(card,piece.type)) {
-      status.textContent=
-        "Cette carte ne permet pas de déplacer cette pièce.";
-      return;
-    }
-
-    selectedSquare=name;
-
-    possible=game.moves({
-      square:name,
-      verbose:true
-    }).map(m=>m.to);
-
-    if(possible.length===0) {
-      status.textContent="Cette pièce ne peut pas bouger.";
-    } else {
-      status.textContent="Choisis une case verte.";
-    }
-  } else {
-    selectedSquare=null;
-    possible=[];
-  }
-
-  drawBoard();
-}
-
-function applyCardEffect(card,opponentHand) {
-  if(card.value==="+2") {
-    opponentHand.push(drawCard(),drawCard());
-
-  } else if(card.value==="+4") {
-    for(let i=0;i<4;i++) {
-      opponentHand.push(drawCard());
-    }
-
-  } else if(card.value==="PASSE") {
-    if(opponentHand.length>0) {
-      opponentHand.splice(
-        Math.floor(Math.random()*opponentHand.length),1
-      );
-    }
-
-  } else if(card.value==="↔") {
-    const choices=colorNames.filter(
-      c=>c!=="joker" && c!==activeColor
-    );
-
-    activeColor=choices[
-      Math.floor(Math.random()*choices.length)
-    ];
-
-  } else if(card.color==="joker") {
-    activeColor=["rouge","jaune","vert","bleu"][
-      Math.floor(Math.random()*4)
-    ];
-
-  } else {
-    activeColor=card.color;
-  }
-}
-
-function playHumanMove(from,to) {
+ if(piece&&piece.color==="w"){
   const card=hand[chosenCard];
 
-  const move=game.move({
-    from,
-    to,
-    promotion:"q"
-  });
+  if(!allowedPiece(card,piece.type)){
+   status.textContent="Cette carte ne permet pas de déplacer cette pièce.";
+   return;
+  }
 
-  if(!move) return;
+  selectedSquare=name;
 
-  hand.splice(chosenCard,1);
-  discard=card;
+  possible=game.moves({square:name,verbose:true}).map(m=>m.to);
 
-  applyCardEffect(card,botHand);
-
-  chosenCard=null;
+  status.textContent=possible.length?
+   "Choisis une case verte.":
+   "Cette pièce ne peut pas bouger.";
+ }else{
   selectedSquare=null;
   possible=[];
+ }
 
-  drawBoard();
-  renderCards();
-  updateDiscard();
-
-  if(checkWinner()) return;
-
-  if(game.game_over()) {
-    finishChessGame();
-    return;
-  }
-
-  status.textContent="Le bot réfléchit...";
-  locked=true;
-
-  setTimeout(botTurn,800);
+ drawBoard();
 }
 
-// Valeur stratégique des pièces.
-function pieceValue(type) {
-  const values = {
-    p:100,
-    n:320,
-    b:330,
-    r:500,
-    q:900,
-    k:20000
-  };
+function playHumanMove(from,to){
+ const card=hand[chosenCard];
 
-  return values[type] || 0;
+ const move=game.move({
+  from,
+  to,
+  promotion:"q"
+ });
+
+ if(!move){
+  status.textContent="Déplacement impossible.";
+  return;
+ }
+
+ hand.splice(chosenCard,1);
+
+ discard=card;
+
+ applyCardEffect(card,botHand,hand);
+
+ chosenCard=null;
+ selectedSquare=null;
+ possible=[];
+
+ drawBoard();
+ renderCards();
+ updateDiscard();
+
+ if(checkWinner())return;
+
+ locked=true;
+ status.textContent="Le bot réfléchit...";
+
+ setTimeout(botTurn,250);
 }
 
-// Évaluation simple d'un déplacement.
-function evaluateMove(move) {
-  let score=0;
+function drawForHuman(){
+ if(locked||finished||game.turn()!=="w")return;
 
-  // Capturer une pièce est intéressant.
-  if(move.captured) {
-    score+=pieceValue(move.captured)*1.5;
-  }
+ hand.push(drawCard());
 
-  // Favoriser les promotions.
-  if(move.promotion) {
-    score+=800;
-  }
+ renderCards();
 
-  // Favoriser le contrôle du centre.
-  const file="abcdefgh".indexOf(move.to[0]);
-  const rank=Number(move.to[1]);
-
-  const centerDistance=
-    Math.abs(3.5-file)+Math.abs(4.5-rank);
-
-  score+=(7-centerDistance)*8;
-
-  // Favoriser le développement des pièces.
-  if(move.piece==="n" || move.piece==="b") {
-    score+=15;
-  }
-
-  // Bonus pour les échecs.
-  if(move.san && move.san.includes("+")) {
-    score+=60;
-  }
-
-  return score;
+ status.textContent=
+ "Carte piochée ! Tu peux encore piocher ou jouer une carte compatible.";
 }
 
-function botTurn() {
-  if(finished) return;
+/* FIN DE PARTIE */
 
-  let choices=[];
-
-  function findMoves() {
-    choices=[];
-
-    const allMoves=game.moves({verbose:true});
-
-    for(let i=0;i<botHand.length;i++) {
-      const card=botHand[i];
-
-      if(!cardMatches(card)) continue;
-
-      for(const move of allMoves) {
-        const piece=game.get(move.from);
-
-        if(piece && allowedPiece(card,piece.type)) {
-          choices.push({
-            cardIndex:i,
-            move
-          });
-        }
-      }
-    }
-  }
-
-  findMoves();
-
-  // Le bot pioche jusqu'à pouvoir jouer.
-  while(choices.length===0 && !game.game_over()) {
-    botHand.push(drawCard());
-    findMoves();
-  }
-
-  if(choices.length===0) {
-    finishChessGame();
-    return;
-  }
-
-  // Évaluation des coups selon le niveau.
-  choices.forEach(choice=>{
-    choice.score=evaluateMove(choice.move);
-  });
-
-  choices.sort((a,b)=>b.score-a.score);
-
-  const randomness=levels[selectedLevel].randomness;
-
-  let choice;
-
-  if(randomness===0) {
-    choice=choices[0];
-
-  } else {
-    const pool=Math.max(
-      1,
-      Math.min(
-        choices.length,
-        Math.ceil(choices.length*randomness/100)
-      )
-    );
-
-    const candidates=choices.slice(0,pool);
-
-    choice=candidates[
-      Math.floor(Math.random()*candidates.length)
-    ];
-  }
-
-  const card=botHand.splice(choice.cardIndex,1)[0];
-
-  game.move({
-    from:choice.move.from,
-    to:choice.move.to,
-    promotion:"q"
-  });
-
-  discard=card;
-
-  applyCardEffect(card,hand);
-
-  drawBoard();
-  renderCards();
-  updateDiscard();
-
-  if(checkWinner()) return;
-
-  if(game.game_over()) {
-    finishChessGame();
-    return;
-  }
-
-  locked=false;
-  status.textContent=
-    "À toi de jouer ! Bot : "+levels[selectedLevel].name;
-}
-
-function drawForHuman() {
-  if(locked || finished || game.turn()!=="w") return;
-
-  const card=drawCard();
-
-  hand.push(card);
-  renderCards();
-
-  if(hasPlayableCard(hand)) {
-    status.textContent=
-      "Carte piochée ! Tu peux jouer une carte ou piocher encore.";
-  } else {
-    status.textContent=
-      "Aucune carte jouable. Tu peux piocher encore.";
-  }
-}
-
-function checkWinner() {
-  if(hand.length===0) {
-    finished=true;
-    locked=true;
-    status.textContent=
-      "🏆 BRAVO ! Tu as gagné en vidant ta main !";
-    return true;
-  }
-
-  if(botHand.length===0) {
-    finished=true;
-    locked=true;
-    status.textContent=
-      "🤖 Le bot a gagné en vidant sa main !";
-    return true;
-  }
-
-  return false;
-}
-
-function finishChessGame() {
+function checkWinner(){
+ if(game.in_checkmate()){
   finished=true;
   locked=true;
 
-  if(game.in_checkmate()) {
-    status.textContent=game.turn()==="b" ?
-      "🏆 ÉCHEC ET MAT ! Tu as gagné !" :
-      "🤖 Échec et mat ! Le bot a gagné.";
-  } else {
-    status.textContent="Partie terminée !";
+  status.textContent=game.turn()==="w"?
+   "ÉCHEC ET MAT ! Le bot gagne.":
+   "ÉCHEC ET MAT ! Tu gagnes !";
+
+  return true;
+ }
+
+ if(game.in_draw()||game.in_stalemate()){
+  finished=true;
+  locked=true;
+  status.textContent="Match nul !";
+  return true;
+ }
+
+ if(hand.length===0){
+  finished=true;
+  locked=true;
+  status.textContent="Tu as gagné : plus de cartes !";
+  return true;
+ }
+
+ if(botHand.length===0){
+  finished=true;
+  locked=true;
+  status.textContent="Le bot a gagné : plus de cartes !";
+  return true;
+ }
+
+ return false;
+}
+
+/* ÉVALUATION DES ÉCHECS */
+
+function evaluateMove(move){
+ let score=0;
+
+ const values={
+  p:100,
+  n:320,
+  b:330,
+  r:500,
+  q:900
+ };
+
+ if(move.captured){
+  score+=values[move.captured]||0;
+ }
+
+ if(move.promotion)score+=800;
+
+ if(move.san&&move.san.includes("+")){
+  score+=80;
+ }
+
+ if(move.san&&move.san.includes("#")){
+  score+=100000;
+ }
+
+ const center=["d4","e4","d5","e5"];
+
+ if(center.includes(move.to)){
+  score+=25;
+ }
+
+ return score;
+}
+
+function evaluatePosition(){
+ if(game.in_checkmate()){
+  return game.turn()==="b"?-100000:100000;
+ }
+
+ if(game.in_draw()||game.in_stalemate()){
+  return 0;
+ }
+
+ let score=0;
+
+ const values={
+  p:100,
+  n:320,
+  b:330,
+  r:500,
+  q:900,
+  k:0
+ };
+
+ const position=game.board();
+
+ for(let r=0;r<8;r++){
+  for(let c=0;c<8;c++){
+   const p=position[r][c];
+
+   if(!p)continue;
+
+   const value=values[p.type]||0;
+
+   score+=(p.color==="b"?value:-value);
+
+   const centerBonus=
+    (3.5-Math.abs(3.5-r))+
+    (3.5-Math.abs(3.5-c));
+
+   score+=(p.color==="b"?centerBonus*3:-centerBonus*3);
   }
+ }
+
+ // Avantage lié au nombre de cartes.
+ score+=(hand.length-botHand.length)*65;
+
+ // Valeur stratégique des jokers.
+ score+=botHand.filter(c=>c.color==="joker").length*18;
+ score-=hand.filter(c=>c.color==="joker").length*18;
+
+ return score;
 }
 
-function updateDiscard() {
-  discardBox.textContent=discard.value;
-  discardBox.style.background=colors[discard.color];
+/* CRÉATION DES COUPS POSSIBLES */
 
-  activeBox.textContent=
-    "Couleur active : "+activeColor;
+function getActions(side){
+ const cards=side==="b"?botHand:hand;
+ const actions=[];
+
+ if(game.turn()!==side)return actions;
+
+ const moves=game.moves({verbose:true});
+
+ cards.forEach((card,index)=>{
+  if(!cardMatches(card))return;
+
+  moves.forEach(move=>{
+   if(!allowedPiece(card,move.piece))return;
+
+   let score=evaluateMove(move);
+
+   if(card.value==="+4")score+=35;
+   if(card.value==="+2")score+=20;
+   if(card.value==="PASSE")score+=15;
+   if(card.color==="joker")score+=5;
+
+   // Les coups du joueur sont ordonnés dans le sens opposé.
+   if(side==="w")score=-score;
+
+   actions.push({
+    index,
+    card,
+    move,
+    score
+   });
+  });
+ });
+
+ actions.sort((a,b)=>side==="b"?
+  b.score-a.score:
+  a.score-b.score
+ );
+
+ return actions.slice(0,levels[selectedLevel].width);
 }
 
-function resetGame() {
-  startGame();
+/* SIMULATION D'UN COUP */
+
+function simulateAction(action,side){
+ const actor=side==="b"?botHand:hand;
+ const opponent=side==="b"?hand:botHand;
+
+ const oldDeck=deck.slice();
+ const oldActor=actor.slice();
+ const oldOpponent=opponent.slice();
+ const oldDiscard=discard;
+ const oldColor=activeColor;
+
+ const card=actor[action.index];
+
+ actor.splice(action.index,1);
+
+ const move=game.move({
+  from:action.move.from,
+  to:action.move.to,
+  promotion:"q"
+ });
+
+ if(!move){
+  deck=oldDeck;
+  actor.splice(0,actor.length,...oldActor);
+  opponent.splice(0,opponent.length,...oldOpponent);
+  discard=oldDiscard;
+  activeColor=oldColor;
+  return null;
+ }
+
+ discard=card;
+
+ applyCardEffect(card,opponent,actor);
+
+ return function undo(){
+  game.undo();
+
+  deck=oldDeck;
+
+  actor.splice(0,actor.length,...oldActor);
+  opponent.splice(0,opponent.length,...oldOpponent);
+
+  discard=oldDiscard;
+  activeColor=oldColor;
+ };
 }
 
-function onlineLater() {
-  status.textContent=
-    "Le mode en ligne sera activé après la synchronisation du serveur.";
+/* RECHERCHE MINIMAX AVEC ÉLAGAGE ALPHA-BETA */
+
+function searchAI(depth,alpha,beta){
+ if(depth<=0||game.game_over()){
+  return evaluatePosition();
+ }
+
+ const side=game.turn();
+ const actions=getActions(side);
+
+ if(actions.length===0){
+  return evaluatePosition();
+ }
+
+ if(side==="b"){
+  let best=-Infinity;
+
+  for(const action of actions){
+   const undo=simulateAction(action,side);
+
+   if(!undo)continue;
+
+   const score=searchAI(depth-1,alpha,beta);
+
+   undo();
+
+   best=Math.max(best,score);
+   alpha=Math.max(alpha,best);
+
+   if(beta<=alpha)break;
+  }
+
+  return best===-Infinity?evaluatePosition():best;
+ }
+
+ let best=Infinity;
+
+ for(const action of actions){
+  const undo=simulateAction(action,side);
+
+  if(!undo)continue;
+
+  const score=searchAI(depth-1,alpha,beta);
+
+  undo();
+
+  best=Math.min(best,score);
+  beta=Math.min(beta,best);
+
+  if(beta<=alpha)break;
+ }
+
+ return best===Infinity?evaluatePosition():best;
+}
+
+/* TOUR DU BOT */
+
+function botTurn(){
+ if(finished)return;
+
+ thinkingBox.textContent="Analyse des cartes et des déplacements...";
+
+ let actions=[];
+ let safety=0;
+
+ // Le bot pioche jusqu'à trouver une combinaison jouable.
+ while(actions.length===0&&safety<200){
+  actions=getActions("b");
+
+  if(actions.length===0){
+   botHand.push(drawCard());
+   safety++;
+  }
+ }
+
+ if(actions.length===0){
+  locked=false;
+  thinkingBox.textContent="";
+  status.textContent="Le bot n'a pas trouvé de combinaison jouable.";
+  return;
+ }
+
+ let bestAction=null;
+ let bestScore=-Infinity;
+
+ const depth=levels[selectedLevel].depth;
+
+ for(const action of actions){
+  const undo=simulateAction(action,"b");
+
+  if(!undo)continue;
+
+  const score=searchAI(depth-1,-Infinity,Infinity);
+
+  undo();
+
+  if(score>bestScore){
+   bestScore=score;
+   bestAction=action;
+  }
+ }
+
+ if(!bestAction){
+  locked=false;
+  thinkingBox.textContent="";
+  status.textContent="Le bot n'a pas trouvé de coup.";
+  return;
+ }
+
+ // Jouer réellement le meilleur coup.
+ const chosen=bestAction;
+ const card=botHand[chosen.index];
+
+ const move=game.move({
+  from:chosen.move.from,
+  to:chosen.move.to,
+  promotion:"q"
+ });
+
+ if(!move){
+  locked=false;
+  thinkingBox.textContent="";
+  status.textContent="Erreur : coup du bot impossible.";
+  return;
+ }
+
+ botHand.splice(chosen.index,1);
+
+ discard=card;
+
+ applyCardEffect(card,hand,botHand);
+
+ drawBoard();
+ renderCards();
+ updateDiscard();
+
+ thinkingBox.textContent="";
+
+ if(checkWinner())return;
+
+ locked=false;
+
+ status.textContent=
+ "Le bot a joué "+card.value+" et "+move.san+". À toi !";
+}
+
+/* COMMANDES */
+
+function resetGame(){
+ startGame();
+}
+
+function onlineLater(){
+ status.textContent="Le mode en ligne sera ajouté dans une prochaine version.";
 }
 
 startGame();
-</script>
 
+</script>
 </body>
 </html>
