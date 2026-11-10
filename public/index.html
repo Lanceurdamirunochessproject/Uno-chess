@@ -309,68 +309,72 @@ function playHumanMove(from,to) {
   setTimeout(botTurn,800);
 }
 
+
 function botTurn() {
-  if(finished) return;
+  if (finished) return;
 
-  let choices=[];
-  const allMoves=game.moves({verbose:true});
+  let choices = [];
 
-  for(let i=0;i<botHand.length;i++) {
-    const card=botHand[i];
-    if(!cardMatches(card)) continue;
-    for(const move of allMoves) {
-      const piece=game.get(move.from);
-      if(piece && allowedPiece(card,piece.type)) {
-        choices.push({cardIndex:i,move});
-      }
-    }
-  }
+  function findMoves() {
+    choices = [];
+    const allMoves = game.moves({ verbose: true });
 
-  if(choices.length===0) {
-    botHand.push(drawCard());
-    choices=[];
-    const moves=game.moves({verbose:true});
-    for(let i=0;i<botHand.length;i++) {
-      if(!cardMatches(botHand[i])) continue;
-      for(const move of moves) {
-        const piece=game.get(move.from);
-        if(piece && allowedPiece(botHand[i],piece.type)) {
-          choices.push({cardIndex:i,move});
+    for (let i = 0; i < botHand.length; i++) {
+      const card = botHand[i];
+      if (!cardMatches(card)) continue;
+
+      for (const move of allMoves) {
+        const piece = game.get(move.from);
+        if (piece && allowedPiece(card, piece.type)) {
+          choices.push({ cardIndex: i, move });
         }
       }
     }
   }
 
-  if(choices.length===0) {
-    status.textContent="Le bot ne peut pas jouer. À toi !";
-    locked=false;
+  findMoves();
+
+  // Le bot pioche jusqu'à pouvoir jouer.
+  while (choices.length === 0 && !game.game_over()) {
+    botHand.push(drawCard());
+    findMoves();
+  }
+
+  if (choices.length === 0) {
+    finishChessGame();
     return;
   }
 
-  const choice=choices[Math.floor(Math.random()*choices.length)];
-  const card=botHand.splice(choice.cardIndex,1)[0];
+  const choice = choices[Math.floor(Math.random() * choices.length)];
+  const card = botHand.splice(choice.cardIndex, 1)[0];
+
   game.move({
-    from:choice.move.from,
-    to:choice.move.to,
-    promotion:"q"
+    from: choice.move.from,
+    to: choice.move.to,
+    promotion: "q"
   });
 
-  discard=card;
-  applyCardEffect(card,hand);
+  discard = card;
+  applyCardEffect(card, hand);
 
   drawBoard();
   renderCards();
   updateDiscard();
 
-  if(checkWinner()) return;
-  if(game.game_over()) {
+  if (checkWinner()) return;
+
+  if (game.game_over()) {
     finishChessGame();
     return;
   }
 
-  locked=false;
-  status.textContent="À toi de jouer !";
+  locked = false;
+  status.textContent = "À toi de jouer !";
 }
+
+
+
+
 
 function drawForHuman() {
   if(locked || finished || game.turn()!=="w") return;
