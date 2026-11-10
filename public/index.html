@@ -1,262 +1,437 @@
 
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UNO.CHESS</title>
-
 <style>
 body {
-  margin: 0;
-  padding: 20px 10px;
-  background: #111827;
-  color: white;
-  font-family: Arial, sans-serif;
-  text-align: center;
+  margin:0; padding:18px 8px; background:#111827;
+  color:white; font-family:Arial,sans-serif; text-align:center;
 }
-h1 { color: #facc15; }
-h2 { color: #93c5fd; }
+h1 {color:#facc15}
+h2 {color:#93c5fd}
+button {
+  cursor:pointer; border:0; border-radius:8px;
+  padding:10px 13px; margin:5px; font-weight:bold;
+}
 #board {
-  display: grid;
-  grid-template-columns: repeat(8, min(11vw, 65px));
-  grid-template-rows: repeat(8, min(11vw, 65px));
-  justify-content: center;
-  margin: 20px auto;
-  border: 4px solid #d1d5db;
-  width: fit-content;
+  display:grid;
+  grid-template-columns:repeat(8,min(11vw,60px));
+  grid-template-rows:repeat(8,min(11vw,60px));
+  justify-content:center; margin:18px auto;
+  border:4px solid #d1d5db; width:fit-content;
 }
 .square {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: min(8vw, 42px);
-  cursor: pointer;
-  user-select: none;
+  display:flex; align-items:center; justify-content:center;
+  font-size:min(8vw,40px); cursor:pointer; user-select:none;
 }
-.light { background: #f0d9b5; }
-.dark { background: #b58863; }
-.selected { background: #facc15 !important; }
-.possible { box-shadow: inset 0 0 0 5px #22c55e; }
-button {
-  cursor: pointer;
-  border: 0;
-  border-radius: 8px;
-  padding: 10px 14px;
-  margin: 5px;
-  font-weight: bold;
-}
-#online { background: #2563eb; color: white; }
-#reset { background: #16a34a; color: white; }
-#status { color: #93c5fd; font-weight: bold; }
+.light {background:#f0d9b5}
+.dark {background:#b58863}
+.selected {background:#facc15!important}
+.possible {box-shadow:inset 0 0 0 5px #22c55e}
+#status {color:#93c5fd;font-weight:bold;min-height:24px}
 #uno-cards {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  max-width: 650px;
-  margin: 15px auto;
+  display:flex;flex-wrap:wrap;justify-content:center;
+  gap:7px;max-width:650px;margin:14px auto;
 }
 .uno-card {
-  width: 48px;
-  height: 70px;
-  color: white;
-  font-size: 17px;
-  border: 3px solid white;
-  border-radius: 9px;
-  box-shadow: 0 3px 6px #0008;
+  width:49px;height:70px;color:white;font-size:16px;
+  border:3px solid white;border-radius:9px;
+  box-shadow:0 3px 6px #0008;
 }
 .uno-card.selected {
-  transform: translateY(-8px);
-  outline: 3px solid #facc15;
+  transform:translateY(-8px);
+  outline:3px solid #facc15;
 }
+#reset {background:#16a34a;color:white}
+#draw {background:#eab308;color:#111827}
+#online {background:#2563eb;color:white}
+#discard {
+  display:inline-block;padding:12px 22px;border:3px solid white;
+  border-radius:10px;font-weight:bold;min-width:55px;
+}
+.small {color:#cbd5e1;font-size:13px}
 </style>
 </head>
-
 <body>
-<h1>UNO.CHESS</h1>
-<p>Échecs + UNO : un seul jeu !</p>
 
-<h2>Cartes UNO CHESS</h2>
+<h1>UNO.CHESS</h1>
+<p>Les échecs rencontrent UNO !</p>
+
+<h2>Ton jeu de cartes</h2>
 <div id="uno-cards"></div>
 
-<p id="status">Prêt à jouer !</p>
+<p id="status">Préparation de la partie...</p>
 
-<div>
-  <button id="online" onclick="findGame()">JOUER EN LIGNE</button>
-  <button id="reset" onclick="resetGame()">Nouvelle partie</button>
-</div>
+<p>
+  <button id="draw" onclick="drawForHuman()">PIOCHER UNE CARTE</button>
+  <button id="reset" onclick="resetGame()">NOUVELLE PARTIE</button>
+  <button id="online" onclick="onlineLater()">JOUER EN LIGNE</button>
+</p>
 
+<h2>Défausse</h2>
+<div id="discard">Aucune</div>
+<p id="active">Couleur active : rouge</p>
+
+<h2>Échiquier</h2>
 <div id="board"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+<p class="small">
+Rouge : tour ou dame · Bleu : cavalier · Vert : fou · Jaune : pion · Joker : toutes les pièces
+</p>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 <script>
 const game = new Chess();
+
 const board = document.getElementById("board");
 const status = document.getElementById("status");
+const cardsBox = document.getElementById("uno-cards");
+const discardBox = document.getElementById("discard");
+const activeBox = document.getElementById("active");
 
-let selected = null;
-let possible = [];
-let room = null;
-let myColor = null;
-
-const socket = io("https://uno-chess-server.onrender.com");
-
-socket.on("connect", () => {
-  status.textContent = "Connecté au serveur !";
-});
-
-socket.on("waiting", () => {
-  status.textContent = "En attente d'un adversaire...";
-});
-
-socket.on("game-found", (data) => {
-  room = data.room;
-  myColor = data.color;
-  status.textContent = "Adversaire trouvé ! Tu joues les " + myColor;
-});
-
-socket.on("game-action", (data) => {
-  if (data.move) {
-    game.move({
-      from: data.move.from,
-      to: data.move.to,
-      promotion: data.move.promotion || "q"
-    });
-    selected = null;
-    possible = [];
-    drawBoard();
-  }
-});
-
-function findGame() {
-  status.textContent = "Recherche d'un adversaire...";
-  socket.emit("find-game");
-}
-
-function resetGame() {
-  game.reset();
-  selected = null;
-  possible = [];
-  drawBoard();
-  status.textContent = "Nouvelle partie !";
-}
-
-const pieces = {
-  wK:"♔", wQ:"♕", wR:"♖", wB:"♗", wN:"♘", wP:"♙",
-  bK:"♚", bQ:"♛", bR:"♜", bB:"♝", bN:"♞", bP:"♟"
+const colors = {
+  rouge:"#ef4444",
+  jaune:"#eab308",
+  vert:"#16a34a",
+  bleu:"#2563eb",
+  joker:"#7c3aed"
 };
 
+const colorNames = Object.keys(colors);
+const pieces = {
+  wK:"♔",wQ:"♕",wR:"♖",wB:"♗",wN:"♘",wP:"♙",
+  bK:"♚",bQ:"♛",bR:"♜",bB:"♝",bN:"♞",bP:"♟"
+};
+
+let deck = [];
+let hand = [];
+let botHand = [];
+let discard = null;
+let activeColor = "rouge";
+let chosenCard = null;
+let selectedSquare = null;
+let possible = [];
+let locked = false;
+let finished = false;
+
+function makeDeck() {
+  let d = [];
+  for (const color of ["rouge","jaune","vert","bleu"]) {
+    for (let n=0;n<=9;n++) d.push({value:String(n),color});
+    for (const value of ["+2","↔","PASSE"]) {
+      d.push({value,color});
+    }
+  }
+  for (let i=0;i<4;i++) d.push({value:"JOKER",color:"joker"});
+  for (let i=0;i<4;i++) d.push({value:"+4",color:"joker"});
+  return d.sort(()=>Math.random()-0.5);
+}
+
+function drawCard() {
+  if (deck.length===0) deck=makeDeck();
+  return deck.pop();
+}
+
+function startGame() {
+  game.reset();
+  deck=makeDeck();
+  hand=[];
+  botHand=[];
+  for(let i=0;i<5;i++) {
+    hand.push(drawCard());
+    botHand.push(drawCard());
+  }
+  discard=drawCard();
+  while(discard.value==="JOKER" || discard.value==="+4") {
+    deck.push(discard);
+    discard=drawCard();
+  }
+  activeColor=discard.color;
+  chosenCard=null;
+  selectedSquare=null;
+  possible=[];
+  locked=false;
+  finished=false;
+  drawBoard();
+  renderCards();
+  updateDiscard();
+  status.textContent="À toi de jouer ! Choisis une carte.";
+}
+
+function cardMatches(card) {
+  return card.color==="joker" ||
+    card.color===activeColor ||
+    card.value===discard.value;
+}
+
+function allowedPiece(card,piece) {
+  if(card.color==="joker") return true;
+  if(card.color==="rouge") return piece==="r" || piece==="q";
+  if(card.color==="bleu") return piece==="n";
+  if(card.color==="vert") return piece==="b";
+  if(card.color==="jaune") return piece==="p";
+  return false;
+}
+
+function hasPlayableCard(cards) {
+  return cards.some(card=>cardMatches(card));
+}
+
+function renderCards() {
+  cardsBox.innerHTML="";
+  hand.forEach((card,index)=>{
+    const b=document.createElement("button");
+    b.className="uno-card";
+    if(chosenCard===index) b.classList.add("selected");
+    b.style.background=colors[card.color];
+    b.textContent=card.value;
+    b.onclick=()=>chooseCard(index);
+    cardsBox.appendChild(b);
+  });
+}
+
+function chooseCard(index) {
+  if(locked || finished || game.turn()!=="w") return;
+  const card=hand[index];
+  if(!cardMatches(card)) {
+    status.textContent="Cette carte ne correspond pas à la couleur ou au symbole actif.";
+    return;
+  }
+  chosenCard=index;
+  selectedSquare=null;
+  possible=[];
+  renderCards();
+  drawBoard();
+  status.textContent="Carte choisie ! Clique sur une pièce autorisée.";
+}
+
 function drawBoard() {
-  board.innerHTML = "";
-  const position = game.board();
-
-  for (let r = 0; r < 8; r++) {
-    for (let c = 0; c < 8; c++) {
-      const square = document.createElement("div");
-      const file = "abcdefgh"[c];
-      const rank = 8 - r;
-      const squareName = file + rank;
-      const piece = position[r][c];
-
-      square.className = "square " +
-        ((r + c) % 2 === 0 ? "light" : "dark");
-
-      if (piece) {
-        square.textContent = pieces[piece.color + piece.type.toUpperCase()];
-      }
-
-      if (selected === squareName) {
-        square.classList.add("selected");
-      }
-
-      if (possible.includes(squareName)) {
-        square.classList.add("possible");
-      }
-
-      square.onclick = () => clickSquare(squareName);
+  board.innerHTML="";
+  const position=game.board();
+  for(let r=0;r<8;r++) {
+    for(let c=0;c<8;c++) {
+      const square=document.createElement("div");
+      const name="abcdefgh"[c]+(8-r);
+      const piece=position[r][c];
+      square.className="square "+((r+c)%2===0?"light":"dark");
+      if(piece) square.textContent=pieces[piece.color+piece.type.toUpperCase()];
+      if(selectedSquare===name) square.classList.add("selected");
+      if(possible.includes(name)) square.classList.add("possible");
+      square.onclick=()=>clickSquare(name);
       board.appendChild(square);
     }
   }
 }
 
-function clickSquare(square) {
-  if (selected) {
-    const move = game.move({
-      from: selected,
-      to: square,
-      promotion: "q"
-    });
+function clickSquare(name) {
+  if(locked || finished || game.turn()!=="w") return;
 
-    if (move) {
-      socket.emit("game-action", {
-        room: room,
-        move: {
-          from: move.from,
-          to: move.to,
-          promotion: move.promotion
-        }
-      });
-      selected = null;
-      possible = [];
-      drawBoard();
-      status.textContent = "Tour des " +
-        (game.turn() === "w" ? "blancs" : "noirs");
+  if(chosenCard===null) {
+    status.textContent="Choisis d'abord une carte UNO.";
+    return;
+  }
+
+  const piece=game.get(name);
+
+  if(selectedSquare && possible.includes(name)) {
+    playHumanMove(selectedSquare,name);
+    return;
+  }
+
+  if(piece && piece.color==="w") {
+    const card=hand[chosenCard];
+    if(!allowedPiece(card,piece.type)) {
+      status.textContent="Cette carte ne permet pas de déplacer cette pièce.";
       return;
     }
-  }
-
-  const piece = game.get(square);
-
-  if (piece && piece.color === game.turn()) {
-    selected = square;
-    possible = game.moves({
-      square: square,
-      verbose: true
-    }).map(move => move.to);
+    selectedSquare=name;
+    possible=game.moves({square:name,verbose:true}).map(m=>m.to);
+    if(possible.length===0) {
+      status.textContent="Cette pièce ne peut pas bouger.";
+    } else {
+      status.textContent="Choisis une case verte.";
+    }
   } else {
-    selected = null;
-    possible = [];
+    selectedSquare=null;
+    possible=[];
   }
-
   drawBoard();
 }
 
-drawBoard();
-</script>
-
-<script>
-const container = document.getElementById("uno-cards");
-
-const colors = {
-  red: "#ef4444",
-  yellow: "#eab308",
-  green: "#16a34a",
-  blue: "#2563eb"
-};
-
-function addCard(value, color) {
-  const card = document.createElement("button");
-  card.className = "uno-card";
-  card.style.backgroundColor = color;
-  card.textContent = value;
-  card.onclick = () => card.classList.toggle("selected");
-  container.appendChild(card);
+function applyCardEffect(card,opponentHand) {
+  if(card.value==="+2") {
+    opponentHand.push(drawCard(),drawCard());
+  } else if(card.value==="+4") {
+    for(let i=0;i<4;i++) opponentHand.push(drawCard());
+  } else if(card.value==="PASSE") {
+    if(opponentHand.length>0) {
+      opponentHand.splice(Math.floor(Math.random()*opponentHand.length),1);
+    }
+  } else if(card.value==="↔") {
+    const choices=colorNames.filter(c=>c!=="joker" && c!==activeColor);
+    activeColor=choices[Math.floor(Math.random()*choices.length)];
+  } else if(card.color==="joker") {
+    activeColor=["rouge","jaune","vert","bleu"][Math.floor(Math.random()*4)];
+  } else {
+    activeColor=card.color;
+  }
 }
 
-Object.values(colors).forEach(color => {
-  for (let n = 0; n <= 9; n++) {
-    addCard(n, color);
+function playHumanMove(from,to) {
+  const card=hand[chosenCard];
+  const move=game.move({from,to,promotion:"q"});
+  if(!move) return;
+
+  hand.splice(chosenCard,1);
+  discard=card;
+  applyCardEffect(card,botHand);
+
+  chosenCard=null;
+  selectedSquare=null;
+  possible=[];
+
+  drawBoard();
+  renderCards();
+  updateDiscard();
+
+  if(checkWinner()) return;
+
+  if(game.game_over()) {
+    finishChessGame();
+    return;
   }
 
-  ["+2", "↔", "PASSE"].forEach(value => {
-    addCard(value, color);
-  });
-});
-</script>
+  status.textContent="Le bot réfléchit...";
+  locked=true;
+  setTimeout(botTurn,800);
+}
 
+function botTurn() {
+  if(finished) return;
+
+  let choices=[];
+  const allMoves=game.moves({verbose:true});
+
+  for(let i=0;i<botHand.length;i++) {
+    const card=botHand[i];
+    if(!cardMatches(card)) continue;
+    for(const move of allMoves) {
+      const piece=game.get(move.from);
+      if(piece && allowedPiece(card,piece.type)) {
+        choices.push({cardIndex:i,move});
+      }
+    }
+  }
+
+  if(choices.length===0) {
+    botHand.push(drawCard());
+    choices=[];
+    const moves=game.moves({verbose:true});
+    for(let i=0;i<botHand.length;i++) {
+      if(!cardMatches(botHand[i])) continue;
+      for(const move of moves) {
+        const piece=game.get(move.from);
+        if(piece && allowedPiece(botHand[i],piece.type)) {
+          choices.push({cardIndex:i,move});
+        }
+      }
+    }
+  }
+
+  if(choices.length===0) {
+    status.textContent="Le bot ne peut pas jouer. À toi !";
+    locked=false;
+    return;
+  }
+
+  const choice=choices[Math.floor(Math.random()*choices.length)];
+  const card=botHand.splice(choice.cardIndex,1)[0];
+  game.move({
+    from:choice.move.from,
+    to:choice.move.to,
+    promotion:"q"
+  });
+
+  discard=card;
+  applyCardEffect(card,hand);
+
+  drawBoard();
+  renderCards();
+  updateDiscard();
+
+  if(checkWinner()) return;
+  if(game.game_over()) {
+    finishChessGame();
+    return;
+  }
+
+  locked=false;
+  status.textContent="À toi de jouer !";
+}
+
+function drawForHuman() {
+  if(locked || finished || game.turn()!=="w") return;
+  const card=drawCard();
+  hand.push(card);
+  renderCards();
+
+  if(hasPlayableCard(hand)) {
+    status.textContent="Carte piochée ! Tu peux maintenant la jouer.";
+  } else {
+    status.textContent="Aucune carte jouable. Tour du bot.";
+    locked=true;
+    setTimeout(botTurn,800);
+  }
+}
+
+function checkWinner() {
+  if(hand.length===0) {
+    finished=true;
+    locked=true;
+    status.textContent="🏆 BRAVO ! Tu as gagné en vidant ta main !";
+    return true;
+  }
+  if(botHand.length===0) {
+    finished=true;
+    locked=true;
+    status.textContent="🤖 Le bot a gagné en vidant sa main !";
+    return true;
+  }
+  return false;
+}
+
+function finishChessGame() {
+  finished=true;
+  locked=true;
+  if(game.in_checkmate()) {
+    status.textContent=game.turn()==="b" ?
+      "🏆 ÉCHEC ET MAT ! Tu as gagné !" :
+      "🤖 Échec et mat ! Le bot a gagné.";
+  } else {
+    status.textContent="Partie terminée !";
+  }
+}
+
+function updateDiscard() {
+  discardBox.textContent=discard.value;
+  discardBox.style.background=colors[discard.color];
+  activeBox.textContent="Couleur active : "+activeColor;
+}
+
+function resetGame() {
+  startGame();
+}
+
+function onlineLater() {
+  status.textContent="Le mode en ligne sera activé après la synchronisation du serveur.";
+}
+
+startGame();
+</script>
 </body>
 </html>
+
+
