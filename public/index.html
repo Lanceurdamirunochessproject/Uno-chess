@@ -153,9 +153,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
  margin-bottom:8px;
 }
 
-.report-stat small{
- color:#cbd5e1;
-}
+.report-stat small{color:#cbd5e1}
 
 .report-section{
  background:#1f2937;
@@ -266,8 +264,6 @@ button:disabled{opacity:.5;cursor:not-allowed}
  Rouge : tour ou dame · Bleu : cavalier · Vert : fou · Jaune : pion · Joker : toutes les pièces
 </p>
 
-<!-- PAGE BILAN -->
-
 <div id="report">
 
  <div class="report-header">
@@ -350,15 +346,7 @@ let selectedSquare=null;
 let possible=[];
 let locked=false;
 let finished=true;
-
 let moveHistory=[];
-
-const categoryNames={
- excellent:"🟢 Excellent",
- gambling:"🎲 Gambling Move",
- error:"🟠 Erreur",
- blunder:"🔴 Grosse erreur"
-};
 
 /* NIVEAUX */
 
@@ -404,9 +392,7 @@ function makeDeck(){
 }
 
 function drawCard(){
- if(deck.length===0){
-  deck=makeDeck();
- }
+ if(deck.length===0)deck=makeDeck();
  return deck.pop();
 }
 
@@ -432,8 +418,43 @@ function allowedPiece(card,piece){
  return false;
 }
 
-function hasPlayableCard(cards){
- return cards.some(c=>cardMatches(c));
+/* VÉRIFICATION D'UNE VRAIE ACTION JOUABLE */
+
+function hasPlayableAction(cards,side){
+ if(game.turn()!==side)return false;
+
+ const moves=game.moves({verbose:true});
+
+ return cards.some(card=>{
+  if(!cardMatches(card))return false;
+
+  return moves.some(move=>allowedPiece(card,move.piece));
+ });
+}
+
+/* CHANGER LE TOUR SANS JOUER UN COUP */
+
+function passTurn(nextSide){
+ const fields=game.fen().split(" ");
+ const currentSide=fields[1];
+
+ if(currentSide===nextSide)return true;
+
+ if(currentSide==="b"&&nextSide==="w"){
+  fields[5]=String(Number(fields[5])+1);
+ }
+
+ fields[1]=nextSide;
+
+ const loaded=game.load(fields.join(" "));
+
+ if(!loaded){
+  console.error("Impossible de passer le tour dans cette position.");
+  endGame("Erreur technique : impossible de passer le tour.");
+  return false;
+ }
+
+ return true;
 }
 
 /* CHOIX DE COULEUR */
@@ -447,17 +468,13 @@ function bestColorFor(cards){
  };
 
  cards.forEach(c=>{
-  if(counts[c.color]!==undefined){
-   counts[c.color]++;
-  }
+  if(counts[c.color]!==undefined)counts[c.color]++;
  });
 
  let best="rouge";
 
  for(const color of colorNames){
-  if(counts[color]>counts[best]){
-   best=color;
-  }
+  if(counts[color]>counts[best])best=color;
  }
 
  return best;
@@ -471,9 +488,7 @@ function applyCardEffect(card,opponentHand,actingHand){
  }
 
  if(card.value==="+4"){
-  for(let i=0;i<4;i++){
-   opponentHand.push(drawCard());
-  }
+  for(let i=0;i<4;i++)opponentHand.push(drawCard());
  }
 
  if(card.value==="PASSE"&&opponentHand.length>0){
@@ -497,9 +512,7 @@ function renderCards(){
 
   b.className="uno-card";
 
-  if(chosenCard===index){
-   b.classList.add("selected");
-  }
+  if(chosenCard===index)b.classList.add("selected");
 
   b.style.background=colors[card.color];
   b.textContent=card.value;
@@ -559,7 +572,6 @@ function startGame(){
  deck=makeDeck();
  hand=[];
  botHand=[];
-
  moveHistory=[];
 
  reportBox.style.display="none";
@@ -605,6 +617,15 @@ function chooseCard(index){
 
  if(!cardMatches(card)){
   status.textContent="Cette carte ne correspond pas à la couleur ou au symbole actif.";
+  return;
+ }
+
+ const moves=game.moves({verbose:true});
+
+ const canPlay=moves.some(move=>allowedPiece(card,move.piece));
+
+ if(!canPlay){
+  status.textContent="Cette carte ne permet aucun déplacement légal actuellement.";
   return;
  }
 
@@ -706,7 +727,6 @@ function recordMove(side,beforeScore,move,card){
 
 function playHumanMove(from,to){
  const card=hand[chosenCard];
-
  const beforeScore=evaluatePosition();
 
  const move=game.move({
@@ -723,7 +743,6 @@ function playHumanMove(from,to){
  hand.splice(chosenCard,1);
 
  discard=card;
-
  applyCardEffect(card,botHand,hand);
 
  recordMove("w",beforeScore,move,card);
@@ -744,15 +763,32 @@ function playHumanMove(from,to){
  setTimeout(botTurn,250);
 }
 
+/* PIOCHE DU JOUEUR : UNE SEULE CARTE */
+
 function drawForHuman(){
  if(locked||finished||game.turn()!=="w")return;
 
+ if(hasPlayableAction(hand,"w")){
+  status.textContent="Tu as une carte jouable ! Tu dois la jouer avant de piocher.";
+  return;
+ }
+
  hand.push(drawCard());
 
- renderCards();
+ chosenCard=null;
+ selectedSquare=null;
+ possible=[];
 
- status.textContent=
- "Carte piochée ! Tu peux encore piocher ou jouer une carte compatible.";
+ renderCards();
+ drawBoard();
+
+ status.textContent="Tu as pioché une carte. Ton tour est terminé : le bot joue.";
+
+ locked=true;
+
+ if(!passTurn("b"))return;
+
+ setTimeout(botTurn,500);
 }
 
 /* FIN DE PARTIE */
@@ -762,7 +798,6 @@ function endGame(message){
  locked=true;
 
  status.textContent=message;
-
  reportBtn.disabled=false;
 }
 
@@ -799,32 +834,18 @@ function evaluateMove(move){
  let score=0;
 
  const values={
-  p:100,
-  n:320,
-  b:330,
-  r:500,
-  q:900
+  p:100,n:320,b:330,r:500,q:900
  };
 
- if(move.captured){
-  score+=values[move.captured]||0;
- }
-
+ if(move.captured)score+=values[move.captured]||0;
  if(move.promotion)score+=800;
 
- if(move.san&&move.san.includes("+")){
-  score+=80;
- }
-
- if(move.san&&move.san.includes("#")){
-  score+=100000;
- }
+ if(move.san&&move.san.includes("+"))score+=80;
+ if(move.san&&move.san.includes("#"))score+=100000;
 
  const center=["d4","e4","d5","e5"];
 
- if(center.includes(move.to)){
-  score+=25;
- }
+ if(center.includes(move.to))score+=25;
 
  return score;
 }
@@ -834,19 +855,12 @@ function evaluatePosition(){
   return game.turn()==="b"?-100000:100000;
  }
 
- if(game.in_draw()||game.in_stalemate()){
-  return 0;
- }
+ if(game.in_draw()||game.in_stalemate())return 0;
 
  let score=0;
 
  const values={
-  p:100,
-  n:320,
-  b:330,
-  r:500,
-  q:900,
-  k:0
+  p:100,n:320,b:330,r:500,q:900,k:0
  };
 
  const position=game.board();
@@ -902,12 +916,7 @@ function getActions(side){
 
    if(side==="w")score=-score;
 
-   actions.push({
-    index,
-    card,
-    move,
-    score
-   });
+   actions.push({index,card,move,score});
   });
  });
 
@@ -951,14 +960,12 @@ function simulateAction(action,side){
  }
 
  discard=card;
-
  applyCardEffect(card,opponent,actor);
 
  return function undo(){
   game.undo();
 
   deck=oldDeck;
-
   actor.splice(0,actor.length,...oldActor);
   opponent.splice(0,opponent.length,...oldOpponent);
 
@@ -977,20 +984,16 @@ function searchAI(depth,alpha,beta){
  const side=game.turn();
  const actions=getActions(side);
 
- if(actions.length===0){
-  return evaluatePosition();
- }
+ if(actions.length===0)return evaluatePosition();
 
  if(side==="b"){
   let best=-Infinity;
 
   for(const action of actions){
    const undo=simulateAction(action,side);
-
    if(!undo)continue;
 
    const score=searchAI(depth-1,alpha,beta);
-
    undo();
 
    best=Math.max(best,score);
@@ -1006,11 +1009,9 @@ function searchAI(depth,alpha,beta){
 
  for(const action of actions){
   const undo=simulateAction(action,side);
-
   if(!undo)continue;
 
   const score=searchAI(depth-1,alpha,beta);
-
   undo();
 
   best=Math.min(best,score);
@@ -1029,21 +1030,23 @@ function botTurn(){
 
  thinkingBox.textContent="Analyse des cartes et des déplacements...";
 
- let actions=[];
- let safety=0;
+ const actions=getActions("b");
 
- while(actions.length===0&&safety<200){
-  actions=getActions("b");
-
-  if(actions.length===0){
-   botHand.push(drawCard());
-   safety++;
-  }
- }
+ /* SI LE BOT N'A AUCUNE ACTION, IL PIOCHE UNE SEULE CARTE */
 
  if(actions.length===0){
-  endGame("Le bot n'a pas trouvé de combinaison jouable.");
+  botHand.push(drawCard());
+
   thinkingBox.textContent="";
+
+  if(!passTurn("w"))return;
+
+  locked=false;
+
+  renderCards();
+  updateDiscard();
+
+  status.textContent="Le bot n'avait aucune carte jouable : il a pioché une carte. À toi !";
   return;
  }
 
@@ -1095,7 +1098,6 @@ function botTurn(){
  botHand.splice(chosen.index,1);
 
  discard=card;
-
  applyCardEffect(card,hand,botHand);
 
  recordMove("b",beforeScore,move,card);
@@ -1131,15 +1133,12 @@ function showReport(){
   blunder:0
  };
 
- moveHistory.forEach(m=>{
-  counts[m.category]++;
- });
+ moveHistory.forEach(m=>counts[m.category]++);
 
  document.getElementById("reportTitle").textContent=
  "Partie terminée · "+moveHistory.length+" coups analysés";
 
  const summary=document.getElementById("reportSummary");
-
  summary.innerHTML="";
 
  const stats=[
@@ -1178,8 +1177,7 @@ function showReport(){
    title.className="report-move-title";
 
    const name=document.createElement("strong");
-   name.textContent=
-    "#"+m.number+" · "+m.side;
+   name.textContent="#"+m.number+" · "+m.side;
 
    const tag=document.createElement("span");
    tag.className="report-tag";
