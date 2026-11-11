@@ -74,49 +74,139 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .small{color:#cbd5e1;font-size:13px}
 #thinking{color:#facc15;min-height:18px;font-size:13px}
 
+/* PAGE DU BILAN */
+
 #report{
  display:none;
- max-width:650px;
- margin:20px auto;
- padding:16px;
- background:#1f2937;
- border:2px solid #475569;
- border-radius:14px;
- text-align:left
+ position:fixed;
+ inset:0;
+ z-index:9999;
+ width:100%;
+ height:100%;
+ overflow-y:auto;
+ background:#0b1220;
+ text-align:left;
+ padding:20px;
 }
-#report h2{text-align:center}
+
+.report-header{
+ max-width:1100px;
+ margin:0 auto;
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ flex-wrap:wrap;
+ gap:12px;
+ border-bottom:1px solid #374151;
+ padding-bottom:15px;
+}
+
+.report-header h1{
+ font-size:26px;
+ margin:8px 0;
+}
+
+#backToGame{
+ background:#facc15;
+ color:#111827;
+ font-size:15px;
+ padding:13px 18px;
+}
+
+.report-content{
+ max-width:1100px;
+ margin:25px auto;
+}
+
+.report-welcome{
+ background:#1f2937;
+ border-radius:15px;
+ padding:22px;
+ text-align:center;
+ margin-bottom:20px;
+}
+
+.report-welcome h2{
+ color:white;
+ font-size:25px;
+}
+
 #reportSummary{
  display:grid;
- grid-template-columns:repeat(2,minmax(0,1fr));
- gap:9px
+ grid-template-columns:repeat(4,minmax(0,1fr));
+ gap:12px;
+ margin:20px 0;
 }
+
 .report-stat{
- padding:12px;
- border-radius:9px;
- background:#374151;
+ padding:18px 10px;
+ border-radius:12px;
+ background:#1f2937;
  text-align:center;
- font-weight:bold
+ border:1px solid #374151;
 }
+
 .report-stat span{
  display:block;
- font-size:25px;
- margin-bottom:5px
+ font-size:30px;
+ font-weight:bold;
+ margin-bottom:8px;
 }
+
+.report-stat small{
+ color:#cbd5e1;
+}
+
+.report-section{
+ background:#1f2937;
+ padding:18px;
+ border-radius:14px;
+ margin-top:20px;
+}
+
+.report-section h3{
+ color:#93c5fd;
+ margin-top:0;
+}
+
 .report-move{
- padding:11px;
- margin:8px 0;
+ padding:15px;
+ margin:12px 0;
  background:#374151;
- border-radius:8px;
- border-left:5px solid #64748b
+ border-radius:10px;
+ border-left:5px solid #64748b;
 }
+
 .report-move.excellent{border-left-color:#22c55e}
 .report-move.gambling{border-left-color:#a78bfa}
 .report-move.error{border-left-color:#f97316}
 .report-move.blunder{border-left-color:#ef4444}
+
+.report-move-title{
+ display:flex;
+ justify-content:space-between;
+ flex-wrap:wrap;
+ gap:8px;
+}
+
 .report-note{
  color:#cbd5e1;
  font-size:12px;
- line-height:1.5
+ line-height:1.5;
+}
+
+.report-tag{
+ display:inline-block;
+ padding:5px 9px;
+ border-radius:6px;
+ background:#111827;
+ font-size:12px;
+}
+
+@media(max-width:650px){
+ #reportSummary{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #report{padding:12px}
+ .report-header h1{font-size:21px}
 }
 </style>
 </head>
@@ -165,21 +255,6 @@ button:disabled{opacity:.5;cursor:not-allowed}
  </button>
 </p>
 
-<div id="report">
- <h2>📊 BILAN DE PARTIE</h2>
- <p id="reportTitle" style="text-align:center"></p>
-
- <div id="reportSummary"></div>
-
- <h3>Analyse des coups</h3>
- <div id="reportMoves"></div>
-
- <p class="report-note">
- Analyse indicative de UNO.CHESS AI. Les catégories sont calculées
- à partir de l'évolution de la position et des effets des cartes UNO.
- </p>
-</div>
-
 <h2>Défausse</h2>
 <div id="discard">Aucune</div>
 <p id="active">Couleur active : rouge</p>
@@ -190,6 +265,40 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <p class="small">
  Rouge : tour ou dame · Bleu : cavalier · Vert : fou · Jaune : pion · Joker : toutes les pièces
 </p>
+
+<!-- PAGE BILAN -->
+
+<div id="report">
+
+ <div class="report-header">
+  <h1>♟ UNO.CHESS ANALYSIS</h1>
+  <button id="backToGame" onclick="closeReport()">
+   ← RETOUR À LA PARTIE
+  </button>
+ </div>
+
+ <div class="report-content">
+
+  <div class="report-welcome">
+   <h2>📊 BILAN DE PARTIE</h2>
+   <p id="reportTitle">Partie terminée</p>
+  </div>
+
+  <div id="reportSummary"></div>
+
+  <div class="report-section">
+   <h3>📈 Analyse coup par coup</h3>
+   <div id="reportMoves"></div>
+  </div>
+
+  <p class="report-note" style="text-align:center;margin:25px">
+   Analyse indicative de UNO.CHESS AI. Les catégories sont calculées
+   à partir de l'évolution estimée de la position et des effets des cartes UNO.
+   Elles ne correspondent pas à une analyse professionnelle de moteur d'échecs.
+  </p>
+
+ </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 
@@ -220,7 +329,7 @@ const colorNames = ["rouge","jaune","vert","bleu"];
 
 const pieces = {
  wK:"♔",wQ:"♕",wR:"♖",wB:"♗",wN:"♘",wP:"♙",
- bK:"♚",bQ:"♛",bR:"♜",bN:"♞",bB:"♝",bP:"♟"
+ bK:"♚",bQ:"♛",bR:"♜",bB:"♝",bN:"♞",bP:"♟"
 };
 
 const levels = {
@@ -241,8 +350,6 @@ let selectedSquare=null;
 let possible=[];
 let locked=false;
 let finished=true;
-
-/* NOUVEAU : HISTORIQUE DU BILAN */
 
 let moveHistory=[];
 
@@ -549,7 +656,7 @@ function clickSquare(name){
  drawBoard();
 }
 
-/* NOUVEAU : ANALYSE D'UN COUP */
+/* ANALYSE D'UN COUP */
 
 function recordMove(side,beforeScore,move,card){
  const afterScore=evaluatePosition();
@@ -576,6 +683,8 @@ function recordMove(side,beforeScore,move,card){
   category="excellent";
  }else if(risky&&change>=-180){
   category="gambling";
+ }else if(change>=-80){
+  category="excellent";
  }else if(change>=-250){
   category="error";
  }else{
@@ -1005,7 +1114,7 @@ function botTurn(){
  "Le bot a joué "+card.value+" et "+move.san+". À toi !";
 }
 
-/* AFFICHER LE BILAN */
+/* PAGE DU BILAN */
 
 function showReport(){
  if(!finished){
@@ -1047,7 +1156,7 @@ function showReport(){
   const number=document.createElement("span");
   number.textContent=counts[item[0]];
 
-  const label=document.createElement("div");
+  const label=document.createElement("small");
   label.textContent=item[1]+" "+item[2];
 
   div.appendChild(number);
@@ -1060,34 +1169,47 @@ function showReport(){
 
  if(moveHistory.length===0){
   movesBox.textContent="Aucun coup n'a été enregistré.";
-  return;
+ }else{
+  moveHistory.forEach(m=>{
+   const div=document.createElement("div");
+   div.className="report-move "+m.category;
+
+   const title=document.createElement("div");
+   title.className="report-move-title";
+
+   const name=document.createElement("strong");
+   name.textContent=
+    "#"+m.number+" · "+m.side;
+
+   const tag=document.createElement("span");
+   tag.className="report-tag";
+   tag.textContent=categoryNames[m.category];
+
+   title.appendChild(name);
+   title.appendChild(tag);
+
+   const detail=document.createElement("p");
+   detail.textContent=
+    "Coup : "+m.san+" | Carte UNO : "+m.card+
+    " ("+m.color+")";
+
+   const change=document.createElement("p");
+   change.className="report-note";
+   change.textContent=
+    "Variation estimée : "+(m.change>=0?"+":"")+
+    Math.round(m.change)+" points";
+
+   div.appendChild(title);
+   div.appendChild(detail);
+   div.appendChild(change);
+
+   movesBox.appendChild(div);
+  });
  }
+}
 
- moveHistory.forEach(m=>{
-  const div=document.createElement("div");
-  div.className="report-move "+m.category;
-
-  const title=document.createElement("strong");
-  title.textContent=
-   "#"+m.number+" · "+m.side+" · "+categoryNames[m.category];
-
-  const detail=document.createElement("p");
-  detail.textContent=
-   "Coup : "+m.san+" | Carte UNO : "+m.card+
-   " ("+m.color+")";
-
-  const change=document.createElement("p");
-  change.className="report-note";
-  change.textContent=
-   "Variation estimée : "+(m.change>=0?"+":"")+
-   Math.round(m.change)+" points";
-
-  div.appendChild(title);
-  div.appendChild(detail);
-  div.appendChild(change);
-
-  movesBox.appendChild(div);
- });
+function closeReport(){
+ reportBox.style.display="none";
 }
 
 /* COMMANDES */
@@ -1105,3 +1227,4 @@ startGame();
 </script>
 </body>
 </html>
+
