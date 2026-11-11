@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -18,6 +19,7 @@ button{
  padding:10px 13px;margin:5px;font-weight:bold
 }
 button:disabled{opacity:.5;cursor:not-allowed}
+
 #levels{
  display:flex;flex-wrap:wrap;justify-content:center;
  gap:8px;margin:15px auto;max-width:600px
@@ -33,45 +35,189 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .hard{background:#dc2626}
 .savage{background:#7e22ce}
 #start{background:#facc15;color:#111827;font-size:17px;padding:13px 25px}
+
+/* NOUVELLE DISPOSITION DU JEU */
+
+#game-layout{
+ display:grid;
+ grid-template-columns:minmax(130px,190px) minmax(300px,1fr) minmax(130px,190px);
+ align-items:center;
+ justify-content:center;
+ gap:18px;
+ max-width:1100px;
+ margin:20px auto;
+}
+
+.game-side{
+ min-width:0;
+ background:#1f2937;
+ border:1px solid #374151;
+ border-radius:14px;
+ padding:12px 8px;
+ min-height:250px;
+ display:flex;
+ flex-direction:column;
+ align-items:center;
+ justify-content:center;
+}
+
+.game-side h2{
+ font-size:17px;
+ margin:5px 0 12px;
+}
+
+#uno-cards{
+ display:flex;
+ flex-direction:column;
+ flex-wrap:nowrap;
+ align-items:center;
+ justify-content:center;
+ gap:7px;
+ max-width:100%;
+ margin:8px auto;
+}
+
+.uno-card{
+ width:65px;
+ height:86px;
+ flex-shrink:0;
+ color:white;
+ font-size:17px;
+ border:3px solid white;
+ border-radius:9px;
+ box-shadow:0 3px 6px #0008;
+ margin:0;
+}
+.uno-card.selected{
+ transform:translateX(7px);
+ outline:3px solid #facc15;
+}
+
+#board-area{
+ min-width:0;
+ display:flex;
+ flex-direction:column;
+ align-items:center;
+ justify-content:center;
+}
+
 #board{
  display:grid;
- grid-template-columns:repeat(8,min(11vw,60px));
- grid-template-rows:repeat(8,min(11vw,60px));
- justify-content:center;margin:18px auto;
- border:4px solid #d1d5db;width:fit-content
+ grid-template-columns:repeat(8,min(8.2vw,60px));
+ grid-template-rows:repeat(8,min(8.2vw,60px));
+ justify-content:center;
+ margin:10px auto;
+ border:4px solid #d1d5db;
+ width:fit-content;
+ max-width:100%;
 }
+
 .square{
  display:flex;align-items:center;justify-content:center;
- font-size:min(8vw,40px);cursor:pointer;user-select:none
+ font-size:min(7vw,40px);cursor:pointer;user-select:none
 }
 .light{background:#f0d9b5}
 .dark{background:#b58863}
 .selected-square{background:#facc15!important}
 .possible{box-shadow:inset 0 0 0 5px #22c55e}
+
 #status{color:#93c5fd;font-weight:bold;min-height:24px}
-#uno-cards{
- display:flex;flex-wrap:wrap;justify-content:center;
- gap:7px;max-width:650px;margin:14px auto
-}
-.uno-card{
- width:49px;height:70px;color:white;font-size:16px;
- border:3px solid white;border-radius:9px;
- box-shadow:0 3px 6px #0008
-}
-.uno-card.selected{
- transform:translateY(-8px);outline:3px solid #facc15
-}
 #reset{background:#16a34a;color:white}
 #draw{background:#eab308;color:#111827}
 #online{background:#2563eb;color:white}
 #reportBtn{background:#facc15;color:#111827;font-size:16px}
+
 #discard{
- display:inline-block;padding:12px 22px;
- border:3px solid white;border-radius:10px;
- font-weight:bold;min-width:55px
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ padding:14px 22px;
+ border:3px solid white;
+ border-radius:10px;
+ font-weight:bold;
+ min-width:65px;
+ min-height:75px;
+ color:white;
+ font-size:20px;
 }
+
+#draw{
+ margin:12px 0;
+ width:100%;
+ max-width:145px;
+}
+
 .small{color:#cbd5e1;font-size:13px}
 #thinking{color:#facc15;min-height:18px;font-size:13px}
+
+.side-label{
+ color:#9ca3af;
+ font-size:12px;
+ margin:10px 0 4px;
+}
+
+@media(max-width:700px){
+ body{padding:12px 5px}
+
+ #game-layout{
+  grid-template-columns:minmax(85px,1fr) minmax(0,3fr) minmax(85px,1fr);
+  gap:5px;
+  margin:12px auto;
+ }
+
+ .game-side{
+  padding:8px 3px;
+  min-height:210px;
+ }
+
+ .game-side h2{
+  font-size:13px;
+ }
+
+ .uno-card{
+  width:48px;
+  height:67px;
+  font-size:14px;
+  border-width:2px;
+ }
+
+ #board{
+  grid-template-columns:repeat(8,min(10.4vw,48px));
+  grid-template-rows:repeat(8,min(10.4vw,48px));
+  border-width:3px;
+  margin:8px auto;
+ }
+
+ .square{font-size:min(8vw,32px)}
+
+ #discard{
+  min-width:48px;
+  min-height:58px;
+  padding:8px;
+  font-size:16px;
+ }
+
+ #draw{
+  padding:8px 3px;
+  font-size:11px;
+  margin:8px 0;
+ }
+
+ .side-label{font-size:10px}
+}
+
+@media(max-width:380px){
+ #game-layout{
+  grid-template-columns:65px minmax(0,1fr) 65px;
+  gap:3px;
+ }
+ .uno-card{width:43px;height:61px}
+ .game-side h2{font-size:11px}
+ #board{
+  grid-template-columns:repeat(8,min(10.5vw,39px));
+  grid-template-rows:repeat(8,min(10.5vw,39px));
+ }
+}
 
 /* PAGE DU BILAN */
 
@@ -131,9 +277,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
  margin-top:5px;
 }
 
-.report-welcome p{
- color:#d1d5db;
-}
+.report-welcome p{color:#d1d5db}
 
 .report-summary{
  display:grid;
@@ -160,9 +304,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
  font-size:12px;
 }
 
-.report-section{
- margin-top:25px;
-}
+.report-section{margin-top:25px}
 
 .report-section h3{
  color:#93c5fd;
@@ -215,10 +357,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
  color:white;
 }
 
-.report-uno{
- color:#cbd5e1;
- font-size:13px;
-}
+.report-uno{color:#cbd5e1;font-size:13px}
 
 .report-explanation{
  color:#cbd5e1;
@@ -226,10 +365,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
  line-height:1.55;
 }
 
-.report-evaluation{
- color:#93c5fd;
- font-size:12px;
-}
+.report-evaluation{color:#93c5fd;font-size:12px}
 
 .report-tag{
  display:inline-block;
@@ -295,14 +431,10 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
 <button id="start" onclick="resetGame()">▶ COMMENCER LA PARTIE</button>
 
-<h2>Ton jeu de cartes</h2>
-<div id="uno-cards"></div>
-
 <p id="status">Choisis ton niveau et commence !</p>
 <p id="thinking"></p>
 
 <p>
- <button id="draw" onclick="drawForHuman()">PIOCHER UNE CARTE</button>
  <button id="reset" onclick="resetGame()">NOUVELLE PARTIE</button>
  <button id="online" onclick="onlineLater()">JOUER EN LIGNE</button>
 </p>
@@ -313,16 +445,32 @@ button:disabled{opacity:.5;cursor:not-allowed}
  </button>
 </p>
 
-<h2>Défausse</h2>
-<div id="discard">Aucune</div>
-<p id="active">Couleur active : rouge</p>
+<!-- PLATEAU : CARTES À GAUCHE, ÉCHIQUIER AU CENTRE, PIOCHE À DROITE -->
 
-<h2>Échiquier</h2>
-<div id="board"></div>
+<div id="game-layout">
 
-<p class="small">
- Rouge : tour ou dame · Bleu : cavalier · Vert : fou · Jaune : pion · Joker : toutes les pièces
-</p>
+ <aside class="game-side">
+  <h2>TES CARTES</h2>
+  <div id="uno-cards"></div>
+ </aside>
+
+ <main id="board-area">
+  <h2>Échiquier</h2>
+  <div id="board"></div>
+  <p class="small">
+   Rouge : tour ou dame · Bleu : cavalier · Vert : fou · Jaune : pion · Joker : toutes les pièces
+  </p>
+ </main>
+
+ <aside class="game-side">
+  <h2>PIOCHE</h2>
+  <div class="side-label">Carte défaussée</div>
+  <div id="discard">Aucune</div>
+  <p id="active" class="small">Couleur active : rouge</p>
+  <button id="draw" onclick="drawForHuman()">PIOCHER</button>
+ </aside>
+
+</div>
 
 <div id="report">
 
@@ -582,7 +730,9 @@ function applyCardEffect(card,opponentHand,actingHand){
  }
 
  if(card.value==="+4"){
-  for(let i=0;i<4;i++)opponentHand.push(drawCard());
+  for(let i=0;i<4;i++){
+   opponentHand.push(drawCard());
+  }
  }
 
  if(card.value==="PASSE"&&opponentHand.length>0){
@@ -1344,15 +1494,11 @@ function showReport(){
   const div=document.createElement("div");
   div.className="report-move "+m.category;
 
-  /* NUMÉROTATION DES COUPS */
-
   const number=document.createElement("span");
   number.className="report-move-number";
 
   number.textContent=
    m.number+(m.side==="UNO.CHESS AI"?"...":".");
-
-  /* INFORMATIONS DU COUP */
 
   const detail=document.createElement("div");
   detail.className="report-move-detail";
@@ -1371,13 +1517,9 @@ function showReport(){
   main.appendChild(chess);
   main.appendChild(uno);
 
-  /* EXPLICATION DÉTAILLÉE */
-
   const explanation=document.createElement("div");
   explanation.className="report-explanation";
   explanation.textContent=m.explanation;
-
-  /* ÉVALUATION */
 
   const evaluation=document.createElement("div");
   evaluation.className="report-evaluation";
@@ -1388,8 +1530,6 @@ function showReport(){
   detail.appendChild(main);
   detail.appendChild(explanation);
   detail.appendChild(evaluation);
-
-  /* APPRÉCIATION */
 
   const tag=document.createElement("span");
   tag.className="report-tag "+m.category;
@@ -1422,5 +1562,3 @@ startGame();
 </script>
 </body>
 </html>
-
-
