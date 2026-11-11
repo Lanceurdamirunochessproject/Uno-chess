@@ -323,6 +323,13 @@ const colors = {
 
 const colorNames = ["rouge","jaune","vert","bleu"];
 
+const categoryNames = {
+ excellent:"Excellent",
+ gambling:"Gambling Move",
+ error:"Erreur",
+ blunder:"Grosse erreur"
+};
+
 const pieces = {
  wK:"♔",wQ:"♕",wR:"♖",wB:"♗",wN:"♘",wP:"♙",
  bK:"♚",bQ:"♛",bR:"♜",bB:"♝",bN:"♞",bP:"♟"
@@ -434,7 +441,6 @@ function hasPlayableAction(cards,side){
 
 /* CHANGER LE TOUR SANS JOUER UN COUP */
 
-
 function passTurn(nextSide){
  const fields=game.fen().split(" ");
  const currentSide=fields[1];
@@ -457,10 +463,6 @@ function passTurn(nextSide){
   endGame("Erreur technique : impossible de passer le tour.");
   return false;
  }
-
- return true;
-}
-
 
  return true;
 }
@@ -1233,4 +1235,3 @@ startGame();
 </script>
 </body>
 </html>
-
