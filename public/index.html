@@ -120,7 +120,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .report-welcome{
  background:#1f2937;
  border-radius:15px;
- padding:22px;
+ padding:25px;
  text-align:center;
  margin-bottom:20px;
 }
@@ -128,28 +128,57 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .report-welcome h2{
  color:white;
  font-size:25px;
+ margin-top:5px;
+}
+
+.report-welcome p{
+ color:#d1d5db;
+}
+
+.report-summary{
+ display:grid;
+ grid-template-columns:repeat(4,minmax(0,1fr));
+ gap:10px;
+ margin:18px 0;
+}
+
+.report-stat{
+ background:#1f2937;
+ border-radius:10px;
+ padding:15px 8px;
+ text-align:center;
+}
+
+.report-stat strong{
+ display:block;
+ font-size:22px;
+ margin-bottom:5px;
+}
+
+.report-stat span{
+ color:#9ca3af;
+ font-size:12px;
 }
 
 .report-section{
- margin-top:20px;
+ margin-top:25px;
 }
 
 .report-section h3{
  color:#93c5fd;
  margin:0 0 14px;
+ font-size:19px;
 }
 
 .report-move{
  display:grid;
- grid-template-columns:72px minmax(0,1fr) auto;
- align-items:center;
+ grid-template-columns:65px minmax(0,1fr) auto;
+ align-items:start;
  gap:12px;
- padding:13px 10px;
- margin:0;
+ padding:15px 12px;
  background:transparent;
  border-bottom:1px solid #374151;
  border-left:4px solid transparent;
- border-radius:0;
 }
 
 .report-move.excellent{border-left-color:#22c55e}
@@ -161,19 +190,29 @@ button:disabled{opacity:.5;cursor:not-allowed}
  color:#9ca3af;
  font-size:14px;
  font-weight:bold;
+ padding-top:3px;
+ white-space:nowrap;
 }
 
 .report-move-detail{
  min-width:0;
  display:flex;
+ flex-direction:column;
+ align-items:flex-start;
+ gap:7px;
+}
+
+.report-move-main{
+ display:flex;
  flex-wrap:wrap;
  align-items:center;
- gap:8px;
+ gap:9px;
 }
 
 .report-chess{
- font-size:16px;
+ font-size:17px;
  font-weight:bold;
+ color:white;
 }
 
 .report-uno{
@@ -181,13 +220,25 @@ button:disabled{opacity:.5;cursor:not-allowed}
  font-size:13px;
 }
 
+.report-explanation{
+ color:#cbd5e1;
+ font-size:13px;
+ line-height:1.55;
+}
+
+.report-evaluation{
+ color:#93c5fd;
+ font-size:12px;
+}
+
 .report-tag{
  display:inline-block;
- padding:5px 9px;
+ padding:6px 10px;
  border-radius:6px;
  background:#1f2937;
  font-size:12px;
  white-space:nowrap;
+ margin-top:1px;
 }
 
 .report-tag.excellent{color:#4ade80}
@@ -196,7 +247,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .report-tag.blunder{color:#f87171}
 
 .report-note{
- color:#cbd5e1;
+ color:#9ca3af;
  font-size:12px;
  line-height:1.5;
 }
@@ -204,8 +255,16 @@ button:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:650px){
  #report{padding:12px}
  .report-header h1{font-size:21px}
- .report-move{grid-template-columns:48px minmax(0,1fr);gap:7px}
- .report-tag{grid-column:2;justify-self:start}
+ .report-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .report-move{
+  grid-template-columns:43px minmax(0,1fr);
+  gap:7px;
+  padding:13px 7px;
+ }
+ .report-tag{
+  grid-column:2;
+  justify-self:start;
+ }
 }
 </style>
 </head>
@@ -281,13 +340,33 @@ button:disabled{opacity:.5;cursor:not-allowed}
    <p id="reportTitle">Partie terminée</p>
   </div>
 
+  <div class="report-summary">
+   <div class="report-stat">
+    <strong id="statTotal">0</strong>
+    <span>Coups analysés</span>
+   </div>
+   <div class="report-stat">
+    <strong id="statExcellent">0</strong>
+    <span>Excellents</span>
+   </div>
+   <div class="report-stat">
+    <strong id="statErrors">0</strong>
+    <span>Erreurs</span>
+   </div>
+   <div class="report-stat">
+    <strong id="statBlunders">0</strong>
+    <span>Grosses erreurs</span>
+   </div>
+  </div>
+
   <div class="report-section">
    <h3>📈 Coups et appréciations</h3>
    <div id="reportMoves"></div>
   </div>
 
   <p class="report-note" style="text-align:center;margin:25px">
-   Les appréciations sont estimées par l'IA de UNO.CHESS et ne constituent pas une analyse de moteur professionnel.
+   Les appréciations et évaluations sont estimées par l'IA de UNO.CHESS.
+   Elles ne constituent pas une analyse de moteur professionnel.
   </p>
 
  </div>
@@ -330,6 +409,15 @@ const categoryNames = {
 const pieces = {
  wK:"♔",wQ:"♕",wR:"♖",wB:"♗",wN:"♘",wP:"♙",
  bK:"♚",bQ:"♛",bR:"♜",bB:"♝",bN:"♞",bP:"♟"
+};
+
+const pieceNames = {
+ p:"pion",
+ n:"cavalier",
+ b:"fou",
+ r:"tour",
+ q:"dame",
+ k:"roi"
 };
 
 const levels = {
@@ -683,6 +771,63 @@ function clickSquare(name){
  drawBoard();
 }
 
+/* EXPLICATION D'UN COUP */
+
+function explainMove(move,card,change){
+ const details=[];
+
+ const piece=pieceNames[move.piece]||"pièce";
+
+ details.push(
+  "Déplacement du "+piece+" de "+move.from+" vers "+move.to+"."
+ );
+
+ if(move.captured){
+  const captured=pieceNames[move.captured]||"pièce";
+  details.push("Capture d'un "+captured+".");
+ }
+
+ if(move.promotion){
+  details.push("Promotion du pion en "+pieceNames[move.promotion]+".");
+ }
+
+ if(move.san&&move.san.includes("#")){
+  details.push("Échec et mat !");
+ }else if(move.san&&move.san.includes("+")){
+  details.push("Le roi adverse est en échec.");
+ }
+
+ const center=["d4","e4","d5","e5"];
+
+ if(center.includes(move.to)){
+  details.push("Le coup occupe une case centrale.");
+ }
+
+ if(card.value==="+2"){
+  details.push("La carte +2 fait piocher deux cartes à l'adversaire.");
+ }else if(card.value==="+4"){
+  details.push("Le joker +4 fait piocher quatre cartes à l'adversaire.");
+ }else if(card.value==="PASSE"){
+  details.push("Carte PASSE jouée.");
+ }else if(card.value==="↔"){
+  details.push("Carte changement de sens jouée.");
+ }else if(card.value==="JOKER"){
+  details.push("Joker joué : choix de la couleur active.");
+ }else{
+  details.push("Carte UNO "+card.value+" jouée.");
+ }
+
+ if(change>0){
+  details.push("La position s'améliore après ce coup.");
+ }else if(change<0){
+  details.push("La position devient moins favorable après ce coup.");
+ }else{
+  details.push("L'évaluation de la position reste stable.");
+ }
+
+ return details.join(" ");
+}
+
 /* ANALYSE D'UN COUP */
 
 function recordMove(side,beforeScore,move,card){
@@ -718,15 +863,25 @@ function recordMove(side,beforeScore,move,card){
   category="blunder";
  }
 
+ const number=Math.floor(moveHistory.length/2)+1;
+
  moveHistory.push({
   ply:moveHistory.length,
-  number:Math.floor(moveHistory.length/2)+1,
+  number,
   side:side==="w"?"Toi":"UNO.CHESS AI",
   san:move.san,
+  from:move.from,
+  to:move.to,
+  piece:move.piece,
+  captured:move.captured||null,
   card:card.value,
   color:card.color,
   uno:cardNotation(card),
-  category
+  category,
+  change,
+  beforeScore,
+  afterScore,
+  explanation:explainMove(move,card,change)
  });
 }
 
@@ -1145,6 +1300,25 @@ function cardNotation(card){
  return prefix+card.value;
 }
 
+function formatEvaluation(value){
+ const pawns=value/100;
+ const sign=pawns>0?"+":"";
+
+ return sign+pawns.toFixed(2)+" pion(s)";
+}
+
+function updateReportStats(){
+ const total=moveHistory.length;
+ const excellent=moveHistory.filter(m=>m.category==="excellent").length;
+ const errors=moveHistory.filter(m=>m.category==="error").length;
+ const blunders=moveHistory.filter(m=>m.category==="blunder").length;
+
+ document.getElementById("statTotal").textContent=total;
+ document.getElementById("statExcellent").textContent=excellent;
+ document.getElementById("statErrors").textContent=errors;
+ document.getElementById("statBlunders").textContent=blunders;
+}
+
 function showReport(){
  if(!finished){
   status.textContent="Termine la partie pour consulter le bilan.";
@@ -1155,6 +1329,8 @@ function showReport(){
 
  document.getElementById("reportTitle").textContent=
  "Partie terminée · "+moveHistory.length+" coups analysés";
+
+ updateReportStats();
 
  const movesBox=document.getElementById("reportMoves");
  movesBox.innerHTML="";
@@ -1168,12 +1344,21 @@ function showReport(){
   const div=document.createElement("div");
   div.className="report-move "+m.category;
 
+  /* NUMÉROTATION DES COUPS */
+
   const number=document.createElement("span");
   number.className="report-move-number";
-  number.textContent=m.number+(m.side==="UNO.CHESS AI"?"...":". ");
+
+  number.textContent=
+   m.number+(m.side==="UNO.CHESS AI"?"...":".");
+
+  /* INFORMATIONS DU COUP */
 
   const detail=document.createElement("div");
   detail.className="report-move-detail";
+
+  const main=document.createElement("div");
+  main.className="report-move-main";
 
   const chess=document.createElement("span");
   chess.className="report-chess";
@@ -1181,14 +1366,34 @@ function showReport(){
 
   const uno=document.createElement("span");
   uno.className="report-uno";
-  uno.textContent="· "+m.uno;
+  uno.textContent="· Carte UNO : "+m.uno;
+
+  main.appendChild(chess);
+  main.appendChild(uno);
+
+  /* EXPLICATION DÉTAILLÉE */
+
+  const explanation=document.createElement("div");
+  explanation.className="report-explanation";
+  explanation.textContent=m.explanation;
+
+  /* ÉVALUATION */
+
+  const evaluation=document.createElement("div");
+  evaluation.className="report-evaluation";
+
+  evaluation.textContent=
+   "Évolution estimée : "+formatEvaluation(m.change);
+
+  detail.appendChild(main);
+  detail.appendChild(explanation);
+  detail.appendChild(evaluation);
+
+  /* APPRÉCIATION */
 
   const tag=document.createElement("span");
   tag.className="report-tag "+m.category;
   tag.textContent=categoryNames[m.category];
-
-  detail.appendChild(chess);
-  detail.appendChild(uno);
 
   div.appendChild(number);
   div.appendChild(detail);
@@ -1217,3 +1422,5 @@ startGame();
 </script>
 </body>
 </html>
+
+
