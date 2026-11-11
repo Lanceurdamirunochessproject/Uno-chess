@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -131,48 +130,26 @@ button:disabled{opacity:.5;cursor:not-allowed}
  font-size:25px;
 }
 
-#reportSummary{
- display:grid;
- grid-template-columns:repeat(4,minmax(0,1fr));
- gap:12px;
- margin:20px 0;
-}
-
-.report-stat{
- padding:18px 10px;
- border-radius:12px;
- background:#1f2937;
- text-align:center;
- border:1px solid #374151;
-}
-
-.report-stat span{
- display:block;
- font-size:30px;
- font-weight:bold;
- margin-bottom:8px;
-}
-
-.report-stat small{color:#cbd5e1}
-
 .report-section{
- background:#1f2937;
- padding:18px;
- border-radius:14px;
  margin-top:20px;
 }
 
 .report-section h3{
  color:#93c5fd;
- margin-top:0;
+ margin:0 0 14px;
 }
 
 .report-move{
- padding:15px;
- margin:12px 0;
- background:#374151;
- border-radius:10px;
- border-left:5px solid #64748b;
+ display:grid;
+ grid-template-columns:72px minmax(0,1fr) auto;
+ align-items:center;
+ gap:12px;
+ padding:13px 10px;
+ margin:0;
+ background:transparent;
+ border-bottom:1px solid #374151;
+ border-left:4px solid transparent;
+ border-radius:0;
 }
 
 .report-move.excellent{border-left-color:#22c55e}
@@ -180,12 +157,43 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .report-move.error{border-left-color:#f97316}
 .report-move.blunder{border-left-color:#ef4444}
 
-.report-move-title{
+.report-move-number{
+ color:#9ca3af;
+ font-size:14px;
+ font-weight:bold;
+}
+
+.report-move-detail{
+ min-width:0;
  display:flex;
- justify-content:space-between;
  flex-wrap:wrap;
+ align-items:center;
  gap:8px;
 }
+
+.report-chess{
+ font-size:16px;
+ font-weight:bold;
+}
+
+.report-uno{
+ color:#cbd5e1;
+ font-size:13px;
+}
+
+.report-tag{
+ display:inline-block;
+ padding:5px 9px;
+ border-radius:6px;
+ background:#1f2937;
+ font-size:12px;
+ white-space:nowrap;
+}
+
+.report-tag.excellent{color:#4ade80}
+.report-tag.gambling{color:#c4b5fd}
+.report-tag.error{color:#fb923c}
+.report-tag.blunder{color:#f87171}
 
 .report-note{
  color:#cbd5e1;
@@ -193,18 +201,11 @@ button:disabled{opacity:.5;cursor:not-allowed}
  line-height:1.5;
 }
 
-.report-tag{
- display:inline-block;
- padding:5px 9px;
- border-radius:6px;
- background:#111827;
- font-size:12px;
-}
-
 @media(max-width:650px){
- #reportSummary{grid-template-columns:repeat(2,minmax(0,1fr))}
  #report{padding:12px}
  .report-header h1{font-size:21px}
+ .report-move{grid-template-columns:48px minmax(0,1fr);gap:7px}
+ .report-tag{grid-column:2;justify-self:start}
 }
 </style>
 </head>
@@ -280,17 +281,13 @@ button:disabled{opacity:.5;cursor:not-allowed}
    <p id="reportTitle">Partie terminée</p>
   </div>
 
-  <div id="reportSummary"></div>
-
   <div class="report-section">
-   <h3>📈 Analyse coup par coup</h3>
+   <h3>📈 Coups et appréciations</h3>
    <div id="reportMoves"></div>
   </div>
 
   <p class="report-note" style="text-align:center;margin:25px">
-   Analyse indicative de UNO.CHESS AI. Les catégories sont calculées
-   à partir de l'évolution estimée de la position et des effets des cartes UNO.
-   Elles ne correspondent pas à une analyse professionnelle de moteur d'échecs.
+   Les appréciations sont estimées par l'IA de UNO.CHESS et ne constituent pas une analyse de moteur professionnel.
   </p>
 
  </div>
@@ -722,13 +719,14 @@ function recordMove(side,beforeScore,move,card){
  }
 
  moveHistory.push({
-  number:moveHistory.length+1,
+  ply:moveHistory.length,
+  number:Math.floor(moveHistory.length/2)+1,
   side:side==="w"?"Toi":"UNO.CHESS AI",
   san:move.san,
   card:card.value,
   color:card.color,
-  category,
-  change
+  uno:cardNotation(card),
+  category
  });
 }
 
@@ -1127,6 +1125,26 @@ function botTurn(){
 
 /* PAGE DU BILAN */
 
+function cardNotation(card){
+ const prefixes={
+  jaune:"Y",
+  rouge:"R",
+  bleu:"B",
+  vert:"G"
+ };
+
+ if(card.color==="joker"){
+  return card.value==="+4"?"J+4":"J";
+ }
+
+ const prefix=prefixes[card.color]||"?";
+
+ if(card.value==="PASSE")return prefix+"SKIP";
+ if(card.value==="↔")return prefix+"REV";
+
+ return prefix+card.value;
+}
+
 function showReport(){
  if(!finished){
   status.textContent="Termine la partie pour consulter le bilan.";
@@ -1135,84 +1153,49 @@ function showReport(){
 
  reportBox.style.display="block";
 
- const counts={
-  excellent:0,
-  gambling:0,
-  error:0,
-  blunder:0
- };
-
- moveHistory.forEach(m=>counts[m.category]++);
-
  document.getElementById("reportTitle").textContent=
  "Partie terminée · "+moveHistory.length+" coups analysés";
-
- const summary=document.getElementById("reportSummary");
- summary.innerHTML="";
-
- const stats=[
-  ["excellent","🟢","Excellent"],
-  ["gambling","🎲","Gambling Move"],
-  ["error","🟠","Erreur"],
-  ["blunder","🔴","Grosse erreur"]
- ];
-
- stats.forEach(item=>{
-  const div=document.createElement("div");
-  div.className="report-stat";
-
-  const number=document.createElement("span");
-  number.textContent=counts[item[0]];
-
-  const label=document.createElement("small");
-  label.textContent=item[1]+" "+item[2];
-
-  div.appendChild(number);
-  div.appendChild(label);
-  summary.appendChild(div);
- });
 
  const movesBox=document.getElementById("reportMoves");
  movesBox.innerHTML="";
 
  if(moveHistory.length===0){
   movesBox.textContent="Aucun coup n'a été enregistré.";
- }else{
-  moveHistory.forEach(m=>{
-   const div=document.createElement("div");
-   div.className="report-move "+m.category;
-
-   const title=document.createElement("div");
-   title.className="report-move-title";
-
-   const name=document.createElement("strong");
-   name.textContent="#"+m.number+" · "+m.side;
-
-   const tag=document.createElement("span");
-   tag.className="report-tag";
-   tag.textContent=categoryNames[m.category];
-
-   title.appendChild(name);
-   title.appendChild(tag);
-
-   const detail=document.createElement("p");
-   detail.textContent=
-    "Coup : "+m.san+" | Carte UNO : "+m.card+
-    " ("+m.color+")";
-
-   const change=document.createElement("p");
-   change.className="report-note";
-   change.textContent=
-    "Variation estimée : "+(m.change>=0?"+":"")+
-    Math.round(m.change)+" points";
-
-   div.appendChild(title);
-   div.appendChild(detail);
-   div.appendChild(change);
-
-   movesBox.appendChild(div);
-  });
+  return;
  }
+
+ moveHistory.forEach(m=>{
+  const div=document.createElement("div");
+  div.className="report-move "+m.category;
+
+  const number=document.createElement("span");
+  number.className="report-move-number";
+  number.textContent=m.number+(m.side==="UNO.CHESS AI"?"...":". ");
+
+  const detail=document.createElement("div");
+  detail.className="report-move-detail";
+
+  const chess=document.createElement("span");
+  chess.className="report-chess";
+  chess.textContent=m.san;
+
+  const uno=document.createElement("span");
+  uno.className="report-uno";
+  uno.textContent="· "+m.uno;
+
+  const tag=document.createElement("span");
+  tag.className="report-tag "+m.category;
+  tag.textContent=categoryNames[m.category];
+
+  detail.appendChild(chess);
+  detail.appendChild(uno);
+
+  div.appendChild(number);
+  div.appendChild(detail);
+  div.appendChild(tag);
+
+  movesBox.appendChild(div);
+ });
 }
 
 function closeReport(){
