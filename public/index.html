@@ -434,11 +434,15 @@ function hasPlayableAction(cards,side){
 
 /* CHANGER LE TOUR SANS JOUER UN COUP */
 
+
 function passTurn(nextSide){
  const fields=game.fen().split(" ");
  const currentSide=fields[1];
 
  if(currentSide===nextSide)return true;
+
+ // Une prise en passant ne reste pas valable après un tour passé.
+ fields[3]="-";
 
  if(currentSide==="b"&&nextSide==="w"){
   fields[5]=String(Number(fields[5])+1);
@@ -449,10 +453,14 @@ function passTurn(nextSide){
  const loaded=game.load(fields.join(" "));
 
  if(!loaded){
-  console.error("Impossible de passer le tour dans cette position.");
+  console.error("Impossible de passer le tour.");
   endGame("Erreur technique : impossible de passer le tour.");
   return false;
  }
+
+ return true;
+}
+
 
  return true;
 }
