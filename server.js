@@ -61,7 +61,109 @@ function requireLogin(req, res, next) {
   }
   next();
 }
+/* =========================================================
+   ÉCONOMIE KILO UNO.CHESS
+   ========================================================= */
 
+/*
+  Règles :
+  - 0 à 99 KILO de différence : 10 points
+  - 100 à 199 : 20 points
+  - 200 à 299 : 30 points
+  - 500 à 599 : 60 points
+  - 900 et plus : 100 points maximum
+*/
+
+function calculateKiloChange(winnerKilo, loserKilo) {
+  const difference = Math.abs(winnerKilo - loserKilo);
+
+  return Math.min(
+    100,
+    10 + Math.floor(difference / 100) * 10
+  );
+}
+
+/* =========================================================
+   ATTRIBUTION DES KILO APRÈS UNE VICTOIRE VALIDÉE
+   ========================================================= */
+
+async function updateKiloAfterVerifiedMatch(
+  winnerId,
+  loserId
+) {
+  if (
+    !Number.isInteger(Number(winnerId)) ||
+    !Number.isInteger(Number(loserId)) ||
+    Number(winnerId) === Number(loserId)
+  ) {
+    throw new Error("Identifiants des joueurs invalides.");
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const result = await client.query(
+      `SELECT id, kilo
+       FROM users
+       WHERE id = ANY($1::integer[])
+       ORDER BY id
+       FOR UPDATE`,
+      [[Number(winnerId), Number(loserId)]]
+    );
+
+    if (result.rows.length !== 2) {
+      throw new Error("Joueur introuvable.");
+    }
+
+    const winner = result.rows.find(
+      user => Number(user.id) === Number(winnerId)
+    );
+
+    const loser = result.rows.find(
+      user => Number(user.id) === Number(loserId)
+    );
+
+    const points = calculateKiloChange(
+      Number(winner.kilo),
+      Number(loser.kilo)
+    );
+
+    const actualLoss = Math.min(
+      points,
+      Number(loser.kilo)
+    );
+
+    await client.query(
+      `UPDATE users
+       SET kilo = kilo + $1
+       WHERE id = $2`,
+      [points, winnerId]
+    );
+
+    await client.query(
+      `UPDATE users
+       SET kilo = GREATEST(0, kilo - $1)
+       WHERE id = $2`,
+      [actualLoss, loserId]
+    );
+
+    await client.query("COMMIT");
+
+    return {
+      winnerGain: points,
+      loserLoss: actualLoss
+    };
+
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+
+  } finally {
+    client.release();
+  }
+}
 async function initDatabase() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
