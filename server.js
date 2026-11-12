@@ -59,7 +59,6 @@ function requireLogin(req, res, next) {
       error: "Tu dois être connecté."
     });
   }
-
   next();
 }
 
@@ -79,15 +78,23 @@ async function initDatabase() {
     CREATE UNIQUE INDEX IF NOT EXISTS users_username_lower_idx
     ON users (LOWER(username))
   `);
-}
 
-/* ACCUEIL */
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS matches (
+      id SERIAL PRIMARY KEY,
+      player1 INTEGER NOT NULL REFERENCES users(id),
+      player2 INTEGER NOT NULL REFERENCES users(id),
+      winner INTEGER REFERENCES users(id),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+}
 
 app.get("/", (req, res) => {
   res.send("UNO CHESS server is running!");
 });
 
-/* CRÉATION DE COMPTE */
+/* INSCRIPTION */
 
 app.post("/api/register", async (req, res) => {
   try {
@@ -114,13 +121,13 @@ app.post("/api/register", async (req, res) => {
 
     if (!/^[a-zA-Z0-9_]{3,20}$/.test(cleanUsername)) {
       return res.status(400).json({
-        error: "Le pseudo doit contenir 3 à 20 caractères : lettres, chiffres ou _."
+        error: "Pseudo : 3 à 20 caractères, lettres, chiffres ou _."
       });
     }
 
     if (password.length < 8 || password.length > 100) {
       return res.status(400).json({
-        error: "Le mot de passe doit contenir entre 8 et 100 caractères."
+        error: "Mot de passe : 8 à 100 caractères."
       });
     }
 
@@ -146,9 +153,7 @@ app.post("/api/register", async (req, res) => {
     }
 
     console.error(error);
-    res.status(500).json({
-      error: "Erreur du serveur."
-    });
+    res.status(500).json({ error: "Erreur du serveur." });
   }
 });
 
@@ -180,12 +185,8 @@ app.post("/api/login", async (req, res) => {
     }
 
     const user = result.rows[0];
-    const valid = await bcrypt.compare(
-      password,
-      user.password_hash
-    );
 
-    if (!valid) {
+    if (!(await bcrypt.compare(password, user.password_hash))) {
       return res.status(401).json({
         error: "Email ou mot de passe incorrect."
       });
@@ -209,13 +210,11 @@ app.post("/api/login", async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      error: "Erreur du serveur."
-    });
+    res.status(500).json({ error: "Erreur du serveur." });
   }
 });
 
-/* UTILISATEUR CONNECTÉ */
+/* PROFIL */
 
 app.get("/api/me", requireLogin, async (req, res) => {
   try {
@@ -234,9 +233,7 @@ app.get("/api/me", requireLogin, async (req, res) => {
     res.json({ user: result.rows[0] });
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      error: "Erreur du serveur."
-    });
+    res.status(500).json({ error: "Erreur du serveur." });
   }
 });
 
@@ -280,54 +277,99 @@ app.get("/api/leaderboard", async (req, res) => {
   }
 });
 
-/* MULTIJOUEUR */
+/* FILE D'ATTENTE MULTIJOUEUR */
 
-let waitingPlayer = null;
+const waitingPlayers = new Map();
+const socketUsers = new Map();
+const activeRooms = new Map();
+
+io.engine.use(sessionMiddleware);
 
 io.on("connection", socket => {
+  const userId = socket.request.session.userId;
+
+  if (!userId) {
+    socket.disconnect(true);
+    return;
+  }
+
+  socketUsers.set(socket.id, userId);
+
   socket.on("find-game", () => {
-    if (waitingPlayer && waitingPlayer.connected) {
-      const opponent = waitingPlayer;
-      waitingPlayer = null;
+    if (waitingPlayers.has(userId)) return;
 
-      const room = "game-" + opponent.id;
+    let opponent = null;
 
-      opponent.join(room);
-      socket.join(room);
-
-      opponent.emit("game-found", {
-        room,
-        color: "black"
-      });
-
-      socket.emit("game-found", {
-        room,
-        color: "white"
-      });
-    } else {
-      waitingPlayer = socket;
-      socket.emit("waiting");
+    for (const [id, player] of waitingPlayers) {
+      if (id !== userId && player.connected) {
+        opponent = player;
+        waitingPlayers.delete(id);
+        break;
+      }
     }
+
+    if (!opponent) {
+      waitingPlayers.set(userId, socket);
+      socket.emit("waiting");
+      return;
+    }
+
+    const room = "game-" + opponent.id + "-" + socket.id;
+
+    opponent.join(room);
+    socket.join(room);
+
+    activeRooms.set(room, {
+      players: [opponent.id, socket.id],
+      users: [socketUsers.get(opponent.id), userId],
+      finished: false
+    });
+
+    opponent.emit("game-found", {
+      room,
+      color: "black"
+    });
+
+    socket.emit("game-found", {
+      room,
+      color: "white"
+    });
   });
 
   socket.on("game-action", data => {
-    if (
-      data &&
-      typeof data.room === "string" &&
-      data.room.startsWith("game-")
-    ) {
-      socket.to(data.room).emit("game-action", data);
+    if (!data || typeof data.room !== "string") return;
+
+    const match = activeRooms.get(data.room);
+
+    if (!match || match.finished) return;
+    if (!match.players.includes(socket.id)) return;
+
+    socket.to(data.room).emit("game-action", {
+      action: data.action
+    });
+  });
+
+  socket.on("cancel-search", () => {
+    if (waitingPlayers.get(userId) === socket) {
+      waitingPlayers.delete(userId);
     }
   });
 
   socket.on("disconnect", () => {
-    if (waitingPlayer === socket) {
-      waitingPlayer = null;
+    if (waitingPlayers.get(userId) === socket) {
+      waitingPlayers.delete(userId);
+    }
+
+    socketUsers.delete(socket.id);
+
+    for (const [room, match] of activeRooms) {
+      if (match.players.includes(socket.id)) {
+        activeRooms.delete(room);
+        io.to(room).emit("opponent-disconnected");
+      }
     }
   });
 });
-
-/* DÉMARRAGE */
 
 const PORT = process.env.PORT || 3000;
 
@@ -341,5 +383,3 @@ initDatabase()
     console.error("Database initialization failed:", error);
     process.exit(1);
   });
-
-
