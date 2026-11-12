@@ -59,23 +59,18 @@ function requireLogin(req, res, next) {
       error: "Tu dois être connecté."
     });
   }
+
   next();
 }
+
 /* =========================================================
-   ÉCONOMIE KILO UNO.CHESS
+   ÉCONOMIE KILO
    ========================================================= */
 
-/*
-  Règles :
-  - 0 à 99 KILO de différence : 10 points
-  - 100 à 199 : 20 points
-  - 200 à 299 : 30 points
-  - 500 à 599 : 60 points
-  - 900 et plus : 100 points maximum
-*/
-
 function calculateKiloChange(winnerKilo, loserKilo) {
-  const difference = Math.abs(winnerKilo - loserKilo);
+  const difference = Math.abs(
+    Number(winnerKilo) - Number(loserKilo)
+  );
 
   return Math.min(
     100,
@@ -84,86 +79,9 @@ function calculateKiloChange(winnerKilo, loserKilo) {
 }
 
 /* =========================================================
-   ATTRIBUTION DES KILO APRÈS UNE VICTOIRE VALIDÉE
+   BASE DE DONNÉES
    ========================================================= */
 
-async function updateKiloAfterVerifiedMatch(
-  winnerId,
-  loserId
-) {
-  if (
-    !Number.isInteger(Number(winnerId)) ||
-    !Number.isInteger(Number(loserId)) ||
-    Number(winnerId) === Number(loserId)
-  ) {
-    throw new Error("Identifiants des joueurs invalides.");
-  }
-
-  const client = await pool.connect();
-
-  try {
-    await client.query("BEGIN");
-
-    const result = await client.query(
-      `SELECT id, kilo
-       FROM users
-       WHERE id = ANY($1::integer[])
-       ORDER BY id
-       FOR UPDATE`,
-      [[Number(winnerId), Number(loserId)]]
-    );
-
-    if (result.rows.length !== 2) {
-      throw new Error("Joueur introuvable.");
-    }
-
-    const winner = result.rows.find(
-      user => Number(user.id) === Number(winnerId)
-    );
-
-    const loser = result.rows.find(
-      user => Number(user.id) === Number(loserId)
-    );
-
-    const points = calculateKiloChange(
-      Number(winner.kilo),
-      Number(loser.kilo)
-    );
-
-    const actualLoss = Math.min(
-      points,
-      Number(loser.kilo)
-    );
-
-    await client.query(
-      `UPDATE users
-       SET kilo = kilo + $1
-       WHERE id = $2`,
-      [points, winnerId]
-    );
-
-    await client.query(
-      `UPDATE users
-       SET kilo = GREATEST(0, kilo - $1)
-       WHERE id = $2`,
-      [actualLoss, loserId]
-    );
-
-    await client.query("COMMIT");
-
-    return {
-      winnerGain: points,
-      loserLoss: actualLoss
-    };
-
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-
-  } finally {
-    client.release();
-  }
-}
 async function initDatabase() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
@@ -190,13 +108,170 @@ async function initDatabase() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  await pool.query(`
+    ALTER TABLE matches
+    ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending'
+  `);
+
+  await pool.query(`
+    ALTER TABLE matches
+    ADD COLUMN IF NOT EXISTS settled_at TIMESTAMP
+  `);
+
+  await pool.query(`
+    ALTER TABLE matches
+    ADD COLUMN IF NOT EXISTS kilo_change INTEGER
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS match_result_confirmations (
+      match_id INTEGER NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      winner_id INTEGER NOT NULL REFERENCES users(id),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (match_id, user_id)
+    )
+  `);
 }
+
+/* =========================================================
+   ATTRIBUTION DES KILO
+   ========================================================= */
+
+/*
+  Cette fonction ne doit être appelée que par une procédure
+  de validation fiable du résultat de la partie.
+
+  Ne jamais créer de route publique permettant à un joueur
+  de choisir librement le gagnant.
+*/
+
+async function updateKiloAfterVerifiedMatch(
+  matchId,
+  winnerId,
+  loserId
+) {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const matchResult = await client.query(
+      `SELECT id, player1, player2, winner, status
+       FROM matches
+       WHERE id = $1
+       FOR UPDATE`,
+      [matchId]
+    );
+
+    if (!matchResult.rows.length) {
+      throw new Error("Partie introuvable.");
+    }
+
+    const match = matchResult.rows[0];
+
+    if (match.status === "finished") {
+      throw new Error("Cette partie a déjà été comptabilisée.");
+    }
+
+    if (
+      !(
+        (
+          Number(match.player1) === Number(winnerId) &&
+          Number(match.player2) === Number(loserId)
+        ) ||
+        (
+          Number(match.player2) === Number(winnerId) &&
+          Number(match.player1) === Number(loserId)
+        )
+      )
+    ) {
+      throw new Error("Les joueurs ne correspondent pas.");
+    }
+
+    const usersResult = await client.query(
+      `SELECT id, kilo
+       FROM users
+       WHERE id = ANY($1::integer[])
+       ORDER BY id
+       FOR UPDATE`,
+      [[Number(winnerId), Number(loserId)]]
+    );
+
+    if (usersResult.rows.length !== 2) {
+      throw new Error("Joueur introuvable.");
+    }
+
+    const winner = usersResult.rows.find(
+      user => Number(user.id) === Number(winnerId)
+    );
+
+    const loser = usersResult.rows.find(
+      user => Number(user.id) === Number(loserId)
+    );
+
+    const points = calculateKiloChange(
+      winner.kilo,
+      loser.kilo
+    );
+
+    const actualLoss = Math.min(
+      points,
+      Number(loser.kilo)
+    );
+
+    await client.query(
+      `UPDATE users
+       SET kilo = kilo + $1
+       WHERE id = $2`,
+      [points, winnerId]
+    );
+
+    await client.query(
+      `UPDATE users
+       SET kilo = GREATEST(0, kilo - $1)
+       WHERE id = $2`,
+      [actualLoss, loserId]
+    );
+
+    await client.query(
+      `UPDATE matches
+       SET winner = $1,
+           status = 'finished',
+           settled_at = CURRENT_TIMESTAMP,
+           kilo_change = $2
+       WHERE id = $3`,
+      [winnerId, points, matchId]
+    );
+
+    await client.query("COMMIT");
+
+    return {
+      winnerGain: points,
+      loserLoss: actualLoss
+    };
+
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+
+  } finally {
+    client.release();
+  }
+}
+
+/* =========================================================
+   PAGE D'ACCUEIL
+   ========================================================= */
 
 app.get("/", (req, res) => {
   res.send("UNO CHESS server is running!");
 });
 
-/* INSCRIPTION */
+/* =========================================================
+   INSCRIPTION
+   ========================================================= */
 
 app.post("/api/register", async (req, res) => {
   try {
@@ -247,6 +322,7 @@ app.post("/api/register", async (req, res) => {
     res.status(201).json({
       user: result.rows[0]
     });
+
   } catch (error) {
     if (error.code === "23505") {
       return res.status(409).json({
@@ -255,11 +331,16 @@ app.post("/api/register", async (req, res) => {
     }
 
     console.error(error);
-    res.status(500).json({ error: "Erreur du serveur." });
+
+    res.status(500).json({
+      error: "Erreur du serveur."
+    });
   }
 });
 
-/* CONNEXION */
+/* =========================================================
+   CONNEXION
+   ========================================================= */
 
 app.post("/api/login", async (req, res) => {
   try {
@@ -276,7 +357,8 @@ app.post("/api/login", async (req, res) => {
 
     const result = await pool.query(
       `SELECT id, username, kilo, password_hash
-       FROM users WHERE email = $1`,
+       FROM users
+       WHERE email = $1`,
       [email.trim().toLowerCase()]
     );
 
@@ -310,19 +392,26 @@ app.post("/api/login", async (req, res) => {
         kilo: user.kilo
       }
     });
+
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Erreur du serveur." });
+
+    res.status(500).json({
+      error: "Erreur du serveur."
+    });
   }
 });
 
-/* PROFIL */
+/* =========================================================
+   PROFIL
+   ========================================================= */
 
 app.get("/api/me", requireLogin, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT id, username, kilo
-       FROM users WHERE id = $1`,
+       FROM users
+       WHERE id = $1`,
       [req.session.userId]
     );
 
@@ -332,14 +421,22 @@ app.get("/api/me", requireLogin, async (req, res) => {
       });
     }
 
-    res.json({ user: result.rows[0] });
+    res.json({
+      user: result.rows[0]
+    });
+
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Erreur du serveur." });
+
+    res.status(500).json({
+      error: "Erreur du serveur."
+    });
   }
 });
 
-/* DÉCONNEXION */
+/* =========================================================
+   DÉCONNEXION
+   ========================================================= */
 
 app.post("/api/logout", (req, res) => {
   req.session.destroy(error => {
@@ -355,11 +452,15 @@ app.post("/api/logout", (req, res) => {
       sameSite: "none"
     });
 
-    res.json({ success: true });
+    res.json({
+      success: true
+    });
   });
 });
 
-/* CLASSEMENT */
+/* =========================================================
+   CLASSEMENT
+   ========================================================= */
 
 app.get("/api/leaderboard", async (req, res) => {
   try {
@@ -370,16 +471,22 @@ app.get("/api/leaderboard", async (req, res) => {
        LIMIT 100`
     );
 
-    res.json({ leaderboard: result.rows });
+    res.json({
+      leaderboard: result.rows
+    });
+
   } catch (error) {
     console.error(error);
+
     res.status(500).json({
       error: "Impossible de charger le classement."
     });
   }
 });
 
-/* FILE D'ATTENTE MULTIJOUEUR */
+/* =========================================================
+   FILE D'ATTENTE MULTIJOUEUR
+   ========================================================= */
 
 const waitingPlayers = new Map();
 const socketUsers = new Map();
@@ -397,13 +504,28 @@ io.on("connection", socket => {
 
   socketUsers.set(socket.id, userId);
 
-  socket.on("find-game", () => {
+  /* RECHERCHER UNE PARTIE */
+
+  socket.on("find-game", async () => {
     if (waitingPlayers.has(userId)) return;
+
+    for (const match of activeRooms.values()) {
+      if (match.users.includes(userId)) {
+        socket.emit("game-error", {
+          message: "Tu as déjà une partie en cours."
+        });
+        return;
+      }
+    }
 
     let opponent = null;
 
     for (const [id, player] of waitingPlayers) {
-      if (id !== userId && player.connected) {
+      if (
+        id !== userId &&
+        player.connected &&
+        socketUsers.has(player.id)
+      ) {
         opponent = player;
         waitingPlayers.delete(id);
         break;
@@ -416,34 +538,70 @@ io.on("connection", socket => {
       return;
     }
 
-    const room = "game-" + opponent.id + "-" + socket.id;
+    try {
+      const room = "game-" + opponent.id + "-" + socket.id;
 
-    opponent.join(room);
-    socket.join(room);
+      const firstUser = socketUsers.get(opponent.id);
 
-    activeRooms.set(room, {
-      players: [opponent.id, socket.id],
-      users: [socketUsers.get(opponent.id), userId],
-      finished: false
-    });
+      const result = await pool.query(
+        `INSERT INTO matches (player1, player2, status)
+         VALUES ($1, $2, 'pending')
+         RETURNING id`,
+        [firstUser, userId]
+      );
 
-    opponent.emit("game-found", {
-      room,
-      color: "black"
-    });
+      const matchId = result.rows[0].id;
 
-    socket.emit("game-found", {
-      room,
-      color: "white"
-    });
+      opponent.join(room);
+      socket.join(room);
+
+      activeRooms.set(room, {
+        id: matchId,
+        players: [opponent.id, socket.id],
+        users: [firstUser, userId],
+        finished: false
+      });
+
+      opponent.emit("game-found", {
+        room,
+        matchId,
+        color: "black"
+      });
+
+      socket.emit("game-found", {
+        room,
+        matchId,
+        color: "white"
+      });
+
+    } catch (error) {
+      console.error(error);
+
+      socket.emit("game-error", {
+        message: "Impossible de créer la partie."
+      });
+
+      opponent.emit("game-error", {
+        message: "Impossible de créer la partie."
+      });
+    }
   });
 
+  /* TRANSMISSION DES ACTIONS */
+
   socket.on("game-action", data => {
-    if (!data || typeof data.room !== "string") return;
+    if (
+      !data ||
+      typeof data.room !== "string" ||
+      !data.action
+    ) {
+      return;
+    }
 
     const match = activeRooms.get(data.room);
 
     if (!match || match.finished) return;
+
     if (!match.players.includes(socket.id)) return;
 
     socket.to(data.room).emit("game-action", {
@@ -451,11 +609,15 @@ io.on("connection", socket => {
     });
   });
 
+  /* ANNULER LA RECHERCHE */
+
   socket.on("cancel-search", () => {
     if (waitingPlayers.get(userId) === socket) {
       waitingPlayers.delete(userId);
     }
   });
+
+  /* DÉCONNEXION */
 
   socket.on("disconnect", () => {
     if (waitingPlayers.get(userId) === socket) {
@@ -467,21 +629,32 @@ io.on("connection", socket => {
     for (const [room, match] of activeRooms) {
       if (match.players.includes(socket.id)) {
         activeRooms.delete(room);
+
         io.to(room).emit("opponent-disconnected");
       }
     }
   });
 });
 
+/* =========================================================
+   DÉMARRAGE DU SERVEUR
+   ========================================================= */
+
 const PORT = process.env.PORT || 3000;
 
 initDatabase()
   .then(() => {
     server.listen(PORT, "0.0.0.0", () => {
-      console.log("UNO.CHESS server started on port " + PORT);
+      console.log(
+        "UNO.CHESS server started on port " + PORT
+      );
     });
   })
   .catch(error => {
-    console.error("Database initialization failed:", error);
+    console.error(
+      "Database initialization failed:",
+      error
+    );
+
     process.exit(1);
   });
