@@ -402,11 +402,99 @@ button:disabled{opacity:.5;cursor:not-allowed}
   justify-self:start;
  }
 }
+ /* COMPTES ET MODE EN LIGNE */
+#account-panel{
+ max-width:650px;
+ margin:20px auto;
+ padding:18px;
+ background:#1f2937;
+ border:1px solid #374151;
+ border-radius:14px;
+}
+#account-panel input{
+ display:block;
+ width:100%;
+ max-width:350px;
+ margin:8px auto;
+ padding:12px;
+ border-radius:8px;
+ border:1px solid #64748b;
+ background:#111827;
+ color:white;
+}
+#account-panel button{
+ background:#2563eb;
+ color:white;
+}
+#account-panel .account-secondary{
+ background:#475569;
+}
+#account-message{
+ min-height:22px;
+ color:#facc15;
+}
+#profile{
+ display:none;
+ margin:12px auto;
+ padding:12px;
+ background:#172554;
+ border-radius:10px;
+}
+#online-controls{
+ display:none;
+ margin:15px auto;
+}
+#leaderboard{
+ max-width:500px;
+ margin:15px auto;
+ padding:12px;
+ background:#1f2937;
+ border-radius:10px;
+}
+#leaderboard table{
+ width:100%;
+ border-collapse:collapse;
+}
+#leaderboard td,#leaderboard th{
+ padding:9px;
+ border-bottom:1px solid #374151;
+}
 </style>
 </head>
 
 <body>
+<section id="account-panel">
+ <h2>🌐 COMPTE UNO.CHESS</h2>
 
+ <div id="auth-form">
+  <input id="auth-username" placeholder="Pseudo" maxlength="20">
+  <input id="auth-email" type="email" placeholder="Adresse email">
+  <input id="auth-password" type="password" placeholder="Mot de passe">
+
+  <button onclick="registerAccount()">CRÉER UN COMPTE</button>
+  <button onclick="loginAccount()">SE CONNECTER</button>
+
+  <p class="small">Ton compte permet de conserver ton classement KILO.</p>
+ </div>
+
+ <div id="profile">
+  <h3 id="profile-name"></h3>
+  <p>KILO : <strong id="profile-kilo">1000</strong></p>
+  <button onclick="logoutAccount()" class="account-secondary">DÉCONNEXION</button>
+ </div>
+
+ <p id="account-message"></p>
+
+ <div id="online-controls">
+  <button onclick="findOnlineGame()">🔎 TROUVER UN ADVERSAIRE</button>
+  <button onclick="cancelOnlineSearch()" class="account-secondary">ANNULER</button>
+ </div>
+
+ <div id="leaderboard">
+  <h3>🏆 CLASSEMENT KILO</h3>
+  <div id="leaderboard-content">Connecte-toi pour consulter le classement.</div>
+ </div>
+</section>
 <h1>UNO.CHESS</h1>
 <p>Les échecs rencontrent UNO !</p>
 
@@ -1558,6 +1646,618 @@ function onlineLater(){
 }
 
 startGame();
+
+</script>
+ <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+
+<script>
+/* =====================================
+   CONNEXION AU SERVEUR UNO.CHESS
+===================================== */
+
+const API_BASE = "https://uno-chess-server-2026-hv79.onrender.com";
+
+let currentUser = null;
+let onlineSocket = null;
+let onlineRoom = null;
+let onlineColor = null;
+let isOnlineGame = false;
+let onlineSearching = false;
+let onlineMyTurn = false;
+
+const accountMessage = document.getElementById("account-message");
+
+function accountStatus(message){
+ accountMessage.textContent = message;
+}
+
+async function apiRequest(path, data = null){
+ const options = {
+  method:data ? "POST" : "GET",
+  credentials:"include",
+  headers:{}
+ };
+
+ if(data){
+  options.headers["Content-Type"]="application/json";
+  options.body=JSON.stringify(data);
+ }
+
+ const response = await fetch(API_BASE+path,options);
+ const result = await response.json();
+
+ if(!response.ok){
+  throw new Error(result.error || result.message || "Erreur serveur.");
+ }
+
+ return result;
+}
+
+/* =====================================
+   INSCRIPTION
+===================================== */
+
+async function registerAccount(){
+ const username=document.getElementById("auth-username").value.trim();
+ const email=document.getElementById("auth-email").value.trim();
+ const password=document.getElementById("auth-password").value;
+
+ if(!username||!email||!password){
+  accountStatus("Remplis les trois champs.");
+  return;
+ }
+
+ try{
+  accountStatus("Création du compte...");
+
+  await apiRequest("/api/register",{
+   username,
+   email,
+   password
+  });
+
+  await loadProfile();
+  accountStatus("Compte créé !");
+ }catch(error){
+  accountStatus(error.message);
+ }
+}
+
+/* =====================================
+   CONNEXION
+===================================== */
+
+async function loginAccount(){
+ const email=document.getElementById("auth-email").value.trim();
+ const password=document.getElementById("auth-password").value;
+
+ if(!email||!password){
+  accountStatus("Entre ton email et ton mot de passe.");
+  return;
+ }
+
+ try{
+  accountStatus("Connexion...");
+
+  await apiRequest("/api/login",{
+   email,
+   password
+  });
+
+  await loadProfile();
+  accountStatus("Connexion réussie !");
+ }catch(error){
+  accountStatus(error.message);
+ }
+}
+
+/* =====================================
+   PROFIL
+===================================== */
+
+async function loadProfile(){
+ try{
+  const data=await apiRequest("/api/me");
+
+  currentUser=data.user || data;
+
+  document.getElementById("auth-form").style.display="none";
+  document.getElementById("profile").style.display="block";
+  document.getElementById("online-controls").style.display="block";
+
+  document.getElementById("profile-name").textContent=
+   currentUser.username || "Joueur";
+
+  document.getElementById("profile-kilo").textContent=
+   currentUser.kilo ?? 1000;
+
+  connectOnlineSocket();
+  await loadLeaderboard();
+
+  return true;
+ }catch(error){
+  currentUser=null;
+  return false;
+ }
+}
+
+/* =====================================
+   DÉCONNEXION
+===================================== */
+
+async function logoutAccount(){
+ try{
+  if(onlineSocket){
+   onlineSocket.disconnect();
+   onlineSocket=null;
+  }
+
+  await apiRequest("/api/logout",{});
+ }catch(error){
+  console.error(error);
+ }
+
+ currentUser=null;
+ onlineRoom=null;
+ isOnlineGame=false;
+ onlineSearching=false;
+
+ document.getElementById("auth-form").style.display="block";
+ document.getElementById("profile").style.display="none";
+ document.getElementById("online-controls").style.display="none";
+
+ accountStatus("Déconnecté.");
+}
+
+/* =====================================
+   CLASSEMENT
+===================================== */
+
+async function loadLeaderboard(){
+ const box=document.getElementById("leaderboard-content");
+
+ try{
+  const data=await apiRequest("/api/leaderboard");
+  const players=data.leaderboard || data.players || [];
+
+  box.innerHTML="";
+
+  if(!players.length){
+   box.textContent="Aucun joueur classé pour le moment.";
+   return;
+  }
+
+  const table=document.createElement("table");
+  const header=document.createElement("tr");
+
+  ["Rang","Joueur","KILO"].forEach(value=>{
+   const th=document.createElement("th");
+   th.textContent=value;
+   header.appendChild(th);
+  });
+
+  table.appendChild(header);
+
+  players.forEach((player,index)=>{
+   const tr=document.createElement("tr");
+
+   const values=[
+    "#"+(index+1),
+    player.username || "Joueur",
+    player.kilo ?? 1000
+   ];
+
+   values.forEach(value=>{
+    const td=document.createElement("td");
+    td.textContent=value;
+    tr.appendChild(td);
+   });
+
+   table.appendChild(tr);
+  });
+
+  box.appendChild(table);
+ }catch(error){
+  box.textContent="Impossible de charger le classement.";
+ }
+}
+
+/* =====================================
+   SOCKET.IO
+===================================== */
+
+function connectOnlineSocket(){
+ if(onlineSocket){
+  onlineSocket.disconnect();
+ }
+
+ onlineSocket=io(API_BASE,{
+  withCredentials:true,
+  transports:["polling","websocket"]
+ });
+
+ onlineSocket.on("connect",()=>{
+  accountStatus("Connecté au serveur en ligne.");
+ });
+
+ onlineSocket.on("connect_error",()=>{
+  accountStatus("Connexion en ligne impossible. Vérifie les cookies et le serveur.");
+ });
+
+ onlineSocket.on("waiting",()=>{
+  onlineSearching=true;
+  status.textContent="Recherche d'un adversaire...";
+ });
+
+ onlineSocket.on("game-found",data=>{
+  onlineSearching=false;
+  onlineRoom=data.room;
+  onlineColor=data.color;
+  isOnlineGame=true;
+
+  finished=false;
+  locked=true;
+  chosenCard=null;
+  selectedSquare=null;
+  possible=[];
+
+  status.textContent=
+   "Partie en ligne trouvée ! Tu joues avec les "+
+   (onlineColor==="white"?"blancs":"noirs")+".";
+ });
+
+ onlineSocket.on("online-state",data=>{
+  if(!isOnlineGame)return;
+
+  if(data.fen){
+   game.load(data.fen);
+  }
+
+  hand=data.hand || [];
+  discard=data.discard || null;
+  activeColor=data.activeColor || "rouge";
+
+  onlineMyTurn=!!data.yourTurn;
+  locked=!onlineMyTurn;
+
+  chosenCard=null;
+  selectedSquare=null;
+  possible=[];
+
+  drawBoard();
+  renderCards();
+  updateDiscard();
+
+  status.textContent=onlineMyTurn?
+   "À toi de jouer !":
+   "En attente du coup adverse...";
+
+  thinkingBox.textContent="";
+ });
+
+ onlineSocket.on("game-error",data=>{
+  status.textContent=data.message || "Action impossible.";
+ });
+
+ onlineSocket.on("online-finished",data=>{
+  finished=true;
+  locked=true;
+  onlineMyTurn=false;
+
+  const message=data.message ||
+   (data.winner===currentUser?.id?
+    "Tu as gagné !":
+    "La partie est terminée.");
+
+  status.textContent=message;
+
+  if(data.kiloChange!==undefined){
+   accountStatus("Résultat : "+data.kiloChange+" KILO.");
+  }
+
+  reportBtn.disabled=false;
+
+  loadProfile();
+  loadLeaderboard();
+ });
+
+ onlineSocket.on("opponent-disconnected",()=>{
+  finished=true;
+  locked=true;
+  onlineMyTurn=false;
+
+  status.textContent=
+   "Ton adversaire s'est déconnecté. Aucun KILO n'est attribué.";
+ });
+
+ onlineSocket.on("disconnect",()=>{
+  if(isOnlineGame&&!finished){
+   status.textContent="Connexion perdue. La partie est interrompue.";
+  }
+ });
+}
+
+/* =====================================
+   RECHERCHE D'ADVERSAIRE
+===================================== */
+
+function findOnlineGame(){
+ if(!currentUser){
+  accountStatus("Connecte-toi d'abord.");
+  return;
+ }
+
+ if(!onlineSocket || !onlineSocket.connected){
+  accountStatus("Connexion au serveur indisponible.");
+  return;
+ }
+
+ if(isOnlineGame&&!finished){
+  accountStatus("Tu as déjà une partie en cours.");
+  return;
+ }
+
+ onlineSearching=true;
+ onlineSocket.emit("find-game");
+
+ status.textContent="Recherche d'un adversaire...";
+}
+
+function cancelOnlineSearch(){
+ if(!onlineSocket)return;
+
+ onlineSearching=false;
+ onlineSocket.emit("cancel-search");
+
+ status.textContent="Recherche annulée.";
+}
+
+/* =====================================
+   CARTES EN LIGNE
+===================================== */
+
+window.chooseCard=function(index){
+ if(isOnlineGame){
+  if(finished||!onlineMyTurn)return;
+
+  const card=hand[index];
+
+  if(!cardMatches(card)){
+   status.textContent="Cette carte ne correspond pas.";
+   return;
+  }
+
+  const side=onlineColor==="white"?"w":"b";
+
+  if(game.turn()!==side)return;
+
+  const moves=game.moves({verbose:true});
+
+  if(!moves.some(move=>allowedPiece(card,move.piece))){
+   status.textContent="Cette carte ne permet aucun déplacement.";
+   return;
+  }
+
+  chosenCard=index;
+  selectedSquare=null;
+  possible=[];
+
+  renderCards();
+  drawBoard();
+
+  status.textContent="Carte choisie. Sélectionne une pièce.";
+  return;
+ }
+
+ if(locked||finished||game.turn()!=="w")return;
+
+ const card=hand[index];
+
+ if(!cardMatches(card)){
+  status.textContent="Cette carte ne correspond pas à la couleur ou au symbole actif.";
+  return;
+ }
+
+ const moves=game.moves({verbose:true});
+
+ if(!moves.some(move=>allowedPiece(card,move.piece))){
+  status.textContent="Cette carte ne permet aucun déplacement légal.";
+  return;
+ }
+
+ chosenCard=index;
+ selectedSquare=null;
+ possible=[];
+
+ renderCards();
+ drawBoard();
+
+ status.textContent="Carte choisie ! Clique sur une pièce autorisée.";
+};
+
+/* =====================================
+   DÉPLACEMENTS EN LIGNE
+===================================== */
+
+window.clickSquare=function(name){
+ if(isOnlineGame){
+  if(finished||!onlineMyTurn||!onlineSocket)return;
+
+  const side=onlineColor==="white"?"w":"b";
+
+  if(game.turn()!==side)return;
+
+  if(chosenCard===null){
+   status.textContent="Choisis d'abord une carte UNO.";
+   return;
+  }
+
+  if(selectedSquare&&possible.includes(name)){
+   onlineSocket.emit("game-action",{
+    room:onlineRoom,
+    type:"move",
+    cardIndex:chosenCard,
+    from:selectedSquare,
+    to:name
+   });
+
+   chosenCard=null;
+   selectedSquare=null;
+   possible=[];
+
+   status.textContent="Coup envoyé au serveur...";
+   return;
+  }
+
+  const piece=game.get(name);
+
+  if(piece&&piece.color===side){
+   const card=hand[chosenCard];
+
+   if(!allowedPiece(card,piece.type)){
+    status.textContent="Cette carte ne permet pas de déplacer cette pièce.";
+    return;
+   }
+
+   selectedSquare=name;
+
+   possible=game.moves({
+    square:name,
+    verbose:true
+   }).map(move=>move.to);
+
+   status.textContent=possible.length?
+    "Choisis une case verte.":
+    "Cette pièce ne peut pas bouger.";
+  }else{
+   selectedSquare=null;
+   possible=[];
+  }
+
+  drawBoard();
+  return;
+ }
+
+ if(locked||finished||game.turn()!=="w")return;
+
+ if(chosenCard===null){
+  status.textContent="Choisis d'abord une carte UNO.";
+  return;
+ }
+
+ const piece=game.get(name);
+
+ if(selectedSquare&&possible.includes(name)){
+  playHumanMove(selectedSquare,name);
+  return;
+ }
+
+ if(piece&&piece.color==="w"){
+  const card=hand[chosenCard];
+
+  if(!allowedPiece(card,piece.type)){
+   status.textContent="Cette carte ne permet pas de déplacer cette pièce.";
+   return;
+  }
+
+  selectedSquare=name;
+  possible=game.moves({square:name,verbose:true}).map(m=>m.to);
+
+  status.textContent=possible.length?
+   "Choisis une case verte.":
+   "Cette pièce ne peut pas bouger.";
+ }else{
+  selectedSquare=null;
+  possible=[];
+ }
+
+ drawBoard();
+};
+
+/* =====================================
+   PIOCHE EN LIGNE
+===================================== */
+
+window.drawForHuman=function(){
+ if(isOnlineGame){
+  if(finished||!onlineMyTurn||!onlineSocket)return;
+
+  onlineSocket.emit("game-action",{
+   room:onlineRoom,
+   type:"draw"
+  });
+
+  status.textContent="Demande de pioche envoyée...";
+  return;
+ }
+
+ if(locked||finished||game.turn()!=="w")return;
+
+ if(hasPlayableAction(hand,"w")){
+  status.textContent="Tu as une carte jouable ! Tu dois la jouer avant de piocher.";
+  return;
+ }
+
+ hand.push(drawCard());
+
+ chosenCard=null;
+ selectedSquare=null;
+ possible=[];
+
+ renderCards();
+ drawBoard();
+
+ status.textContent="Tu as pioché une carte. Ton tour est terminé : le bot joue.";
+
+ locked=true;
+
+ if(!passTurn("b"))return;
+
+ setTimeout(botTurn,500);
+};
+
+/* =====================================
+   BOUTON JOUER EN LIGNE
+===================================== */
+
+window.onlineLater=function(){
+ document.getElementById("account-panel").scrollIntoView({
+  behavior:"smooth",
+  block:"center"
+ });
+
+ if(!currentUser){
+  accountStatus("Connecte-toi pour jouer en ligne.");
+ }else{
+  accountStatus("Tu peux rechercher un adversaire.");
+ }
+};
+
+/* =====================================
+   NOUVELLE PARTIE
+===================================== */
+
+const originalResetGame=window.resetGame;
+
+window.resetGame=function(){
+ if(isOnlineGame&&!finished){
+  status.textContent="Termine ou quitte d'abord ta partie en ligne.";
+  return;
+ }
+
+ isOnlineGame=false;
+ onlineRoom=null;
+ onlineColor=null;
+ onlineMyTurn=false;
+
+ originalResetGame();
+};
+
+/* =====================================
+   DÉMARRAGE
+===================================== */
+
+loadProfile();
 
 </script>
 </body>
