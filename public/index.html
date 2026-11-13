@@ -1728,7 +1728,138 @@ function updateReportStats(){
  document.getElementById("statBlunders").textContent=blunders;
 }
 
+/* =====================================
+   RELECTURE INTERACTIVE DE LA PARTIE
+===================================== */
+
+function renderReportReplay(){
+
+ const boardBox=document.getElementById("report-board");
+ const positionBox=document.getElementById("replayPosition");
+ const cardBox=document.getElementById("report-card");
+ const detailBox=document.getElementById("report-replay-detail");
+
+ if(!boardBox||!positionBox||!cardBox||!detailBox)return;
+
+ boardBox.innerHTML="";
+
+ if(moveHistory.length===0){
+  positionBox.textContent="Aucun coup";
+  cardBox.textContent="Aucune";
+  detailBox.textContent="Aucun coup enregistré dans cette partie.";
+  return;
+ }
+
+ reportIndex=Math.max(0,Math.min(reportIndex,moveHistory.length-1));
+
+ const move=moveHistory[reportIndex];
+
+ if(!move.afterFen){
+  positionBox.textContent="Position indisponible";
+  detailBox.textContent="La position de ce coup n'a pas été enregistrée.";
+  return;
+ }
+
+ let replayGame;
+
+ try{
+  replayGame=new Chess(move.afterFen);
+ }catch(error){
+  positionBox.textContent="Erreur de relecture";
+  detailBox.textContent="Impossible de reconstruire cette position.";
+  return;
+ }
+
+ const position=replayGame.board();
+
+ positionBox.textContent=
+  "Coup "+(reportIndex+1)+" / "+moveHistory.length+
+  " · "+move.side+" · "+move.san;
+
+ for(let r=0;r<8;r++){
+  for(let c=0;c<8;c++){
+
+   const piece=position[r][c];
+   const square=document.createElement("div");
+
+   square.className="report-square "+
+    ((r+c)%2===0?"light":"dark");
+
+   const squareName="abcdefgh"[c]+(8-r);
+
+   if(squareName===move.from||squareName===move.to){
+    square.classList.add("last-move");
+   }
+
+   if(piece){
+    square.textContent=
+     pieces[piece.color+piece.type.toUpperCase()];
+   }
+
+   boardBox.appendChild(square);
+  }
+ }
+
+ cardBox.textContent=move.card||"Aucune";
+
+ const cardColors={
+  rouge:"#dc2626",
+  bleu:"#2563eb",
+  vert:"#16a34a",
+  jaune:"#eab308",
+  joker:"#7c3aed"
+ };
+
+ cardBox.style.background=cardColors[move.color]||"#374151";
+ cardBox.style.color="#ffffff";
+
+ detailBox.textContent=
+  (move.explanation||"Aucune explication disponible.")+
+  " Évaluation : "+formatEvaluation(move.change||0);
+
+ const previous=document.querySelector(
+  ".replay-toolbar button:first-of-type"
+ );
+
+ const next=document.querySelector(
+  ".replay-toolbar button:last-of-type"
+ );
+
+ if(previous)previous.disabled=reportIndex===0;
+ if(next)next.disabled=reportIndex===moveHistory.length-1;
+}
+
+
+/* COUP PRÉCÉDENT */
+
+function previousReportMove(){
+
+ if(moveHistory.length===0)return;
+
+ if(reportIndex>0){
+  reportIndex--;
+  renderReportReplay();
+ }
+}
+
+
+/* COUP SUIVANT */
+
+function nextReportMove(){
+
+ if(moveHistory.length===0)return;
+
+ if(reportIndex<moveHistory.length-1){
+  reportIndex++;
+  renderReportReplay();
+ }
+}
+
+
+/* OUVERTURE DU BILAN */
+
 function showReport(){
+
  if(!finished){
   status.textContent="Termine la partie pour consulter le bilan.";
   return;
@@ -1737,7 +1868,7 @@ function showReport(){
  reportBox.style.display="block";
 
  document.getElementById("reportTitle").textContent=
- "Partie terminée · "+moveHistory.length+" coups analysés";
+  "Partie terminée · "+moveHistory.length+" coups analysés";
 
  updateReportStats();
 
@@ -1745,17 +1876,21 @@ function showReport(){
  movesBox.innerHTML="";
 
  if(moveHistory.length===0){
-  movesBox.textContent="Aucun coup n'a été enregistré.";
+  movesBox.textContent=
+   "Aucun coup enregistré. Vérifie l'enregistrement des coups.";
+  reportIndex=-1;
+  renderReportReplay();
   return;
  }
 
- moveHistory.forEach(m=>{
+ moveHistory.forEach((m,index)=>{
+
   const div=document.createElement("div");
   div.className="report-move "+m.category;
+  div.style.cursor="pointer";
 
   const number=document.createElement("span");
   number.className="report-move-number";
-
   number.textContent=
    m.number+(m.side==="UNO.CHESS AI"?"...":".");
 
@@ -1771,7 +1906,7 @@ function showReport(){
 
   const uno=document.createElement("span");
   uno.className="report-uno";
-  uno.textContent="· Carte UNO : "+m.uno;
+  uno.textContent=" · Carte UNO : "+m.uno;
 
   main.appendChild(chess);
   main.appendChild(uno);
@@ -1782,7 +1917,6 @@ function showReport(){
 
   const evaluation=document.createElement("div");
   evaluation.className="report-evaluation";
-
   evaluation.textContent=
    "Évolution estimée : "+formatEvaluation(m.change);
 
@@ -1792,36 +1926,41 @@ function showReport(){
 
   const tag=document.createElement("span");
   tag.className="report-tag "+m.category;
-  tag.textContent=categoryNames[m.category];
+  tag.textContent=categoryNames[m.category]||m.category;
 
   div.appendChild(number);
   div.appendChild(detail);
   div.appendChild(tag);
 
+  div.onclick=()=>{
+   reportIndex=index;
+   renderReportReplay();
+
+   document.querySelectorAll(".report-move").forEach(el=>{
+    el.style.outline="none";
+   });
+
+   div.style.outline="2px solid #facc15";
+
+   document.querySelector(".report-replay").scrollIntoView({
+    behavior:"smooth",
+    block:"start"
+   });
+  };
+
   movesBox.appendChild(div);
  });
+
+ reportIndex=0;
+ renderReportReplay();
 }
+
+
+/* FERMER LE BILAN */
 
 function closeReport(){
  reportBox.style.display="none";
 }
-
-/* COMMANDES */
-
-function resetGame(){
- startGame();
-}
-
-function onlineLater(){
- status.textContent="Le mode en ligne sera ajouté dans une prochaine version.";
-}
-
-startGame();
-
-</script>
- <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-
-<script>
 /* =====================================
    CONNEXION AU SERVEUR UNO.CHESS
 ===================================== */
