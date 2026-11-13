@@ -1818,82 +1818,6 @@ function renderReportReplay(){
 
 
 
- const move=moveHistory[reportIndex];
-
- if(!move.afterFen){
-  positionBox.textContent="Position indisponible";
-  detailBox.textContent="La position de ce coup n'a pas été enregistrée.";
-  return;
- }
-
- let replayGame;
-
- try{
-  replayGame=new Chess(move.afterFen);
- }catch(error){
-  positionBox.textContent="Erreur de relecture";
-  detailBox.textContent="Impossible de reconstruire cette position.";
-  return;
- }
-
- const position=replayGame.board();
-
- positionBox.textContent=
-  "Coup "+(reportIndex+1)+" / "+moveHistory.length+
-  " · "+move.side+" · "+move.san;
-
- for(let r=0;r<8;r++){
-  for(let c=0;c<8;c++){
-
-   const piece=position[r][c];
-   const square=document.createElement("div");
-
-   square.className="report-square "+
-    ((r+c)%2===0?"light":"dark");
-
-   const squareName="abcdefgh"[c]+(8-r);
-
-   if(squareName===move.from||squareName===move.to){
-    square.classList.add("last-move");
-   }
-
-   if(piece){
-    square.textContent=
-     pieces[piece.color+piece.type.toUpperCase()];
-   }
-
-   boardBox.appendChild(square);
-  }
- }
-
- cardBox.textContent=move.card||"Aucune";
-
- const cardColors={
-  rouge:"#dc2626",
-  bleu:"#2563eb",
-  vert:"#16a34a",
-  jaune:"#eab308",
-  joker:"#7c3aed"
- };
-
- cardBox.style.background=cardColors[move.color]||"#374151";
- cardBox.style.color="#ffffff";
-
- detailBox.textContent=
-  (move.explanation||"Aucune explication disponible.")+
-  " Évaluation : "+formatEvaluation(move.change||0);
-
- const previous=document.querySelector(
-  ".replay-toolbar button:first-of-type"
- );
-
- const next=document.querySelector(
-  ".replay-toolbar button:last-of-type"
- );
-
- if(previous)previous.disabled=reportIndex===0;
- if(next)next.disabled=reportIndex===moveHistory.length-1;
-}
 
 
 /* COUP PRÉCÉDENT */
@@ -2632,9 +2556,12 @@ window.onlineLater=function(){
    NOUVELLE PARTIE
 ===================================== */
 
-const originalResetGame=window.resetGame;
+/* =====================================
+   NOUVELLE PARTIE
+===================================== */
 
 window.resetGame=function(){
+
  if(isOnlineGame&&!finished){
   status.textContent="Termine ou quitte d'abord ta partie en ligne.";
   return;
@@ -2645,7 +2572,7 @@ window.resetGame=function(){
  onlineColor=null;
  onlineMyTurn=false;
 
- originalResetGame();
+ startGame();
 };
 
 /* =====================================
