@@ -459,6 +459,94 @@ button:disabled{opacity:.5;cursor:not-allowed}
  padding:9px;
  border-bottom:1px solid #374151;
 }
+ 
+/* RELECTURE VISUELLE DU BILAN */
+
+.report-replay{
+ background:#1f2937;
+ border:1px solid #374151;
+ border-radius:14px;
+ padding:16px;
+ margin:20px 0;
+ text-align:center;
+}
+
+.report-replay h3{
+ color:#93c5fd;
+ margin:5px 0 15px;
+}
+
+.replay-toolbar{
+ display:flex;
+ justify-content:center;
+ align-items:center;
+ flex-wrap:wrap;
+ gap:8px;
+ margin:12px 0;
+}
+
+.replay-toolbar button{
+ background:#facc15;
+ color:#111827;
+}
+
+#replayPosition{
+ color:#cbd5e1;
+ font-weight:bold;
+}
+
+#report-board{
+ display:grid;
+ grid-template-columns:repeat(8,minmax(0,1fr));
+ width:min(100%,400px);
+ aspect-ratio:1;
+ margin:15px auto;
+ border:4px solid #d1d5db;
+}
+
+.report-square{
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ aspect-ratio:1;
+ font-size:clamp(17px,5vw,36px);
+}
+
+.report-square.light{background:#f0d9b5}
+.report-square.dark{background:#b58863}
+
+.report-square.last-move{
+ background:#facc15;
+}
+
+#report-card{
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ min-width:90px;
+ min-height:110px;
+ padding:12px;
+ border:3px solid white;
+ border-radius:12px;
+ font-size:23px;
+ font-weight:bold;
+ margin:12px auto;
+ box-shadow:0 3px 8px #0008;
+}
+
+#report-replay-detail{
+ color:#cbd5e1;
+ line-height:1.6;
+}
+
+.report-move{
+ cursor:pointer;
+}
+
+.report-move:hover{
+ background:#1f2937;
+}
+
 </style>
 </head>
 
@@ -594,7 +682,24 @@ button:disabled{opacity:.5;cursor:not-allowed}
     <span>Grosses erreurs</span>
    </div>
   </div>
+  <div class="report-replay">
+   <h3>♟️ RELECTURE DE LA PARTIE</h3>
 
+   <div class="replay-toolbar">
+    <button onclick="previousReportMove()">◀ PRÉCÉDENT</button>
+    <span id="replayPosition">Aucun coup</span>
+    <button onclick="nextReportMove()">SUIVANT ▶</button>
+   </div>
+
+   <div id="report-board"></div>
+
+   <h3>🃏 CARTE UNO JOUÉE</h3>
+   <div id="report-card">Aucune</div>
+
+   <p id="report-replay-detail">
+    Sélectionne un coup pour revoir la position.
+   </p>
+  </div>
   <div class="report-section">
    <h3>📈 Coups et appréciations</h3>
    <div id="reportMoves"></div>
@@ -679,6 +784,7 @@ let possible=[];
 let locked=false;
 let finished=true;
 let moveHistory=[];
+let reportIndex=0;
 
 /* NIVEAUX */
 
@@ -1029,6 +1135,10 @@ function clickSquare(name){
 
 /* EXPLICATION D'UN COUP */
 
+/* =====================================
+   EXPLICATION D'UN COUP
+===================================== */
+
 function explainMove(move,card,change){
  const details=[];
 
@@ -1084,9 +1194,12 @@ function explainMove(move,card,change){
  return details.join(" ");
 }
 
-/* ANALYSE D'UN COUP */
 
-function recordMove(side,beforeScore,move,card){
+/* =====================================
+   ENREGISTREMENT DES COUPS
+===================================== */
+
+function recordMove(side,beforeScore,move,card,beforeFen){
  const afterScore=evaluatePosition();
 
  const beforeAdvantage=side==="b"?
@@ -1137,33 +1250,68 @@ function recordMove(side,beforeScore,move,card){
   change,
   beforeScore,
   afterScore,
+  beforeFen:beforeFen||null,
+  afterFen:game.fen(),
   explanation:explainMove(move,card,change)
  });
 }
 
-/* JOUER UN COUP HUMAIN */
+
+/* =====================================
+   COUP DU JOUEUR CONTRE LE BOT
+===================================== */
 
 function playHumanMove(from,to){
+
+ if(locked||finished||game.turn()!=="w")return;
+
+ if(chosenCard===null)return;
+
  const card=hand[chosenCard];
+
+ if(!card){
+  status.textContent="Erreur : carte introuvable.";
+  return;
+ }
+
+ if(!cardMatches(card)){
+  status.textContent="Cette carte ne correspond plus à la couleur active.";
+  return;
+ }
+
+ const legalMoves=game.moves({
+  square:from,
+  verbose:true
+ });
+
+ const legal=legalMoves.some(move=>move.to===to);
+
+ if(!legal){
+  status.textContent="Déplacement impossible.";
+  return;
+ }
+
  const beforeScore=evaluatePosition();
+ const beforeFen=game.fen();
 
  const move=game.move({
-  from,
-  to,
+  from:from,
+  to:to,
   promotion:"q"
  });
 
  if(!move){
-  status.textContent="Déplacement impossible.";
+  status.textContent="Erreur : déplacement impossible.";
   return;
  }
 
  hand.splice(chosenCard,1);
 
  discard=card;
+
  applyCardEffect(card,botHand,hand);
 
- recordMove("w",beforeScore,move,card);
+ recordMove("w",beforeScore,move,card,beforeFen);
 
  chosenCard=null;
  selectedSquare=null;
@@ -1176,10 +1324,14 @@ function playHumanMove(from,to){
  if(checkWinner())return;
 
  locked=true;
- status.textContent="Le bot réfléchit...";
 
- setTimeout(botTurn,250);
+ if(!passTurn("b"))return;
+
+ status.textContent="Tu as joué "+card.value+" et "+move.san+". Le bot réfléchit...";
+
+ setTimeout(botTurn,500);
 }
+
 
 /* PIOCHE DU JOUEUR : UNE SEULE CARTE */
 
@@ -1497,10 +1649,11 @@ function botTurn(){
 
  const chosen=bestAction;
  const card=botHand[chosen.index];
+const beforeScore=evaluatePosition();
+const beforeFen=game.fen();
 
- const beforeScore=evaluatePosition();
-
- const move=game.move({
+const move=game.move({
+ 
   from:chosen.move.from,
   to:chosen.move.to,
   promotion:"q"
@@ -1518,7 +1671,7 @@ function botTurn(){
  discard=card;
  applyCardEffect(card,hand,botHand);
 
- recordMove("b",beforeScore,move,card);
+ recordMove("b",beforeScore,move,card,beforeFen);
 
  drawBoard();
  renderCards();
