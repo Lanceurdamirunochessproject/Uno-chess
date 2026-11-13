@@ -1880,9 +1880,10 @@ function connectOnlineSocket(){
   accountStatus("Connecté au serveur en ligne.");
  });
 
- onlineSocket.on("connect_error",()=>{
-  accountStatus("Connexion en ligne impossible. Vérifie les cookies et le serveur.");
- });
+onlineSocket.on("connect_error",(error)=>{
+  console.error("ERREUR SOCKET.IO :",error);
+  accountStatus("Erreur Socket.IO : "+error.message);
+});
 
  onlineSocket.on("waiting",()=>{
   onlineSearching=true;
