@@ -7,6 +7,7 @@ const bcrypt = require("bcryptjs");
 const session = require("express-session");
 const PgSession = require("connect-pg-simple")(session);
 const cors = require("cors");
+const { Chess } = require("chess.js");
 
 const app = express();
 const server = http.createServer(app);
@@ -53,19 +54,24 @@ const io = new Server(server, {
   }
 });
 
+const waitingPlayers = new Map();
+const activeRooms = new Map();
+const socketUsers = new Map();
+
+const COLORS = ["rouge", "jaune", "vert", "bleu"];
+
 function requireLogin(req, res, next) {
   if (!req.session.userId) {
     return res.status(401).json({
       error: "Tu dois être connecté."
     });
   }
-
   next();
 }
 
-/* =========================================================
-   ÉCONOMIE KILO
-   ========================================================= */
+/* =====================================================
+   KILO
+   ===================================================== */
 
 function calculateKiloChange(winnerKilo, loserKilo) {
   const difference = Math.abs(
@@ -78,9 +84,129 @@ function calculateKiloChange(winnerKilo, loserKilo) {
   );
 }
 
-/* =========================================================
+async function settleMatch(matchId, winnerId, loserId) {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const result = await client.query(
+      `SELECT id, player1, player2, status
+       FROM matches
+       WHERE id = $1
+       FOR UPDATE`,
+      [matchId]
+    );
+
+    if (!result.rows.length) {
+      throw new Error("Partie introuvable.");
+    }
+
+    const match = result.rows[0];
+
+    if (match.status !== "pending") {
+      throw new Error("Partie déjà terminée.");
+    }
+
+    const validPlayers =
+      (
+        Number(match.player1) === Number(winnerId) &&
+        Number(match.player2) === Number(loserId)
+      ) ||
+      (
+        Number(match.player2) === Number(winnerId) &&
+        Number(match.player1) === Number(loserId)
+      );
+
+    if (!validPlayers) {
+      throw new Error("Joueurs invalides.");
+    }
+
+    const users = await client.query(
+      `SELECT id, kilo
+       FROM users
+       WHERE id = ANY($1::integer[])
+       ORDER BY id
+       FOR UPDATE`,
+      [[Number(winnerId), Number(loserId)]]
+    );
+
+    if (users.rows.length !== 2) {
+      throw new Error("Joueur introuvable.");
+    }
+
+    const winner = users.rows.find(
+      u => Number(u.id) === Number(winnerId)
+    );
+
+    const loser = users.rows.find(
+      u => Number(u.id) === Number(loserId)
+    );
+
+    const gain = calculateKiloChange(
+      winner.kilo,
+      loser.kilo
+    );
+
+    const loss = Math.min(gain, Number(loser.kilo));
+
+    await client.query(
+      "UPDATE users SET kilo = kilo + $1 WHERE id = $2",
+      [gain, winnerId]
+    );
+
+    await client.query(
+      "UPDATE users SET kilo = GREATEST(0, kilo - $1) WHERE id = $2",
+      [loss, loserId]
+    );
+
+    await client.query(
+      `UPDATE matches
+       SET winner = $1,
+           status = 'finished',
+           settled_at = CURRENT_TIMESTAMP,
+           kilo_change = $2
+       WHERE id = $3`,
+      [winnerId, gain, matchId]
+    );
+
+    await client.query("COMMIT");
+
+    return { gain, loss };
+
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function finishDraw(matchId) {
+  await pool.query(
+    `UPDATE matches
+     SET status = 'finished',
+         winner = NULL,
+         settled_at = CURRENT_TIMESTAMP,
+         kilo_change = 0
+     WHERE id = $1 AND status = 'pending'`,
+    [matchId]
+  );
+}
+
+async function abandonMatch(matchId) {
+  await pool.query(
+    `UPDATE matches
+     SET status = 'abandoned',
+         settled_at = CURRENT_TIMESTAMP
+     WHERE id = $1 AND status = 'pending'`,
+    [matchId]
+  );
+}
+
+/* =====================================================
    BASE DE DONNÉES
-   ========================================================= */
+   ===================================================== */
 
 async function initDatabase() {
   await pool.query(`
@@ -123,155 +249,15 @@ async function initDatabase() {
     ALTER TABLE matches
     ADD COLUMN IF NOT EXISTS kilo_change INTEGER
   `);
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS match_result_confirmations (
-      match_id INTEGER NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
-      user_id INTEGER NOT NULL REFERENCES users(id),
-      winner_id INTEGER NOT NULL REFERENCES users(id),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      PRIMARY KEY (match_id, user_id)
-    )
-  `);
 }
 
-/* =========================================================
-   ATTRIBUTION DES KILO
-   ========================================================= */
-
-/*
-  Cette fonction ne doit être appelée que par une procédure
-  de validation fiable du résultat de la partie.
-
-  Ne jamais créer de route publique permettant à un joueur
-  de choisir librement le gagnant.
-*/
-
-async function updateKiloAfterVerifiedMatch(
-  matchId,
-  winnerId,
-  loserId
-) {
-  const client = await pool.connect();
-
-  try {
-    await client.query("BEGIN");
-
-    const matchResult = await client.query(
-      `SELECT id, player1, player2, winner, status
-       FROM matches
-       WHERE id = $1
-       FOR UPDATE`,
-      [matchId]
-    );
-
-    if (!matchResult.rows.length) {
-      throw new Error("Partie introuvable.");
-    }
-
-    const match = matchResult.rows[0];
-
-    if (match.status === "finished") {
-      throw new Error("Cette partie a déjà été comptabilisée.");
-    }
-
-    if (
-      !(
-        (
-          Number(match.player1) === Number(winnerId) &&
-          Number(match.player2) === Number(loserId)
-        ) ||
-        (
-          Number(match.player2) === Number(winnerId) &&
-          Number(match.player1) === Number(loserId)
-        )
-      )
-    ) {
-      throw new Error("Les joueurs ne correspondent pas.");
-    }
-
-    const usersResult = await client.query(
-      `SELECT id, kilo
-       FROM users
-       WHERE id = ANY($1::integer[])
-       ORDER BY id
-       FOR UPDATE`,
-      [[Number(winnerId), Number(loserId)]]
-    );
-
-    if (usersResult.rows.length !== 2) {
-      throw new Error("Joueur introuvable.");
-    }
-
-    const winner = usersResult.rows.find(
-      user => Number(user.id) === Number(winnerId)
-    );
-
-    const loser = usersResult.rows.find(
-      user => Number(user.id) === Number(loserId)
-    );
-
-    const points = calculateKiloChange(
-      winner.kilo,
-      loser.kilo
-    );
-
-    const actualLoss = Math.min(
-      points,
-      Number(loser.kilo)
-    );
-
-    await client.query(
-      `UPDATE users
-       SET kilo = kilo + $1
-       WHERE id = $2`,
-      [points, winnerId]
-    );
-
-    await client.query(
-      `UPDATE users
-       SET kilo = GREATEST(0, kilo - $1)
-       WHERE id = $2`,
-      [actualLoss, loserId]
-    );
-
-    await client.query(
-      `UPDATE matches
-       SET winner = $1,
-           status = 'finished',
-           settled_at = CURRENT_TIMESTAMP,
-           kilo_change = $2
-       WHERE id = $3`,
-      [winnerId, points, matchId]
-    );
-
-    await client.query("COMMIT");
-
-    return {
-      winnerGain: points,
-      loserLoss: actualLoss
-    };
-
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-
-  } finally {
-    client.release();
-  }
-}
-
-/* =========================================================
-   PAGE D'ACCUEIL
-   ========================================================= */
+/* =====================================================
+   COMPTES
+   ===================================================== */
 
 app.get("/", (req, res) => {
   res.send("UNO CHESS server is running!");
 });
-
-/* =========================================================
-   INSCRIPTION
-   ========================================================= */
 
 app.post("/api/register", async (req, res) => {
   try {
@@ -331,16 +317,9 @@ app.post("/api/register", async (req, res) => {
     }
 
     console.error(error);
-
-    res.status(500).json({
-      error: "Erreur du serveur."
-    });
+    res.status(500).json({ error: "Erreur du serveur." });
   }
 });
-
-/* =========================================================
-   CONNEXION
-   ========================================================= */
 
 app.post("/api/login", async (req, res) => {
   try {
@@ -395,16 +374,9 @@ app.post("/api/login", async (req, res) => {
 
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      error: "Erreur du serveur."
-    });
+    res.status(500).json({ error: "Erreur du serveur." });
   }
 });
-
-/* =========================================================
-   PROFIL
-   ========================================================= */
 
 app.get("/api/me", requireLogin, async (req, res) => {
   try {
@@ -421,22 +393,13 @@ app.get("/api/me", requireLogin, async (req, res) => {
       });
     }
 
-    res.json({
-      user: result.rows[0]
-    });
+    res.json({ user: result.rows[0] });
 
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      error: "Erreur du serveur."
-    });
+    res.status(500).json({ error: "Erreur du serveur." });
   }
 });
-
-/* =========================================================
-   DÉCONNEXION
-   ========================================================= */
 
 app.post("/api/logout", (req, res) => {
   req.session.destroy(error => {
@@ -452,15 +415,9 @@ app.post("/api/logout", (req, res) => {
       sameSite: "none"
     });
 
-    res.json({
-      success: true
-    });
+    res.json({ success: true });
   });
 });
-
-/* =========================================================
-   CLASSEMENT
-   ========================================================= */
 
 app.get("/api/leaderboard", async (req, res) => {
   try {
@@ -471,26 +428,423 @@ app.get("/api/leaderboard", async (req, res) => {
        LIMIT 100`
     );
 
-    res.json({
-      leaderboard: result.rows
-    });
+    res.json({ leaderboard: result.rows });
 
   } catch (error) {
     console.error(error);
-
     res.status(500).json({
       error: "Impossible de charger le classement."
     });
   }
 });
 
-/* =========================================================
-   FILE D'ATTENTE MULTIJOUEUR
-   ========================================================= */
+/* =====================================================
+   CARTES UNO CÔTÉ SERVEUR
+   ===================================================== */
 
-const waitingPlayers = new Map();
-const socketUsers = new Map();
-const activeRooms = new Map();
+function makeDeck() {
+  const deck = [];
+
+  for (const color of COLORS) {
+    for (let n = 0; n <= 9; n++) {
+      deck.push({ value: String(n), color });
+    }
+
+    for (const value of ["+2", "↔", "PASSE"]) {
+      deck.push({ value, color });
+    }
+  }
+
+  for (let i = 0; i < 4; i++) {
+    deck.push({ value: "JOKER", color: "joker" });
+    deck.push({ value: "+4", color: "joker" });
+  }
+
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+
+  return deck;
+}
+
+function drawCard(match) {
+  if (match.deck.length === 0) {
+    match.deck = makeDeck();
+  }
+
+  return match.deck.pop();
+}
+
+function cardMatches(card, match) {
+  return !!card && (
+    card.color === "joker" ||
+    card.color === match.activeColor ||
+    card.value === match.discard.value
+  );
+}
+
+function allowedPiece(card, piece) {
+  if (card.color === "joker") return true;
+  if (card.color === "rouge") return piece === "r" || piece === "q";
+  if (card.color === "bleu") return piece === "n";
+  if (card.color === "vert") return piece === "b";
+  if (card.color === "jaune") return piece === "p";
+  return false;
+}
+
+function bestColorFor(cards) {
+  const counts = {
+    rouge: 0,
+    jaune: 0,
+    vert: 0,
+    bleu: 0
+  };
+
+  for (const card of cards) {
+    if (counts[card.color] !== undefined) {
+      counts[card.color]++;
+    }
+  }
+
+  let best = "rouge";
+
+  for (const color of COLORS) {
+    if (counts[color] > counts[best]) best = color;
+  }
+
+  return best;
+}
+
+function hasPlayableAction(match, side) {
+  const cards = match.hands[side];
+  const moves = match.chess.moves({ verbose: true });
+
+  return cards.some(card => {
+    if (!cardMatches(card, match)) return false;
+
+    return moves.some(move =>
+      allowedPiece(card, move.piece)
+    );
+  });
+}
+
+function passChessTurn(match, nextSide) {
+  const fields = match.chess.fen().split(" ");
+
+  if (fields[1] === nextSide) return true;
+
+  fields[3] = "-";
+
+  if (fields[1] === "b" && nextSide === "w") {
+    fields[5] = String(Number(fields[5]) + 1);
+  }
+
+  fields[1] = nextSide;
+
+  return match.chess.load(fields.join(" "));
+}
+
+/* =====================================================
+   ÉTAT DE PARTIE ET SYNCHRONISATION
+   ===================================================== */
+
+function publicState(match, userId) {
+  const side = Number(userId) === Number(match.whiteUser)
+    ? "w"
+    : "b";
+
+  const opponentSide = side === "w" ? "b" : "w";
+
+  return {
+    matchId: match.id,
+    fen: match.chess.fen(),
+    color: side === "w" ? "white" : "black",
+    turn: match.chess.turn(),
+    yourTurn: match.chess.turn() === side,
+    hand: match.hands[side],
+    opponentCardCount: match.hands[opponentSide].length,
+    discard: match.discard,
+    activeColor: match.activeColor,
+    finished: match.finished
+  };
+}
+
+function sendStates(room, match) {
+  for (const socketId of match.players) {
+    const socket = io.sockets.sockets.get(socketId);
+    if (!socket) continue;
+
+    const userId = socketUsers.get(socketId);
+
+    socket.emit(
+      "online-state",
+      publicState(match, userId)
+    );
+  }
+}
+
+function createMatchState(id, whiteUser, blackUser) {
+  const match = {
+    id,
+    chess: new Chess(),
+    deck: makeDeck(),
+    hands: { w: [], b: [] },
+    discard: null,
+    activeColor: "rouge",
+    whiteUser,
+    blackUser,
+    players: [],
+    finished: false
+  };
+
+  for (let i = 0; i < 5; i++) {
+    match.hands.w.push(drawCard(match));
+    match.hands.b.push(drawCard(match));
+  }
+
+  match.discard = drawCard(match);
+
+  while (
+    match.discard.value === "JOKER" ||
+    match.discard.value === "+4"
+  ) {
+    match.deck.push(match.discard);
+    match.discard = drawCard(match);
+  }
+
+  match.activeColor = match.discard.color;
+
+  return match;
+}
+
+/* =====================================================
+   FIN DE PARTIE
+   ===================================================== */
+
+async function finishOnlineMatch(room, match, winnerId) {
+  if (match.finished) return;
+
+  match.finished = true;
+
+  try {
+    if (winnerId === null) {
+      await finishDraw(match.id);
+
+      io.to(room).emit("online-finished", {
+        draw: true,
+        message: "Match nul ! Aucun KILO gagné ou perdu."
+      });
+
+      return;
+    }
+
+    const loserId =
+      Number(winnerId) === Number(match.whiteUser)
+        ? match.blackUser
+        : match.whiteUser;
+
+    const result = await settleMatch(
+      match.id,
+      winnerId,
+      loserId
+    );
+
+    io.to(room).emit("online-finished", {
+      draw: false,
+      winnerId: Number(winnerId),
+      winnerGain: result.gain,
+      loserLoss: result.loss
+    });
+
+  } catch (error) {
+    console.error("Settlement error:", error);
+
+    io.to(room).emit("online-finished", {
+      draw: false,
+      kiloAwarded: false,
+      message: "Résultat enregistré, mais les KILO doivent être vérifiés."
+    });
+  }
+}
+
+/* =====================================================
+   ACTIONS DE PARTIE VALIDÉES
+   ===================================================== */
+
+async function handleOnlineAction(socket, data) {
+  if (!data || typeof data.room !== "string") return;
+
+  const match = activeRooms.get(data.room);
+
+  if (!match || match.finished) return;
+  if (!match.players.includes(socket.id)) return;
+
+  const userId = socketUsers.get(socket.id);
+  const side = Number(userId) === Number(match.whiteUser)
+    ? "w"
+    : "b";
+
+  if (match.chess.turn() !== side) {
+    socket.emit("game-error", {
+      message: "Ce n'est pas ton tour."
+    });
+    return;
+  }
+
+  if (data.type === "draw") {
+    if (hasPlayableAction(match, side)) {
+      socket.emit("game-error", {
+        message: "Tu as une carte jouable : tu dois la jouer."
+      });
+      return;
+    }
+
+    match.hands[side].push(drawCard(match));
+
+    const nextSide = side === "w" ? "b" : "w";
+
+    if (!passChessTurn(match, nextSide)) {
+      socket.emit("game-error", {
+        message: "Impossible de passer le tour."
+      });
+      return;
+    }
+
+    sendStates(data.room, match);
+    return;
+  }
+
+  if (data.type !== "move") return;
+
+  if (
+    !Number.isInteger(data.cardIndex) ||
+    data.cardIndex < 0 ||
+    data.cardIndex >= match.hands[side].length ||
+    typeof data.from !== "string" ||
+    typeof data.to !== "string"
+  ) {
+    socket.emit("game-error", {
+      message: "Action invalide."
+    });
+    return;
+  }
+
+  const card = match.hands[side][data.cardIndex];
+
+  if (!cardMatches(card, match)) {
+    socket.emit("game-error", {
+      message: "Cette carte ne correspond pas à la carte défaussée."
+    });
+    return;
+  }
+
+  const piece = match.chess.get(data.from);
+
+  if (!piece || piece.color !== side) {
+    socket.emit("game-error", {
+      message: "Cette pièce ne t'appartient pas."
+    });
+    return;
+  }
+
+  if (!allowedPiece(card, piece.type)) {
+    socket.emit("game-error", {
+      message: "Cette carte ne permet pas de déplacer cette pièce."
+    });
+    return;
+  }
+
+  const legalMoves = match.chess.moves({
+    square: data.from,
+    verbose: true
+  });
+
+  if (!legalMoves.some(move => move.to === data.to)) {
+    socket.emit("game-error", {
+      message: "Déplacement illégal."
+    });
+    return;
+  }
+
+  const move = match.chess.move({
+    from: data.from,
+    to: data.to,
+    promotion: "q"
+  });
+
+  if (!move) {
+    socket.emit("game-error", {
+      message: "Déplacement impossible."
+    });
+    return;
+  }
+
+  match.hands[side].splice(data.cardIndex, 1);
+  match.discard = card;
+
+  const opponentSide = side === "w" ? "b" : "w";
+
+  if (card.value === "+2") {
+    match.hands[opponentSide].push(
+      drawCard(match),
+      drawCard(match)
+    );
+  }
+
+  if (card.value === "+4") {
+    for (let i = 0; i < 4; i++) {
+      match.hands[opponentSide].push(drawCard(match));
+    }
+  }
+
+  if (
+    card.value === "PASSE" &&
+    match.hands[opponentSide].length > 0
+  ) {
+    match.hands[opponentSide].splice(0, 1);
+  }
+
+  if (card.value === "↔" || card.color === "joker") {
+    match.activeColor = bestColorFor(match.hands[side]);
+  } else {
+    match.activeColor = card.color;
+  }
+
+  if (match.hands[side].length === 0) {
+    await finishOnlineMatch(data.room, match, userId);
+    return;
+  }
+
+  if (match.chess.isCheckmate()) {
+    await finishOnlineMatch(data.room, match, userId);
+    return;
+  }
+
+  if (
+    match.chess.isDraw() ||
+    match.chess.isStalemate()
+  ) {
+    await finishOnlineMatch(data.room, match, null);
+    return;
+  }
+
+  if (match.hands[opponentSide].length === 0) {
+    const opponentId =
+      opponentSide === "w"
+        ? match.whiteUser
+        : match.blackUser;
+
+    await finishOnlineMatch(data.room, match, opponentId);
+    return;
+  }
+
+  sendStates(data.room, match);
+}
+
+/* =====================================================
+   SOCKET.IO
+   ===================================================== */
 
 io.engine.use(sessionMiddleware);
 
@@ -502,80 +856,86 @@ io.on("connection", socket => {
     return;
   }
 
-  socketUsers.set(socket.id, userId);
-
-  /* RECHERCHER UNE PARTIE */
+  socketUsers.set(socket.id, Number(userId));
 
   socket.on("find-game", async () => {
-    if (waitingPlayers.has(userId)) return;
+    const alreadyPlaying = [...activeRooms.values()].some(
+      match =>
+        match.whiteUser === Number(userId) ||
+        match.blackUser === Number(userId)
+    );
 
-    for (const match of activeRooms.values()) {
-      if (match.users.includes(userId)) {
-        socket.emit("game-error", {
-          message: "Tu as déjà une partie en cours."
-        });
-        return;
-      }
+    if (alreadyPlaying) {
+      socket.emit("game-error", {
+        message: "Tu as déjà une partie en cours."
+      });
+      return;
     }
+
+    if (waitingPlayers.has(Number(userId))) return;
 
     let opponent = null;
 
-    for (const [id, player] of waitingPlayers) {
+    for (const [id, waitingSocket] of waitingPlayers) {
       if (
-        id !== userId &&
-        player.connected &&
-        socketUsers.has(player.id)
+        id !== Number(userId) &&
+        waitingSocket.connected &&
+        socketUsers.has(waitingSocket.id)
       ) {
-        opponent = player;
+        opponent = waitingSocket;
         waitingPlayers.delete(id);
         break;
       }
     }
 
     if (!opponent) {
-      waitingPlayers.set(userId, socket);
+      waitingPlayers.set(Number(userId), socket);
       socket.emit("waiting");
       return;
     }
 
+    const opponentId = socketUsers.get(opponent.id);
+
     try {
-      const room = "game-" + opponent.id + "-" + socket.id;
-
-      const firstUser = socketUsers.get(opponent.id);
-
       const result = await pool.query(
         `INSERT INTO matches (player1, player2, status)
          VALUES ($1, $2, 'pending')
          RETURNING id`,
-        [firstUser, userId]
+        [opponentId, Number(userId)]
       );
 
       const matchId = result.rows[0].id;
+      const room = "uno-chess-" + matchId;
+
+      const match = createMatchState(
+        matchId,
+        opponentId,
+        Number(userId)
+      );
+
+      match.players = [opponent.id, socket.id];
+
+      activeRooms.set(room, match);
 
       opponent.join(room);
       socket.join(room);
 
-      activeRooms.set(room, {
-        id: matchId,
-        players: [opponent.id, socket.id],
-        users: [firstUser, userId],
-        finished: false
-      });
-
       opponent.emit("game-found", {
         room,
-        matchId,
-        color: "black"
+        color: "white"
       });
 
       socket.emit("game-found", {
         room,
-        matchId,
-        color: "white"
+        color: "black"
       });
+
+      sendStates(room, match);
 
     } catch (error) {
       console.error(error);
+
+      waitingPlayers.delete(opponentId);
 
       socket.emit("game-error", {
         message: "Impossible de créer la partie."
@@ -587,58 +947,48 @@ io.on("connection", socket => {
     }
   });
 
-  /* TRANSMISSION DES ACTIONS */
-
   socket.on("game-action", data => {
-    if (
-      !data ||
-      typeof data.room !== "string" ||
-      !data.action
-    ) {
-      return;
-    }
+    handleOnlineAction(socket, data).catch(error => {
+      console.error(error);
 
-    const match = activeRooms.get(data.room);
-
-    if (!match || match.finished) return;
-
-    if (!match.players.includes(socket.id)) return;
-
-    socket.to(data.room).emit("game-action", {
-      action: data.action
+      socket.emit("game-error", {
+        message: "Erreur pendant cette action."
+      });
     });
   });
 
-  /* ANNULER LA RECHERCHE */
-
   socket.on("cancel-search", () => {
-    if (waitingPlayers.get(userId) === socket) {
-      waitingPlayers.delete(userId);
+    if (waitingPlayers.get(Number(userId)) === socket) {
+      waitingPlayers.delete(Number(userId));
     }
   });
 
-  /* DÉCONNEXION */
-
   socket.on("disconnect", () => {
-    if (waitingPlayers.get(userId) === socket) {
-      waitingPlayers.delete(userId);
+    if (waitingPlayers.get(Number(userId)) === socket) {
+      waitingPlayers.delete(Number(userId));
     }
 
     socketUsers.delete(socket.id);
 
     for (const [room, match] of activeRooms) {
-      if (match.players.includes(socket.id)) {
-        activeRooms.delete(room);
+      if (!match.players.includes(socket.id)) continue;
 
-        io.to(room).emit("opponent-disconnected");
+      activeRooms.delete(room);
+
+      if (!match.finished) {
+        abandonMatch(match.id).catch(console.error);
+
+        socket.to(room).emit("opponent-disconnected", {
+          message: "Ton adversaire s'est déconnecté. Aucun KILO n'est attribué."
+        });
       }
     }
   });
 });
 
-/* =========================================================
-   DÉMARRAGE DU SERVEUR
-   ========================================================= */
+/* =====================================================
+   DÉMARRAGE
+   ===================================================== */
 
 const PORT = process.env.PORT || 3000;
 
@@ -651,10 +1001,6 @@ initDatabase()
     });
   })
   .catch(error => {
-    console.error(
-      "Database initialization failed:",
-      error
-    );
-
+    console.error("Database initialization failed:", error);
     process.exit(1);
   });
