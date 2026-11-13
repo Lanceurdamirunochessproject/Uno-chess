@@ -1743,12 +1743,78 @@ function renderReportReplay(){
 
  boardBox.innerHTML="";
 
+ let replayGame;
+ let move=null;
+
  if(moveHistory.length===0){
-  positionBox.textContent="Aucun coup";
+  replayGame=new Chess();
+  positionBox.textContent="Position initiale";
   cardBox.textContent="Aucune";
-  detailBox.textContent="Aucun coup enregistré dans cette partie.";
-  return;
+  detailBox.textContent="Aucun coup enregistré pour le moment.";
+ }else{
+  reportIndex=Math.max(0,Math.min(reportIndex,moveHistory.length-1));
+  move=moveHistory[reportIndex];
+
+  try{
+   replayGame=new Chess(move.afterFen);
+  }catch(error){
+   replayGame=new Chess();
+   positionBox.textContent="Position initiale";
+   detailBox.textContent="Impossible de reconstruire ce coup.";
+  }
+
+  if(move&&move.afterFen){
+   positionBox.textContent=
+    "Coup "+(reportIndex+1)+" / "+moveHistory.length+
+    " · "+move.side+" · "+move.san;
+
+   cardBox.textContent=move.card||"Aucune";
+
+   detailBox.textContent=
+    move.explanation||"Aucune explication disponible.";
+  }
  }
+
+ const position=replayGame.board();
+
+ for(let r=0;r<8;r++){
+  for(let c=0;c<8;c++){
+
+   const piece=position[r][c];
+   const square=document.createElement("div");
+
+   square.className="report-square "+
+    ((r+c)%2===0?"light":"dark");
+
+   const squareName="abcdefgh"[c]+(8-r);
+
+   if(move&&(squareName===move.from||squareName===move.to)){
+    square.classList.add("last-move");
+   }
+
+   if(piece){
+    square.textContent=
+     pieces[piece.color+piece.type.toUpperCase()];
+   }
+
+   boardBox.appendChild(square);
+  }
+ }
+
+ if(move){
+  const cardColors={
+   rouge:"#dc2626",
+   bleu:"#2563eb",
+   vert:"#16a34a",
+   jaune:"#eab308",
+   joker:"#7c3aed"
+  };
+
+  cardBox.style.background=cardColors[move.color]||"#374151";
+  cardBox.style.color="white";
+ }
+
+}
 
  reportIndex=Math.max(0,Math.min(reportIndex,moveHistory.length-1));
 
