@@ -1961,6 +1961,25 @@ function showReport(){
 function closeReport(){
  reportBox.style.display="none";
 }
+ /* NAVIGATION DANS LA RELECTURE */
+
+function previousReportMove(){
+ if(moveHistory.length===0)return;
+
+ if(reportIndex>0){
+  reportIndex--;
+  renderReportReplay();
+ }
+}
+
+function nextReportMove(){
+ if(moveHistory.length===0)return;
+
+ if(reportIndex<moveHistory.length-1){
+  reportIndex++;
+  renderReportReplay();
+ }
+}
 /* =====================================
    CONNEXION AU SERVEUR UNO.CHESS
 ===================================== */
