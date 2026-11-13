@@ -884,13 +884,7 @@ function drawBoard(){
      pieces[piece.color+piece.type.toUpperCase()];
    }
 
-   if(selectedSquare===name){
-    square.classList.add("selected-square");
-   }
 
-   if(possible.includes(name)){
-    square.classList.add("possible");
-   }
 
    square.onclick=()=>clickSquare(name);
 
