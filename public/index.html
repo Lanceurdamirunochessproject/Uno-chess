@@ -1604,10 +1604,21 @@ function botTurn(){
 
  /* SI LE BOT N'A AUCUNE ACTION, IL PIOCHE UNE SEULE CARTE */
 
- if(actions.length===0){
+if(actions.length===0){
+
+  /* Vérifier si le bot est déjà échec et mat */
+  if(checkWinner()){
+   thinkingBox.textContent="";
+   return;
+  }
+
+  /* Le bot pioche une seule carte */
   botHand.push(drawCard());
 
   thinkingBox.textContent="";
+
+  /* Vérifier à nouveau la situation */
+  if(checkWinner())return;
 
   if(!passTurn("w"))return;
 
@@ -1617,9 +1628,9 @@ function botTurn(){
   updateDiscard();
 
   status.textContent="Le bot n'avait aucune carte jouable : il a pioché une carte. À toi !";
-  return;
- }
 
+  return;
+}
  let bestAction=null;
  let bestScore=-Infinity;
 
