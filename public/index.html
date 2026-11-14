@@ -558,7 +558,10 @@ button:disabled{opacity:.5;cursor:not-allowed}
   <input id="auth-username" placeholder="Pseudo" maxlength="20">
   <input id="auth-email" type="email" placeholder="Adresse email">
   <input id="auth-password" type="password" placeholder="Mot de passe">
-
+<label style="display:flex;align-items:center;gap:8px;margin:12px 0;">
+  <input type="checkbox" id="rememberMe">
+  Se souvenir de moi
+</label>
   <button onclick="registerAccount()">CRÉER UN COMPTE</button>
   <button onclick="loginAccount()">SE CONNECTER</button>
 
@@ -2085,6 +2088,7 @@ async function registerAccount(){
 async function loginAccount(){
  const email=document.getElementById("auth-email").value.trim();
  const password=document.getElementById("auth-password").value;
+ const rememberMe=document.getElementById("rememberMe").checked;
 
  if(!email||!password){
   accountStatus("Entre ton email et ton mot de passe.");
@@ -2096,7 +2100,8 @@ async function loginAccount(){
 
   await apiRequest("/api/login",{
    email,
-   password
+   password,
+   rememberMe
   });
 
   await loadProfile();
@@ -2105,7 +2110,6 @@ async function loginAccount(){
   accountStatus(error.message);
  }
 }
-
 /* =====================================
    PROFIL
 ===================================== */
