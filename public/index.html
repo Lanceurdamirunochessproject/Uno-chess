@@ -1828,22 +1828,37 @@ function formatEvaluation(value){
 
 function updateReportStats(){
  const total=moveHistory.length;
- const excellent=moveHistory.filter(m=>m.category==="excellent").length;
- const errors=moveHistory.filter(m=>m.category==="error").length;
- const blunders=moveHistory.filter(m=>m.category==="blunder").length;
 
-const precision=100+
- moveHistory.reduce((sum,m)=>sum+(m.precision??0),0);
+ const excellent=moveHistory.filter(
+  m=>m.category==="excellent"
+ ).length;
 
-const finalPrecision=Math.max(0,Math.min(100,precision));
+ const errors=moveHistory.filter(
+  m=>m.category==="error"
+ ).length;
+
+ const blunders=moveHistory.filter(
+  m=>m.category==="blunder"
+ ).length;
+
+ const totalPoints=moveHistory.reduce(
+  (sum,m)=>sum+(m.precision??0),0
+ );
+
+ const finalPrecision=Math.max(
+  0,
+  Math.min(100,(totalPoints*5)/100)
+ );
+
  document.getElementById("statTotal").textContent=total;
  document.getElementById("statExcellent").textContent=excellent;
  document.getElementById("statErrors").textContent=errors;
  document.getElementById("statBlunders").textContent=blunders;
 
  const precisionBox=document.getElementById("statPrecision");
+
  if(precisionBox){
-precisionBox.textContent=finalPrecision.toFixed(1)+"/100";
+  precisionBox.textContent=finalPrecision.toFixed(1)+"/100";
  }
 }
 
