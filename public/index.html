@@ -1832,9 +1832,10 @@ function updateReportStats(){
  const errors=moveHistory.filter(m=>m.category==="error").length;
  const blunders=moveHistory.filter(m=>m.category==="blunder").length;
 
- const precision=total===0?100:
-  moveHistory.reduce((sum,m)=>sum+(m.precision||100),0)/total;
+const precision=100+
+ moveHistory.reduce((sum,m)=>sum+(m.precision??0),0);
 
+const finalPrecision=Math.max(0,Math.min(100,precision));
  document.getElementById("statTotal").textContent=total;
  document.getElementById("statExcellent").textContent=excellent;
  document.getElementById("statErrors").textContent=errors;
@@ -1842,7 +1843,7 @@ function updateReportStats(){
 
  const precisionBox=document.getElementById("statPrecision");
  if(precisionBox){
-  precisionBox.textContent=precision.toFixed(1)+"/100";
+precisionBox.textContent=finalPrecision.toFixed(1)+"/100";
  }
 }
 
