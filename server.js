@@ -321,9 +321,10 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
+
 app.post("/api/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     if (
       typeof email !== "string" ||
@@ -364,79 +365,36 @@ app.post("/api/login", async (req, res) => {
 
     req.session.userId = user.id;
 
-    res.json({
-      user: {
-        id: user.id,
-        username: user.username,
-        kilo: user.kilo
+    req.session.cookie.maxAge = rememberMe === true
+      ? 30 * 24 * 60 * 60 * 1000
+      : 7 * 24 * 60 * 60 * 1000;
+
+    req.session.save(error => {
+      if (error) {
+        console.error("Erreur sauvegarde session :", error);
+
+        return res.status(500).json({
+          error: "Impossible de finaliser la connexion."
+        });
       }
-    });
 
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erreur du serveur." });
-  }
-});
-
-app.get("/api/me", requireLogin, async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT id, username, kilo
-       FROM users
-       WHERE id = $1`,
-      [req.session.userId]
-    );
-
-    if (!result.rows.length) {
-      return res.status(401).json({
-        error: "Compte introuvable."
+      res.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          kilo: user.kilo
+        }
       });
-    }
-
-    res.json({ user: result.rows[0] });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erreur du serveur." });
-  }
-});
-
-app.post("/api/logout", (req, res) => {
-  req.session.destroy(error => {
-    if (error) {
-      return res.status(500).json({
-        error: "Impossible de se déconnecter."
-      });
-    }
-
-    res.clearCookie("connect.sid", {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none"
     });
-
-    res.json({ success: true });
-  });
-});
-
-app.get("/api/leaderboard", async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT username, kilo
-       FROM users
-       ORDER BY kilo DESC, username ASC
-       LIMIT 100`
-    );
-
-    res.json({ leaderboard: result.rows });
 
   } catch (error) {
     console.error(error);
     res.status(500).json({
-      error: "Impossible de charger le classement."
+      error: "Erreur du serveur."
     });
   }
 });
+
 
 /* =====================================================
    CARTES UNO CÔTÉ SERVEUR
