@@ -2029,27 +2029,44 @@ function accountStatus(message){
  accountMessage.textContent = message;
 }
 
+
 async function apiRequest(path, data = null){
  const options = {
-  method:data ? "POST" : "GET",
-  credentials:"include",
-  headers:{}
+  method: data !== null ? "POST" : "GET",
+  credentials: "include",
+  headers: {}
  };
 
- if(data){
-  options.headers["Content-Type"]="application/json";
-  options.body=JSON.stringify(data);
+ if(data !== null){
+  options.headers["Content-Type"] = "application/json";
+  options.body = JSON.stringify(data);
  }
 
- const response = await fetch(API_BASE+path,options);
- const result = await response.json();
+ let response;
+
+ try {
+  response = await fetch(API_BASE + path, options);
+ } catch(error) {
+  throw new Error("Impossible de contacter le serveur. Vérifie ta connexion.");
+ }
+
+ let result;
+
+ try {
+  result = await response.json();
+ } catch(error) {
+  throw new Error("Le serveur a envoyé une réponse invalide.");
+ }
 
  if(!response.ok){
-  throw new Error(result.error || result.message || "Erreur serveur.");
+  throw new Error(
+   result.error || result.message || "Erreur serveur."
+  );
  }
 
  return result;
 }
+
 
 /* =====================================
    INSCRIPTION
