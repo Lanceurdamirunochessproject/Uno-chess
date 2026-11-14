@@ -720,6 +720,10 @@ onclick="loginAccount()"
    <div class="report-stat">
     <strong id="statBlunders">0</strong>
     <span>Grosses erreurs</span>
+    <div class="report-stat">
+ <strong id="statPrecision">100/100</strong>
+ <span>Précision</span>
+</div>
    </div>
   </div>
   <div class="report-replay">
@@ -737,6 +741,9 @@ onclick="loginAccount()"
    <div id="report-card-container">
  <div id="report-card">Aucune</div>
  <div id="report-appreciation">En attente</div>
+    <div id="report-move-precision">
+ Précision de ce coup : 100/100
+</div>
 </div>
    <p id="report-replay-detail">
     Sélectionne un coup pour revoir la position.
@@ -1264,6 +1271,9 @@ function recordMove(side,beforeScore,move,card,beforeFen){
   afterScore:-afterScore;
 
  const change=afterAdvantage-beforeAdvantage;
+ const precision=Math.max(0,Math.min(100,
+ 100-Math.max(0,-change)/10
+));
 const capturedValue=getPieceValue(move.captured);
 const movedValue=getPieceValue(move.piece);
 
@@ -1308,6 +1318,7 @@ if(change>=250&&(!move.captured||sacrifice)){
   color:card.color,
   uno:cardNotation(card),
   category,
+  precision,
   change,
   beforeScore,
   afterScore,
@@ -1820,10 +1831,18 @@ function updateReportStats(){
  const errors=moveHistory.filter(m=>m.category==="error").length;
  const blunders=moveHistory.filter(m=>m.category==="blunder").length;
 
+ const precision=total===0?100:
+  moveHistory.reduce((sum,m)=>sum+(m.precision||100),0)/total;
+
  document.getElementById("statTotal").textContent=total;
  document.getElementById("statExcellent").textContent=excellent;
  document.getElementById("statErrors").textContent=errors;
  document.getElementById("statBlunders").textContent=blunders;
+
+ const precisionBox=document.getElementById("statPrecision");
+ if(precisionBox){
+  precisionBox.textContent=precision.toFixed(1)+"/100";
+ }
 }
 
 /* =====================================
@@ -1893,6 +1912,14 @@ if(appreciationBox){
   appreciationColors[move.category]||"#374151";
 
  appreciationBox.style.color="white";
+ const precisionBox=document.getElementById("report-move-precision");
+
+if(precisionBox){
+ const points=move.precision||0;
+
+ precisionBox.textContent=
+  "Précision de ce coup : "+points.toFixed(1)+"/100";
+}
 }
    detailBox.textContent=
     move.explanation||"Aucune explication disponible.";
