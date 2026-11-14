@@ -2371,7 +2371,8 @@ onlineSocket.on("connect_error",(error)=>{
 ===================================== */
 
 function findOnlineGame(){
- if(!currentUser){
+alert("CURRENT USER AU CLIC : "+JSON.stringify(currentUser));
+if(!currentUser){
   accountStatus("Connecte-toi d'abord.");
   return;
  }
