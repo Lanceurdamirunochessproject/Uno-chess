@@ -1241,7 +1241,20 @@ function explainMove(move,card,change){
 /* =====================================
    ENREGISTREMENT DES COUPS
 ===================================== */
+function getPieceValue(piece){
+ const values={
+  p:100,
+  n:320,
+  b:330,
+  r:500,
+  q:900,
+  k:20000
+ };
 
+ return values[piece]||0;
+}
+
+function recordMove(side,beforeScore,move,card,beforeFen){
 function recordMove(side,beforeScore,move,card,beforeFen){
  const afterScore=evaluatePosition();
 
@@ -1252,7 +1265,11 @@ function recordMove(side,beforeScore,move,card,beforeFen){
   afterScore:-afterScore;
 
  const change=afterAdvantage-beforeAdvantage;
+const capturedValue=getPieceValue(move.captured);
+const movedValue=getPieceValue(move.piece);
 
+const sacrifice=
+ !!move.captured&&movedValue>capturedValue;
  const risky=
   !!move.captured||
   (move.san&&move.san.includes("+"))||
@@ -1263,7 +1280,7 @@ function recordMove(side,beforeScore,move,card,beforeFen){
 
 let category;
 
- if(change>=250){
+if(change>=250&&(!move.captured||sacrifice)){
   category="brilliant";
  }else if(change>=80){
   category="excellent";
