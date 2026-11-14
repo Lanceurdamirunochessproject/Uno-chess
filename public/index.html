@@ -1272,8 +1272,8 @@ function recordMove(side,beforeScore,move,card,beforeFen){
   afterScore:-afterScore;
 
  const change=afterAdvantage-beforeAdvantage;
- const precision=Math.max(0,Math.min(100,
- 100-Math.max(0,-change)/10
+const precision=Math.max(0,Math.min(100,
+ 80+Math.max(-20,Math.min(20,change/25))
 ));
 const capturedValue=getPieceValue(move.captured);
 const movedValue=getPieceValue(move.piece);
