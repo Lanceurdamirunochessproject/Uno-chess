@@ -528,7 +528,17 @@ function hasPlayableAction(match, side) {
     );
   });
 }
+function hasUnoLegalDefense(match, side) {
 
+  // Pas d'échec : pas de mat UNO
+  if (!match.chess.isCheck()) return true;
+
+  // Vérifie que c'est bien au tour du joueur en échec
+  if (match.chess.turn() !== side) return false;
+
+  // Il doit posséder une carte permettant un déplacement légal
+  return hasPlayableAction(match, side);
+}
 function passChessTurn(match, nextSide) {
   const fields = match.chess.fen().split(" ");
 
@@ -816,10 +826,15 @@ async function handleOnlineAction(socket, data) {
     return;
   }
 
-  if (match.chess.isCheckmate()) {
-    await finishOnlineMatch(data.room, match, userId);
-    return;
-  }
+ /* ÉCHEC ET MAT CLASSIQUE OU ÉCHEC ET MAT UNO */
+
+if (
+  match.chess.isCheckmate() ||
+  !hasUnoLegalDefense(match, opponentSide)
+) {
+  await finishOnlineMatch(data.room, match, userId);
+  return;
+}
 
   if (
     match.chess.isDraw() ||
