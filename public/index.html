@@ -2385,7 +2385,7 @@ onlineSocket.on("connect_error",(error)=>{
 ===================================== */
 
 function findOnlineGame(){
-alert("CURRENT USER AU CLIC : "+JSON.stringify(currentUser));
+
 if(!currentUser){
   accountStatus("Connecte-toi d'abord.");
   return;
@@ -2403,7 +2403,7 @@ if(!currentUser){
 
  onlineSearching=true;
  onlineSocket.emit("find-game");
-alert("DEMANDE DE RECHERCHE ENVOYÉE !");
+
  status.textContent="Recherche d'un adversaire...";
 }
 
