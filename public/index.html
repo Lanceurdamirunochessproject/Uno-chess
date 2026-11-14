@@ -530,10 +530,25 @@ button:disabled{opacity:.5;cursor:not-allowed}
  border-radius:12px;
  font-size:23px;
  font-weight:bold;
- margin:12px auto;
+ margin:12px 0;
  box-shadow:0 3px 8px #0008;
 }
+#report-card-container{
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ gap:18px;
+ flex-wrap:wrap;
+}
 
+#report-appreciation{
+ font-size:20px;
+ font-weight:bold;
+ padding:12px 16px;
+ border-radius:10px;
+ background:#374151;
+ color:white;
+}
 #report-replay-detail{
  color:#cbd5e1;
  line-height:1.6;
@@ -711,8 +726,10 @@ onclick="loginAccount()"
    <div id="report-board"></div>
 
    <h3>🃏 CARTE UNO JOUÉE</h3>
-   <div id="report-card">Aucune</div>
-
+   <div id="report-card-container">
+ <div id="report-card">Aucune</div>
+ <div id="report-appreciation">En attente</div>
+</div>
    <p id="report-replay-detail">
     Sélectionne un coup pour revoir la position.
    </p>
@@ -1235,9 +1252,11 @@ function recordMove(side,beforeScore,move,card,beforeFen){
   card.value==="PASSE"||
   card.value==="JOKER";
 
- let category;
+let category;
 
- if(change>=80){
+ if(change>=250){
+  category="brilliant";
+ }else if(change>=80){
   category="excellent";
  }else if(risky&&change>=-180){
   category="gambling";
@@ -1823,7 +1842,33 @@ function renderReportReplay(){
     " · "+move.side+" · "+move.san;
 
    cardBox.textContent=move.card||"Aucune";
+const appreciationBox=document.getElementById("report-appreciation");
 
+const appreciationNames={
+ brilliant:"✦ BRILLANT",
+ excellent:"EXCELLENT",
+ gambling:"GAMBLING",
+ error:"ERREUR",
+ blunder:"GROSSE ERREUR"
+};
+
+const appreciationColors={
+ brilliant:"linear-gradient(100deg,#38bdf8,#2dd4bf)",
+ excellent:"#16a34a",
+ gambling:"#a855f7",
+ error:"#f97316",
+ blunder:"#dc2626"
+};
+
+if(appreciationBox){
+ appreciationBox.textContent=
+  appreciationNames[move.category]||"NON CLASSÉ";
+
+ appreciationBox.style.background=
+  appreciationColors[move.category]||"#374151";
+
+ appreciationBox.style.color="white";
+}
    detailBox.textContent=
     move.explanation||"Aucune explication disponible.";
   }
