@@ -2144,33 +2144,44 @@ async function loginAccount(){
    PROFIL
 ===================================== */
 
+
 async function loadProfile(){
  try{
   const data=await apiRequest("/api/me");
 
   currentUser=data.user || data;
-alert(JSON.stringify(currentUser));
+
   document.getElementById("auth-form").style.display="none";
   document.getElementById("profile").style.display="block";
   document.getElementById("online-controls").style.display="block";
-alert("ONLINE CONTROLS AFFICHÉ !");
+
   document.getElementById("profile-name").textContent=
    currentUser.username || "Joueur";
 
   document.getElementById("profile-kilo").textContent=
    currentUser.kilo ?? 1000;
 
-  connectOnlineSocket();
-  await loadLeaderboard();
-
-  return true;
  }catch(error){
-console.error("LOADPROFILE A ÉCHOUÉ :", error);
-alert("ERREUR LOADPROFILE : "+error.message);
-currentUser=null;
-return false;
+  console.error("ERREUR PROFIL :",error);
+  currentUser=null;
+  return false;
  }
+
+ try{
+  connectOnlineSocket();
+ }catch(error){
+  console.error("ERREUR SOCKET :",error);
+ }
+
+ try{
+  await loadLeaderboard();
+ }catch(error){
+  console.error("ERREUR CLASSEMENT :",error);
+ }
+
+ return true;
 }
+
 
 /* =====================================
    DÉCONNEXION
