@@ -1567,7 +1567,7 @@ function simulateAction(action,side){
 }
 
 
-}
+
 
 
 function hasUnoLegalDefense(side){
@@ -2322,11 +2322,8 @@ onlineSocket.on("connect_error",(error)=>{
    "À toi de jouer !":
    "En attente du coup adverse...";
 
-  thinkingBox.textContent="";
- 
-}
- });
-
+ thinkingBox.textContent="";
+});
  onlineSocket.on("game-error",data=>{
   status.textContent=data.message || "Action impossible.";
  });
