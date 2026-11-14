@@ -865,6 +865,7 @@ io.on("connection", socket => {
   socketUsers.set(socket.id, Number(userId));
 
   socket.on("find-game", async () => {
+    console.log("RECHERCHE REÇUE POUR :", userId);
     const alreadyPlaying = [...activeRooms.values()].some(
       match =>
         match.whiteUser === Number(userId) ||
