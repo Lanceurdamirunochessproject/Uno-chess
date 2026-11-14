@@ -897,7 +897,9 @@ io.on("connection", socket => {
 
     if (!opponent) {
       waitingPlayers.set(Number(userId), socket);
+      console.log("JOUEUR AJOUTÉ À LA FILE :", userId);
       socket.emit("waiting");
+      console.log("ÉVÉNEMENT WAITING ENVOYÉ");
       return;
     }
 
