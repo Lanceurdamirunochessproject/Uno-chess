@@ -2165,8 +2165,10 @@ alert("ONLINE CONTROLS AFFICHÉ !");
 
   return true;
  }catch(error){
-  currentUser=null;
-  return false;
+console.error("LOADPROFILE A ÉCHOUÉ :", error);
+alert("ERREUR LOADPROFILE : "+error.message);
+currentUser=null;
+return false;
  }
 }
 
