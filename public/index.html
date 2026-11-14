@@ -1262,6 +1262,7 @@ function getPieceValue(piece){
 }
 
 function recordMove(side,beforeScore,move,card,beforeFen){
+ console.log("RECORDMOVE EST APPELÉE");
  const afterScore=evaluatePosition();
 
  const beforeAdvantage=side==="b"?
