@@ -1917,10 +1917,10 @@ if(appreciationBox){
  const precisionBox=document.getElementById("report-move-precision");
 
 if(precisionBox){
-const points=move.precision??100;
+const points=move.precision??0;
 
- precisionBox.textContent=
-  "Précision de ce coup : "+points.toFixed(1)+"/100";
+precisionBox.textContent=
+ "Points de ce coup : "+(points>0?"+":"")+points.toFixed(1);
 }
 }
    detailBox.textContent=
@@ -2065,10 +2065,10 @@ function showReport(){
 const precision=document.createElement("div");
 precision.className="report-evaluation";
 
-const points=m.precision??100;
+const points=m.precision??0;
 
 precision.textContent=
- "Précision du coup : "+points.toFixed(1)+"/100";
+ "Points du coup : "+(points>0?"+":"")+points.toFixed(1);
   detail.appendChild(main);
   detail.appendChild(explanation);
   detail.appendChild(evaluation);
