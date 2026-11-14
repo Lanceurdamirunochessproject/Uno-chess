@@ -1558,42 +1558,18 @@ function hasUnoLegalDefense(side){
 
  if(!game.in_check())return true;
 
- const cards=side==="b"?botHand:hand;
-
  if(game.turn()!==side)return false;
 
+ const cards=side==="b"?botHand:hand;
  const moves=game.moves({verbose:true});
 
- for(let index=0;index<cards.length;index++){
-
-  const card=cards[index];
-
-  if(!cardMatches(card))continue;
-
-  for(const move of moves){
-
-   if(!allowedPiece(card,move.piece))continue;
-
-   const undo=simulateAction({
-    index,
-    card,
-    move
-   },side);
-
-   if(!undo)continue;
-
-   const stillInCheck=game.in_check();
-
-   undo();
-
-   if(!stillInCheck)return true;
-  }
- }
-
- return false;
+ return cards.some(card=>
+  cardMatches(card)&&
+  moves.some(move=>allowedPiece(card,move.piece))
+ );
 }
 
-// Puis le reste de ton code...
+
 /* RECHERCHE MINIMAX */
 
 function searchAI(depth,alpha,beta){
@@ -2313,6 +2289,8 @@ onlineSocket.on("connect_error",(error)=>{
    "En attente du coup adverse...";
 
   thinkingBox.textContent="";
+ 
+}
  });
 
  onlineSocket.on("game-error",data=>{
