@@ -395,6 +395,39 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
+app.get("/api/me", async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      return res.status(401).json({
+        error: "Tu n'es pas connecté."
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT id, username, kilo
+       FROM users
+       WHERE id = $1`,
+      [req.session.userId]
+    );
+
+    if (!result.rows.length) {
+      return res.status(401).json({
+        error: "Compte introuvable."
+      });
+    }
+
+    res.json({
+      user: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error("Erreur /api/me :", error);
+    res.status(500).json({
+      error: "Erreur lors du chargement du profil."
+    });
+  }
+});
+
 
 /* =====================================================
    CARTES UNO CÔTÉ SERVEUR
