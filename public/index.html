@@ -2061,11 +2061,17 @@ function showReport(){
   evaluation.className="report-evaluation";
   evaluation.textContent=
    "Évolution estimée : "+formatEvaluation(m.change);
+const precision=document.createElement("div");
+precision.className="report-evaluation";
 
+const points=m.precision??100;
+
+precision.textContent=
+ "Précision du coup : "+points.toFixed(1)+"/100";
   detail.appendChild(main);
   detail.appendChild(explanation);
   detail.appendChild(evaluation);
-
+detail.appendChild(precision);
   const tag=document.createElement("span");
   tag.className="report-tag "+m.category;
   tag.textContent=categoryNames[m.category]||m.category;
