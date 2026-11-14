@@ -563,7 +563,20 @@ button:disabled{opacity:.5;cursor:not-allowed}
   Se souvenir de moi
 </label>
   <button onclick="registerAccount()">CRÉER UN COMPTE</button>
-  <button onclick="loginAccount()">SE CONNECTER</button>
+ <button
+ onclick="loginAccount()"
+ style="
+  display:block;
+  width:100%;
+  min-height:55px;
+  padding:16px;
+  margin:15px auto;
+  cursor:pointer;
+  touch-action:manipulation;
+ "
+>
+ SE CONNECTER
+</button>
 
   <p class="small">Ton compte permet de conserver ton classement KILO.</p>
  </div>
