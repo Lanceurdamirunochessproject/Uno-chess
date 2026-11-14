@@ -428,6 +428,28 @@ app.get("/api/me", async (req, res) => {
   }
 });
 
+/* NOUVELLE ROUTE DU CLASSEMENT */
+
+app.get("/api/leaderboard", async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT username, kilo
+       FROM users
+       ORDER BY kilo DESC, username ASC
+       LIMIT 50`
+    );
+
+    res.json({
+      leaderboard: result.rows
+    });
+
+  } catch (error) {
+    console.error("Erreur classement :", error);
+    res.status(500).json({
+      error: "Impossible de charger le classement."
+    });
+  }
+});
 
 /* =====================================================
    CARTES UNO CÔTÉ SERVEUR
