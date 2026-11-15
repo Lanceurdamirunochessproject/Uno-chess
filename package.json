@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "description": "UNO CHESS multiplayer",
   "main": "server.js",
+  "type": "commonjs",
   "scripts": {
     "start": "node server.js"
   },
