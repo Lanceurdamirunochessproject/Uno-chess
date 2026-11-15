@@ -762,6 +762,57 @@ async function finishOnlineMatch(room, match, winnerId) {
    ACTIONS DE PARTIE VALIDÉES
    ===================================================== */
 
+function evaluateOnlinePosition(match) {
+  const chess = match.chess;
+
+  if (chess.isCheckmate()) {
+    return chess.turn() === "b" ? -100000 : 100000;
+  }
+
+  if (chess.isDraw() || chess.isStalemate()) return 0;
+
+  let score = 0;
+
+  const values = {
+    p: 100,
+    n: 320,
+    b: 330,
+    r: 500,
+    q: 900,
+    k: 0
+  };
+
+  const position = chess.board();
+
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const piece = position[r][c];
+      if (!piece) continue;
+
+      const value = values[piece.type] || 0;
+      score += piece.color === "b" ? value : -value;
+
+      const centerBonus =
+        (3.5 - Math.abs(3.5 - r)) +
+        (3.5 - Math.abs(3.5 - c));
+
+      score += piece.color === "b"
+        ? centerBonus * 3
+        : -centerBonus * 3;
+    }
+  }
+
+  const whiteHand = match.hands.w || [];
+  const blackHand = match.hands.b || [];
+
+  score += (whiteHand.length - blackHand.length) * 65;
+
+  score += blackHand.filter(c => c.color === "joker").length * 18;
+  score -= whiteHand.filter(c => c.color === "joker").length * 18;
+
+  return score;
+}
+
 async function handleOnlineAction(socket, data) {
   if (!data || typeof data.room !== "string") return;
 
@@ -880,40 +931,29 @@ if (Number(userId) === Number(match.whiteUser)) {
     });
     return;
   }
-const beforeFen = match.chess.fen();
-  const move = match.chess.move({
-    from: data.from,
-    to: data.to,
-    promotion: "q"
-  });
 
-if (!Array.isArray(match.history)) {
-  match.history = [];
+const beforeFen = match.chess.fen();
+const beforeScore = evaluateOnlinePosition(match);
+
+const move = match.chess.move({
+  from: data.from,
+  to: data.to,
+  promotion: "q"
+});
+
+if (!move) {
+  socket.emit("game-error", {
+    message: "Déplacement impossible."
+  });
+  return;
 }
 
-const number = Math.floor(match.history.length / 2) + 1;
 
-match.history.push({
-  ply: match.history.length,
-  number,
-  side: side === "w" ? "Toi" : "UNO.CHESS AI",
-  san: move.san,
-  from: move.from,
-  to: move.to,
-  piece: move.piece,
-  captured: move.captured || null,
-  card: card.value,
-  color: card.color,
-  uno: card.value,
-  category: "non-classé",
-  precision: 0,
-  change: 0,
-  explanation: "Coup joué en partie en ligne.",
-  beforeFen,
-  afterFen: match.chess.fen()
-});
-  match.hands[side].splice(data.cardIndex, 1);
-  match.discard = card;
+
+
+match.hands[side].splice(data.cardIndex, 1);
+match.discard = card;
+
 
   const opponentSide = side === "w" ? "b" : "w";
 
@@ -942,8 +982,75 @@ match.history.push({
   } else {
     match.activeColor = card.color;
   }
+const afterScore = evaluateOnlinePosition(match);
 
+const beforeAdvantage = side === "b"
+  ? beforeScore
+  : -beforeScore;
+
+const afterAdvantage = side === "b"
+  ? afterScore
+  : -afterScore;
+
+const change = afterAdvantage - beforeAdvantage;
+
+const precision = Math.max(0, Math.min(100,
+  80 + Math.max(-20, Math.min(20, change / 25))
+));
+const risky =
+  !!move.captured ||
+  move.san.includes("+") ||
+  card.value === "+2" ||
+  card.value === "+4" ||
+  card.value === "PASSE" ||
+  card.value === "JOKER";
+
+let category;
+
+if (change >= 250) {
+  category = "brilliant";
+} else if (change >= 80) {
+  category = "excellent";
+} else if (risky && change >= -180) {
+  category = "gambling";
+} else if (change >= -30) {
+  category = "good";
+} else if (change >= -100) {
+  category = "inaccuracy";
+} else if (change >= -250) {
+  category = "error";
+} else {
+  category = "blunder";
+}
+  if (!Array.isArray(match.history)) {
+  match.history = [];
+}
+
+const number = Math.floor(match.history.length / 2) + 1;
+
+match.history.push({
+  ply: match.history.length,
+  number,
+  side,
+  san: move.san,
+  from: move.from,
+  to: move.to,
+  piece: move.piece,
+  captured: move.captured || null,
+  card: card.value,
+  color: card.color,
+  uno: card.value,
+  category,
+  precision,
+  change,
+  beforeScore,
+  afterScore,
+  explanation: "Évaluation estimée de la position.",
+  beforeFen,
+  afterFen: match.chess.fen()
+});
 if (match.hands[side].length === 0) {
+
   sendStates(data.room, match);
   await finishOnlineMatch(data.room, match, userId);
   return;
