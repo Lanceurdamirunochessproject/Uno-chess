@@ -703,11 +703,27 @@ async function handleOnlineAction(socket, data) {
   if (!match || match.finished) return;
   if (!match.players.includes(socket.id)) return;
 
-  const userId = socketUsers.get(socket.id);
-  const side = Number(userId) === Number(match.whiteUser)
-    ? "w"
-    : "b";
+const userId = socketUsers.get(socket.id);
 
+if (userId === undefined || userId === null) {
+  socket.emit("game-error", {
+    message: "Identité du joueur introuvable."
+  });
+  return;
+}
+
+let side;
+
+if (Number(userId) === Number(match.whiteUser)) {
+  side = "w";
+} else if (Number(userId) === Number(match.blackUser)) {
+  side = "b";
+} else {
+  socket.emit("game-error", {
+    message: "Ce compte ne participe pas à cette partie."
+  });
+  return;
+}
   if (match.chess.turn() !== side) {
     socket.emit("game-error", {
       message: "Ce n'est pas ton tour."
