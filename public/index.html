@@ -2361,6 +2361,59 @@ async function logoutAccount(){
 ===================================== */
 let selectedPlayer = null;
 
+async function openInbox() {
+  const panel = document.getElementById("inbox-panel");
+
+  if (panel.style.display !== "none") {
+    panel.style.display = "none";
+    return;
+  }
+
+  panel.style.display = "block";
+  panel.innerHTML = "<h3>BOÎTE DE RÉCEPTION</h3><p>Chargement...</p>";
+
+  try {
+    const response = await fetch(API_BASE + "/api/inbox", {
+      credentials: "include"
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      panel.innerHTML = "<h3>BOÎTE DE RÉCEPTION</h3><p>" +
+        (data.error || "Erreur de chargement.") + "</p>";
+      return;
+    }
+
+    panel.innerHTML = "<h3>BOÎTE DE RÉCEPTION</h3>";
+
+    if (!data.messages.length) {
+      panel.innerHTML += "<p>Aucun message reçu.</p>";
+      return;
+    }
+
+    data.messages.forEach(message => {
+      const button = document.createElement("button");
+      button.textContent = message.username + " : " + message.content;
+      button.style.display = "block";
+      button.style.width = "100%";
+      button.style.margin = "6px 0";
+      button.style.padding = "8px";
+      button.style.cursor = "pointer";
+
+      button.onclick = () => {
+        openDM(Number(message.sender_id), message.username);
+      };
+
+      panel.appendChild(button);
+    });
+
+  } catch (error) {
+    panel.innerHTML = "<h3>BOÎTE DE RÉCEPTION</h3><p>Erreur de connexion.</p>";
+  }
+}
+
+
 function openPlayerProfile(player){
  selectedPlayer = player;
 
@@ -3044,6 +3097,40 @@ loadProfile();
   <button onclick="sendPrivateMessage()">ENVOYER</button>
   <button onclick="closeDM()">FERMER</button>
 
+</div>
+ <div id="inbox-widget" style="
+  position:fixed;
+  left:8px;
+  top:45%;
+  z-index:9999;
+">
+  <button onclick="openInbox()" style="
+    width:42px;
+    height:42px;
+    border-radius:10px;
+    background:#2563eb;
+    color:white;
+    border:0;
+    font-size:20px;
+    cursor:pointer;
+  ">📥</button>
+
+  <div id="inbox-panel" style="
+    display:none;
+    position:absolute;
+    left:48px;
+    top:0;
+    width:230px;
+    min-height:150px;
+    padding:12px;
+    background:#1f2937;
+    border:1px solid #64748b;
+    border-radius:10px;
+    color:white;
+  ">
+    <h3>BOÎTE DE RÉCEPTION</h3>
+    <p>Aucun message pour le moment.</p>
+  </div>
 </div>
 </body>
 </html>
