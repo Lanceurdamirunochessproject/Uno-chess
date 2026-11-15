@@ -547,6 +547,16 @@ function hasPlayableAction(match, side) {
   const cards = match.hands[side];
   const moves = match.chess.moves({ verbose: true });
 
+  console.log("DIAGNOSTIC ACTION :", {
+    side,
+    chessTurn: match.chess.turn(),
+    cards: cards.map(card => ({
+      value: card.value,
+      color: card.color
+    })),
+    legalMoves: moves.length
+  });
+
   return cards.some(card => {
     if (!cardMatches(card, match)) return false;
 
