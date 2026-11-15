@@ -738,6 +738,14 @@ if (Number(userId) === Number(match.whiteUser)) {
   });
   return;
 }
+  console.log("DIAGNOSTIC TOUR :", {
+  room: data.room,
+  userId,
+  whiteUser: match.whiteUser,
+  blackUser: match.blackUser,
+  side,
+  chessTurn: match.chess.turn()
+});
   if (match.chess.turn() !== side) {
     socket.emit("game-error", {
       message: "Ce n'est pas ton tour."
