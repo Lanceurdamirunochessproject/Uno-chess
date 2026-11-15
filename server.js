@@ -267,7 +267,15 @@ async function initDatabase() {
   `);
 
 }
-
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS private_messages (
+      id SERIAL PRIMARY KEY,
+      sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      content TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 /* =====================================================
    COMPTES
    ===================================================== */
@@ -467,7 +475,125 @@ app.get("/api/leaderboard", async (req, res) => {
     });
   }
 });
+/* =====================================================
+   MESSAGES PRIVÉS
+   ===================================================== */
 
+app.post("/api/messages", requireLogin, async (req, res) => {
+  try {
+    const receiverId = Number(req.body.receiverId);
+    const content = req.body.content;
+
+    if (
+      !Number.isInteger(receiverId) ||
+      receiverId <= 0 ||
+      receiverId === Number(req.session.userId) ||
+      typeof content !== "string" ||
+      !content.trim() ||
+      content.trim().length > 1000
+    ) {
+      return res.status(400).json({
+        error: "Message invalide."
+      });
+    }
+
+    const friend = await pool.query(
+      `SELECT id FROM friend_requests
+       WHERE status = 'accepted'
+       AND (
+         (sender_id = $1 AND receiver_id = $2)
+         OR
+         (sender_id = $2 AND receiver_id = $1)
+       )`,
+      [Number(req.session.userId), receiverId]
+    );
+
+    if (!friend.rows.length) {
+      return res.status(403).json({
+        error: "Tu dois être ami avec ce joueur pour lui écrire."
+      });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO private_messages
+       (sender_id, receiver_id, content)
+       VALUES ($1, $2, $3)
+       RETURNING id, sender_id, receiver_id, content, created_at`,
+      [
+        Number(req.session.userId),
+        receiverId,
+        content.trim()
+      ]
+    );
+
+    res.status(201).json({
+      message: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error("Erreur envoi DM :", error);
+
+    res.status(500).json({
+      error: "Impossible d'envoyer le message."
+    });
+  }
+});
+app.get("/api/messages/:friendId", requireLogin, async (req, res) => {
+  try {
+    const userId = Number(req.session.userId);
+    const friendId = Number(req.params.friendId);
+
+    if (
+      !Number.isInteger(friendId) ||
+      friendId <= 0 ||
+      friendId === userId
+    ) {
+      return res.status(400).json({
+        error: "Joueur invalide."
+      });
+    }
+
+    const friendship = await pool.query(
+      `SELECT id FROM friend_requests
+       WHERE status = 'accepted'
+       AND (
+         (sender_id = $1 AND receiver_id = $2)
+         OR
+         (sender_id = $2 AND receiver_id = $1)
+       )`,
+      [userId, friendId]
+    );
+
+    if (!friendship.rows.length) {
+      return res.status(403).json({
+        error: "Vous devez être amis pour consulter cette conversation."
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT id, sender_id, receiver_id, content, created_at
+       FROM private_messages
+       WHERE
+         (sender_id = $1 AND receiver_id = $2)
+         OR
+         (sender_id = $2 AND receiver_id = $1)
+       ORDER BY created_at ASC, id ASC
+       LIMIT 200`,
+      [userId, friendId]
+    );
+
+    res.json({
+      messages: result.rows
+    });
+
+  } catch (error) {
+    console.error("Erreur lecture DM :", error);
+
+    res.status(500).json({
+      error: "Impossible de charger la conversation."
+    });
+  }
+});
 /* =====================================================
    CARTES UNO CÔTÉ SERVEUR
    ===================================================== */
