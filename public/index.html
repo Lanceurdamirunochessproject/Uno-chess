@@ -641,7 +641,7 @@ onclick="loginAccount()"
  <p>KILO : <strong id="player-menu-kilo"></strong></p>
 
  <button onclick="sendPlayerChallenge()">DÉFIER</button>
- <button disabled>AJOUTER EN AMI</button>
+<button onclick="sendFriendRequest()">AJOUTER EN AMI</button>
  <button disabled>DM</button>
 
  <button onclick="closePlayerProfile()" class="account-secondary">
@@ -2378,6 +2378,21 @@ if(!onlineSocket || !onlineSocket.connected){
 
 onlineSocket.emit("send-challenge", selectedPlayer.id);
 }
+ 
+function sendFriendRequest(){
+ if(!selectedPlayer){
+  alert("Aucun joueur sélectionné.");
+  return;
+ }
+
+ if(!onlineSocket || !onlineSocket.connected){
+  alert("Tu dois être connecté au serveur en ligne.");
+  return;
+ }
+
+ onlineSocket.emit("send-friend-request", selectedPlayer.id);
+}
+
 async function loadLeaderboard(){
  const box=document.getElementById("leaderboard-content");
 
@@ -2507,6 +2522,34 @@ onlineSocket.on("challenge-rejected", data => {
 onlineSocket.on("challenge-error", message => {
  alert(message);
 });
+ onlineSocket.on("friend-request-sent", data => {
+ alert(data.message);
+});
+
+onlineSocket.on("friend-request-error", message => {
+ alert(message);
+});
+
+onlineSocket.on("friend-request-received", data => {
+ const accepted = confirm(
+  data.username + " veut être ton ami sur UNO.CHESS !\n\n" +
+  "Veux-tu accepter sa demande ?"
+ );
+
+ if(accepted){
+  onlineSocket.emit("accept-friend-request", data.requestId);
+ }else{
+  onlineSocket.emit("reject-friend-request", data.requestId);
+ }
+});
+
+onlineSocket.on("friend-request-accepted", data => {
+ alert(data.message);
+});
+
+onlineSocket.on("friend-request-rejected", data => {
+ alert(data.message);
+});
  onlineSocket.on("online-state",data=>{
   if(!isOnlineGame)return;
 
@@ -2576,6 +2619,8 @@ onlineSocket.on("challenge-error", message => {
   }
  });
 }
+
+
 
 /* =====================================
    RECHERCHE D'ADVERSAIRE
