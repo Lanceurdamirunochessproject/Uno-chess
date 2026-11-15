@@ -570,10 +570,10 @@ function hasUnoLegalDefense(match, side) {
   // Pas d'échec : pas de mat UNO
   if (!match.chess.isCheck()) return true;
 
-  // Vérifie que c'est bien au tour du joueur en échec
-  if (match.chess.turn() !== side) return false;
+  // Si ce n'est pas le tour du joueur, ne pas déclarer mat
+  if (match.chess.turn() !== side) return true;
 
-  // Il doit posséder une carte permettant un déplacement légal
+  // Vérifier s'il possède une défense autorisée par ses cartes
   return hasPlayableAction(match, side);
 }
 function passChessTurn(match, nextSide) {
@@ -921,15 +921,7 @@ if (
     return;
   }
 
-  if (match.hands[opponentSide].length === 0) {
-    const opponentId =
-      opponentSide === "w"
-        ? match.whiteUser
-        : match.blackUser;
 
-    await finishOnlineMatch(data.room, match, opponentId);
-    return;
-  }
 
   sendStates(data.room, match);
 }
