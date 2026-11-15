@@ -924,10 +924,11 @@ if (Number(userId) === Number(match.whiteUser)) {
     match.activeColor = card.color;
   }
 
-  if (match.hands[side].length === 0) {
-    await finishOnlineMatch(data.room, match, userId);
-    return;
-  }
+if (match.hands[side].length === 0) {
+  sendStates(data.room, match);
+  await finishOnlineMatch(data.room, match, userId);
+  return;
+}
 
  /* ÉCHEC ET MAT CLASSIQUE OU ÉCHEC ET MAT UNO */
 
@@ -940,11 +941,9 @@ console.log("DIAGNOSTIC FIN DE PARTIE :", {
   opponentHasDefense: hasUnoLegalDefense(match, opponentSide)
 });
 
-if (
-  match.chess.isCheckmate() ||
-  !hasUnoLegalDefense(match, opponentSide)
-) {
+if (match.chess.isCheckmate() || !hasUnoLegalDefense(match, opponentSide)) {
   console.log("VICTOIRE DÉCLARÉE PAR LE BLOC ÉCHEC ET MAT");
+  sendStates(data.room, match);
   await finishOnlineMatch(data.room, match, userId);
   return;
 }
