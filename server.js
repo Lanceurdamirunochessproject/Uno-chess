@@ -647,6 +647,7 @@ function publicState(match, userId) {
 
   return {
     matchId: match.id,
+    history: match.history || [],
     fen: match.chess.fen(),
     color: side === "w" ? "white" : "black",
     turn: match.chess.turn(),
@@ -879,19 +880,33 @@ if (Number(userId) === Number(match.whiteUser)) {
     });
     return;
   }
-
+const beforeFen = match.chess.fen();
   const move = match.chess.move({
     from: data.from,
     to: data.to,
     promotion: "q"
   });
 
-  if (!move) {
-    socket.emit("game-error", {
-      message: "Déplacement impossible."
-    });
-    return;
-  }
+if (!Array.isArray(match.history)) {
+  match.history = [];
+}
+
+match.history.push({
+  ply: match.history.length,
+  side,
+  san: move.san,
+  from: move.from,
+  to: move.to,
+  piece: move.piece,
+  captured: move.captured || null,
+  card: card.value,
+  color: card.color,
+  beforeFen,
+  afterFen: match.chess.fen(),
+  category: "non-classé",
+  precision: 0,
+  explanation: "Coup joué en partie en ligne."
+});
 
   match.hands[side].splice(data.cardIndex, 1);
   match.discard = card;
