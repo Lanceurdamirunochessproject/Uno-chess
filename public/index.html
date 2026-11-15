@@ -642,7 +642,19 @@ onclick="loginAccount()"
 
  <button onclick="sendPlayerChallenge()">DÉFIER</button>
 <button onclick="sendFriendRequest()">AJOUTER EN AMI</button>
-<button onclick="openPrivateMessages()">💬 MESSAGE PRIVÉ</button>
+<button
+  onclick="openPrivateMessages()"
+  style="
+    display:block;
+    width:100%;
+    min-height:55px;
+    padding:15px;
+    cursor:pointer;
+    touch-action:manipulation;
+  "
+>
+  💬 MESSAGE PRIVÉ
+</button>
 
  <button onclick="closePlayerProfile()" class="account-secondary">
   FERMER
