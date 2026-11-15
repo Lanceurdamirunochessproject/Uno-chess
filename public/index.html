@@ -2451,8 +2451,13 @@ async function openDM(friendId, username) {
 
   document.getElementById("dm-title").textContent =
     "MESSAGES AVEC " + username;
+const panel = document.getElementById("dm-panel");
 
-  document.getElementById("dm-panel").style.display = "block";
+alert("Panneau trouvé : " + Boolean(panel));
+
+panel.style.display = "block";
+panel.style.position = "relative";
+panel.style.zIndex = "10000";
 
   await loadPrivateMessages();
 }
