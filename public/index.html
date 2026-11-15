@@ -818,11 +818,12 @@ const colorNames = ["rouge","jaune","vert","bleu"];
 const categoryNames = {
  brilliant:"✦ BRILLANT",
  excellent:"Excellent",
+ good:"Bon coup",
  gambling:"Gambling Move",
+ inaccuracy:"Imprécision",
  error:"Erreur",
  blunder:"Grosse erreur"
 };
-
 const pieces = {
  wK:"♔",wQ:"♕",wR:"♖",wB:"♗",wN:"♘",wP:"♙",
  bK:"♚",bQ:"♛",bR:"♜",bB:"♝",bN:"♞",bP:"♟"
@@ -1871,11 +1872,9 @@ function updateReportStats(){
   (sum,m)=>sum+(m.precision??0),0
  );
 
- const finalPrecision=Math.max(
-  0,
-  Math.min(100,(totalPoints*5)/100)
- );
-
+const finalPrecision = total > 0
+  ? totalPoints / total
+  : 0;
  document.getElementById("statTotal").textContent=total;
  document.getElementById("statExcellent").textContent=excellent;
  document.getElementById("statErrors").textContent=errors;
