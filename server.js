@@ -891,9 +891,12 @@ if (!Array.isArray(match.history)) {
   match.history = [];
 }
 
+const number = Math.floor(match.history.length / 2) + 1;
+
 match.history.push({
   ply: match.history.length,
-  side,
+  number,
+  side: side === "w" ? "Toi" : "UNO.CHESS AI",
   san: move.san,
   from: move.from,
   to: move.to,
@@ -901,13 +904,14 @@ match.history.push({
   captured: move.captured || null,
   card: card.value,
   color: card.color,
-  beforeFen,
-  afterFen: match.chess.fen(),
+  uno: card.value,
   category: "non-classé",
   precision: 0,
-  explanation: "Coup joué en partie en ligne."
+  change: 0,
+  explanation: "Coup joué en partie en ligne.",
+  beforeFen,
+  afterFen: match.chess.fen()
 });
-
   match.hands[side].splice(data.cardIndex, 1);
   match.discard = card;
 
