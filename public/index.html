@@ -2075,9 +2075,8 @@ function showReport(){
 
   const number=document.createElement("span");
   number.className="report-move-number";
-  number.textContent=
-   m.number+(m.side==="UNO.CHESS AI"?"...":".");
-
+number.textContent =
+  m.number + (index % 2 === 1 ? "..." : ".");
   const detail=document.createElement("div");
   detail.className="report-move-detail";
 
@@ -2553,8 +2552,15 @@ onlineSocket.on("friend-request-rejected", data => {
  onlineSocket.on("online-state",data=>{
   if(!isOnlineGame)return;
 if(Array.isArray(data.history)){
-  moveHistory=data.history;
-  reportIndex=Math.max(0,moveHistory.length-1);
+  const mySide = data.color === "white" ? "w" : "b";
+
+  moveHistory = data.history.map((move, index) => ({
+    ...move,
+    side: move.side === mySide ? "Toi" : "Adversaire",
+    number: Math.floor(index / 2) + 1
+  }));
+
+  reportIndex = Math.max(0, moveHistory.length - 1);
 }
   if(data.fen){
    game.load(data.fen);
