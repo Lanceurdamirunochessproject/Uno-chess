@@ -622,6 +622,32 @@ onclick="loginAccount()"
   <h3>🏆 CLASSEMENT KILO</h3>
   <div id="leaderboard-content">Connecte-toi pour consulter le classement.</div>
  </div>
+ <div id="player-profile-menu" style="
+ display:none;
+ position:fixed;
+ top:50%;
+ left:50%;
+ transform:translate(-50%,-50%);
+ width:90%;
+ max-width:350px;
+ padding:20px;
+ background:#1f2937;
+ border:2px solid #facc15;
+ border-radius:14px;
+ z-index:9999;
+ color:white;
+">
+ <h3 id="player-menu-name">PROFIL</h3>
+ <p>KILO : <strong id="player-menu-kilo"></strong></p>
+
+ <button disabled>DÉFIER</button>
+ <button disabled>AJOUTER EN AMI</button>
+ <button disabled>DM</button>
+
+ <button onclick="closePlayerProfile()" class="account-secondary">
+  FERMER
+ </button>
+</div>
 </section>
 <h1>UNO.CHESS</h1>
 <p>Les échecs rencontrent UNO !</p>
@@ -2319,7 +2345,21 @@ async function logoutAccount(){
 /* =====================================
    CLASSEMENT
 ===================================== */
+function openPlayerProfile(player){
+ const menu=document.getElementById("player-profile-menu");
 
+ document.getElementById("player-menu-name").textContent=
+  player.username || "Joueur";
+
+ document.getElementById("player-menu-kilo").textContent=
+  player.kilo ?? 1000;
+
+ menu.style.display="block";
+}
+
+function closePlayerProfile(){
+ document.getElementById("player-profile-menu").style.display="none";
+}
 async function loadLeaderboard(){
  const box=document.getElementById("leaderboard-content");
 
