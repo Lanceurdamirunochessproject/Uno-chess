@@ -433,7 +433,7 @@ app.get("/api/me", async (req, res) => {
 app.get("/api/leaderboard", async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT username, kilo
+      `SELECT id, username, kilo
        FROM users
        ORDER BY kilo DESC, username ASC
        LIMIT 50`
