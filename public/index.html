@@ -2458,10 +2458,10 @@ function openPrivateMessages(){
   openDM(friendId, selectedPlayer.username);
 }
  let currentDMFriendId = null;
-
+let currentDMFriendUsername = "";
 async function openDM(friendId, username) {
   currentDMFriendId = friendId;
-
+currentDMFriendUsername = username;
   document.getElementById("dm-title").textContent =
     "MESSAGES AVEC " + username;
 const panel = document.getElementById("dm-panel");
