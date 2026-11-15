@@ -595,7 +595,7 @@ function passChessTurn(match, nextSide) {
     finalFen: match.chess.fen()
   });
 
-  return result;
+return match.chess.turn() === nextSide;
 }
 
 /* =====================================================
