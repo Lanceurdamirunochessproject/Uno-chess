@@ -642,7 +642,7 @@ onclick="loginAccount()"
 
  <button onclick="sendPlayerChallenge()">DÉFIER</button>
 <button onclick="sendFriendRequest()">AJOUTER EN AMI</button>
- <button disabled>DM</button>
+<button onclick="openPrivateMessages()">💬 MESSAGE PRIVÉ</button>
 
  <button onclick="closePlayerProfile()" class="account-secondary">
   FERMER
@@ -2362,7 +2362,106 @@ function openPlayerProfile(player){
 
  menu.style.display="block";
 }
+function openPrivateMessages(){
+  if (!selectedPlayer) return;
 
+  const friendId = Number(selectedPlayer.id);
+
+  if (!Number.isInteger(friendId) || friendId <= 0) {
+    alert("Identifiant du joueur invalide.");
+    return;
+  }
+
+  openDM(friendId, selectedPlayer.username);
+}
+ let currentDMFriendId = null;
+
+async function openDM(friendId, username) {
+  currentDMFriendId = friendId;
+
+  document.getElementById("dm-title").textContent =
+    "MESSAGES AVEC " + username;
+
+  document.getElementById("dm-panel").style.display = "block";
+
+  await loadPrivateMessages();
+}
+
+async function loadPrivateMessages() {
+  if (!currentDMFriendId) return;
+
+  try {
+    const response = await fetch(
+      API_BASE + "/api/messages/" + currentDMFriendId,
+      { credentials: "include" }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.error || "Impossible de charger les messages.");
+      return;
+    }
+
+    const container = document.getElementById("dm-messages");
+    container.innerHTML = "";
+
+    data.messages.forEach(message => {
+      const line = document.createElement("p");
+      line.textContent =
+        (Number(message.sender_id) === Number(currentUser.id)
+          ? "Moi : "
+          : "Ami : ") + message.content;
+
+      container.appendChild(line);
+    });
+
+    container.scrollTop = container.scrollHeight;
+
+  } catch (error) {
+    alert("Erreur de connexion au serveur.");
+  }
+}
+
+function closeDM() {
+  document.getElementById("dm-panel").style.display = "none";
+  currentDMFriendId = null;
+}
+async function sendPrivateMessage() {
+  if (!currentDMFriendId) return;
+
+  const input = document.getElementById("dm-input");
+  const content = input.value.trim();
+
+  if (!content) return;
+
+  try {
+    const response = await fetch(API_BASE + "/api/messages", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        receiverId: currentDMFriendId,
+        content: content
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.error || "Impossible d'envoyer le message.");
+      return;
+    }
+
+    input.value = "";
+    await loadPrivateMessages();
+
+  } catch (error) {
+    alert("Erreur de connexion au serveur.");
+  }
+}
 function closePlayerProfile(){
  document.getElementById("player-profile-menu").style.display="none";
 }
@@ -2921,5 +3020,18 @@ window.resetGame=function(){
 loadProfile();
 
 </script>
+ <div id="dm-panel" style="display:none; background:#1f2937; padding:20px; border-radius:12px; max-width:450px; margin:20px auto;">
+
+  <h2 id="dm-title">MESSAGES PRIVÉS</h2>
+
+  <div id="dm-messages" style="height:250px; overflow-y:auto; background:#111827; padding:10px; border-radius:8px; text-align:left;">
+  </div>
+
+  <textarea id="dm-input" placeholder="Écris ton message..." maxlength="1000" style="width:100%; margin-top:10px;"></textarea>
+
+  <button onclick="sendPrivateMessage()">ENVOYER</button>
+  <button onclick="closeDM()">FERMER</button>
+
+</div>
 </body>
 </html>
