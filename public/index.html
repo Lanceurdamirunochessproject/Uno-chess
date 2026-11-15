@@ -2361,6 +2361,7 @@ async function logoutAccount(){
 ===================================== */
 let selectedPlayer = null;
 
+
 async function openInbox() {
   const panel = document.getElementById("inbox-panel");
 
@@ -2370,7 +2371,9 @@ async function openInbox() {
   }
 
   panel.style.display = "block";
-  panel.innerHTML = "<h3>BOÎTE DE RÉCEPTION</h3><p>Chargement...</p>";
+panel.style.zIndex = "100001";
+  const list = document.getElementById("inbox-list");
+  list.innerHTML = "<h3>Messages</h3><p>Chargement...</p>";
 
   try {
     const response = await fetch(API_BASE + "/api/inbox", {
@@ -2380,38 +2383,49 @@ async function openInbox() {
     const data = await response.json();
 
     if (!response.ok) {
-      panel.innerHTML = "<h3>BOÎTE DE RÉCEPTION</h3><p>" +
-        (data.error || "Erreur de chargement.") + "</p>";
+      list.innerHTML = "<p>" + (data.error || "Erreur de chargement.") + "</p>";
       return;
     }
 
-    panel.innerHTML = "<h3>BOÎTE DE RÉCEPTION</h3>";
+    list.innerHTML = "<h3>Messages</h3>";
 
     if (!data.messages.length) {
-      panel.innerHTML += "<p>Aucun message reçu.</p>";
+      list.innerHTML += "<p>Aucun message pour le moment.</p>";
       return;
     }
 
     data.messages.forEach(message => {
       const button = document.createElement("button");
-      button.textContent = message.username + " : " + message.content;
+
       button.style.display = "block";
       button.style.width = "100%";
-      button.style.margin = "6px 0";
-      button.style.padding = "8px";
+      button.style.padding = "15px";
+      button.style.marginBottom = "10px";
+      button.style.background = "#1f2937";
+      button.style.color = "white";
+      button.style.border = "1px solid #475569";
+      button.style.borderRadius = "10px";
+      button.style.textAlign = "left";
       button.style.cursor = "pointer";
+
+      button.innerHTML =
+        "<strong></strong><br><span></span>";
+
+      button.querySelector("strong").textContent = message.username;
+      button.querySelector("span").textContent = message.content;
 
       button.onclick = () => {
         openDM(Number(message.sender_id), message.username);
       };
 
-      panel.appendChild(button);
+      list.appendChild(button);
     });
 
   } catch (error) {
-    panel.innerHTML = "<h3>BOÎTE DE RÉCEPTION</h3><p>Erreur de connexion.</p>";
+    list.innerHTML = "<p>Erreur de connexion au serveur.</p>";
   }
 }
+
 
 
 function openPlayerProfile(player){
@@ -2433,7 +2447,6 @@ function openPrivateMessages(){
   return;
 }
 
-alert("Joueur : " + selectedPlayer.username + " | ID : " + selectedPlayer.id);
 
   const friendId = Number(selectedPlayer.id);
 
@@ -2453,7 +2466,7 @@ async function openDM(friendId, username) {
     "MESSAGES AVEC " + username;
 const panel = document.getElementById("dm-panel");
 
-alert("Panneau trouvé : " + Boolean(panel));
+
 
 panel.style.display = "block";
 panel.style.position = "fixed";
@@ -3103,17 +3116,78 @@ window.resetGame=function(){
 loadProfile();
 
 </script>
- <div id="dm-panel" style="display:none; background:#1f2937; padding:20px; border-radius:12px; max-width:450px; margin:20px auto;">
+<div id="dm-panel" style="
+  display:none;
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:min(650px,94vw);
+  height:min(600px,80vh);
+  background:#1f2937;
+  padding:20px;
+  border-radius:14px;
+  border:1px solid #64748b;
+  color:white;
+  z-index:100001;
+  box-shadow:0 15px 60px #0009;
+">
 
   <h2 id="dm-title">MESSAGES PRIVÉS</h2>
-
-  <div id="dm-messages" style="height:250px; overflow-y:auto; background:#111827; padding:10px; border-radius:8px; text-align:left;">
+<button onclick="closeDM(); openInbox();" style="
+  padding:8px 14px;
+  margin-bottom:10px;
+  cursor:pointer;
+">
+  ← Retour à Inbox
+</button>
+<div id="dm-messages" style="
+  height:calc(100% - 170px);
+  min-height:200px;
+  overflow-y:auto;
+  background:#111827;
+  padding:15px;
+  border-radius:8px;
+  text-align:left;
+  margin:15px 0;
+">
   </div>
+<textarea id="dm-input" placeholder="Écris ton message..." maxlength="1000" style="
+  width:100%;
+  height:65px;
+  resize:none;
+  padding:12px;
+  background:#111827;
+  color:white;
+  border:1px solid #64748b;
+  border-radius:8px;
+  font-size:15px;
+  margin-top:10px;
+"></textarea>
 
-  <textarea id="dm-input" placeholder="Écris ton message..." maxlength="1000" style="width:100%; margin-top:10px;"></textarea>
+ 
+<div style="display:flex;gap:10px;margin-top:10px;">
+  <button onclick="sendPrivateMessage()" style="
+    flex:1;
+    padding:13px;
+    background:#2563eb;
+    color:white;
+    border:0;
+    border-radius:8px;
+    font-weight:bold;
+    cursor:pointer;
+  ">ENVOYER</button>
 
-  <button onclick="sendPrivateMessage()">ENVOYER</button>
-  <button onclick="closeDM()">FERMER</button>
+  <button onclick="closeDM()" style="
+    padding:13px 20px;
+    background:#475569;
+    color:white;
+    border:0;
+    border-radius:8px;
+    cursor:pointer;
+  ">FERMER</button>
+</div>
+
 
 </div>
  <div id="inbox-widget" style="
@@ -3133,22 +3207,45 @@ loadProfile();
     cursor:pointer;
   ">📥</button>
 
-  <div id="inbox-panel" style="
-    display:none;
-    position:absolute;
-    left:48px;
-    top:0;
-    width:230px;
-    min-height:150px;
-    padding:12px;
-    background:#1f2937;
-    border:1px solid #64748b;
-    border-radius:10px;
-    color:white;
-  ">
-    <h3>BOÎTE DE RÉCEPTION</h3>
-    <p>Aucun message pour le moment.</p>
+
+<div id="inbox-panel" style="
+  display:none;
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:min(950px,94vw);
+  height:min(700px,85vh);
+  background:#111827;
+  border:1px solid #475569;
+  border-radius:16px;
+  color:white;
+  z-index:99999;
+  overflow:hidden;
+  box-shadow:0 15px 60px #0009;
+">
+  <div style="background:#1f2937;padding:18px;display:flex;justify-content:space-between;align-items:center;">
+    <h2 style="margin:0;">UNO.CHESS MESSAGES</h2>
+    <button onclick="openInbox()" style="padding:8px 14px;">✕</button>
   </div>
+
+  <div style="display:flex;height:calc(100% - 65px);">
+    <div style="width:230px;min-width:150px;background:#1f2937;padding:15px;">
+      <h3>Inbox</h3>
+      <p>Unread <span id="inbox-unread">0</span></p>
+      <p>Archived</p>
+      <button onclick="openPrivateMessages()" style="width:100%;padding:10px;">
+        + New Message
+      </button>
+    </div>
+
+    <div id="inbox-list" style="flex:1;padding:15px;overflow-y:auto;">
+      <h3>Messages</h3>
+      <p>Aucun message pour le moment.</p>
+    </div>
+  </div>
+</div>
+
 </div>
 </body>
 </html>
