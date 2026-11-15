@@ -249,6 +249,20 @@ async function initDatabase() {
     ALTER TABLE matches
     ADD COLUMN IF NOT EXISTS kilo_change INTEGER
   `);
+  
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS friend_requests (
+      id SERIAL PRIMARY KEY,
+      sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(sender_id, receiver_id),
+      CHECK(sender_id <> receiver_id),
+      CHECK(status IN ('pending', 'accepted', 'rejected'))
+    )
+  `);
+
 }
 
 /* =====================================================
@@ -905,6 +919,163 @@ io.on("connection", socket => {
   }
 
   socketUsers.set(socket.id, Number(userId));
+
+// ENVOYER UNE DEMANDE D'AMI
+socket.on("send-friend-request", async (targetId) => {
+  try {
+    const senderId = Number(userId);
+    targetId = Number(targetId);
+
+    if (
+      !Number.isInteger(targetId) ||
+      targetId <= 0 ||
+      targetId === senderId
+    ) {
+      socket.emit("friend-request-error", "Joueur invalide.");
+      return;
+    }
+
+    const targetOnline = [...socketUsers.entries()].find(
+      ([, id]) => id === targetId
+    );
+
+    if (!targetOnline) {
+      socket.emit("friend-request-error", "Ce joueur n'est pas connecté.");
+      return;
+    }
+
+    const result = await pool.query(
+      `SELECT id, username FROM users WHERE id = $1`,
+      [senderId]
+    );
+
+    if (!result.rows.length) {
+      socket.emit("friend-request-error", "Compte introuvable.");
+      return;
+    }
+
+    const existing = await pool.query(
+      `SELECT id, status FROM friend_requests
+       WHERE (sender_id = $1 AND receiver_id = $2)
+          OR (sender_id = $2 AND receiver_id = $1)`,
+      [senderId, targetId]
+    );
+
+    if (existing.rows.some(row => row.status === "accepted")) {
+      socket.emit("friend-request-error", "Vous êtes déjà amis.");
+      return;
+    }
+
+    if (existing.rows.some(row => row.status === "pending")) {
+      socket.emit("friend-request-error", "Une demande existe déjà.");
+      return;
+    }
+
+    await pool.query(
+      `DELETE FROM friend_requests
+       WHERE (sender_id = $1 AND receiver_id = $2)
+          OR (sender_id = $2 AND receiver_id = $1)`,
+      [senderId, targetId]
+    );
+
+    const inserted = await pool.query(
+      `INSERT INTO friend_requests (sender_id, receiver_id)
+       VALUES ($1, $2)
+       RETURNING id`,
+      [senderId, targetId]
+    );
+
+    const targetSocket = io.sockets.sockets.get(targetOnline[0]);
+
+    if (targetSocket) {
+      targetSocket.emit("friend-request-received", {
+        requestId: inserted.rows[0].id,
+        senderId,
+        username: result.rows[0].username
+      });
+    }
+
+    socket.emit("friend-request-sent", {
+      message: "Demande d'ami envoyée !"
+    });
+
+  } catch (error) {
+    console.error("Erreur demande d'ami :", error);
+    socket.emit("friend-request-error", "Impossible d'envoyer la demande.");
+  }
+});
+
+// ACCEPTER UNE DEMANDE D'AMI
+socket.on("accept-friend-request", async (requestId) => {
+  try {
+    const result = await pool.query(
+      `UPDATE friend_requests
+       SET status = 'accepted'
+       WHERE id = $1
+         AND receiver_id = $2
+         AND status = 'pending'
+       RETURNING sender_id`,
+      [Number(requestId), Number(userId)]
+    );
+
+    if (!result.rows.length) {
+      socket.emit("friend-request-error", "Demande invalide ou expirée.");
+      return;
+    }
+
+    socket.emit("friend-request-accepted", {
+      message: "Vous êtes maintenant amis !"
+    });
+
+    const senderId = result.rows[0].sender_id;
+
+    const senderSocket = [...socketUsers.entries()].find(
+      ([, id]) => id === senderId
+    );
+
+    if (senderSocket) {
+      const connectedSocket = io.sockets.sockets.get(senderSocket[0]);
+
+      if (connectedSocket) {
+        connectedSocket.emit("friend-request-accepted", {
+          message: "Ta demande d'ami a été acceptée !"
+        });
+      }
+    }
+
+  } catch (error) {
+    console.error("Erreur acceptation ami :", error);
+    socket.emit("friend-request-error", "Impossible d'accepter la demande.");
+  }
+});
+
+// REFUSER UNE DEMANDE D'AMI
+socket.on("reject-friend-request", async (requestId) => {
+  try {
+    const result = await pool.query(
+      `UPDATE friend_requests
+       SET status = 'rejected'
+       WHERE id = $1
+         AND receiver_id = $2
+         AND status = 'pending'
+       RETURNING sender_id`,
+      [Number(requestId), Number(userId)]
+    );
+
+    if (!result.rows.length) {
+      socket.emit("friend-request-error", "Demande invalide ou expirée.");
+      return;
+    }
+
+    socket.emit("friend-request-rejected", {
+      message: "Demande refusée."
+    });
+
+  } catch (error) {
+    console.error("Erreur refus ami :", error);
+    socket.emit("friend-request-error", "Impossible de refuser la demande.");
+  }
+});
 
 // ENVOYER UN DÉFI
 socket.on("send-challenge", async (targetId) => {
