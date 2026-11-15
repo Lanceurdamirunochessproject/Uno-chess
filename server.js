@@ -253,7 +253,7 @@ async function initDatabase() {
     ADD COLUMN IF NOT EXISTS kilo_change INTEGER
   `);
   
-  await pool.query(`
+   await pool.query(`
     CREATE TABLE IF NOT EXISTS friend_requests (
       id SERIAL PRIMARY KEY,
       sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -265,8 +265,6 @@ async function initDatabase() {
       CHECK(status IN ('pending', 'accepted', 'rejected'))
     )
   `);
-
-}
   await pool.query(`
     CREATE TABLE IF NOT EXISTS private_messages (
       id SERIAL PRIMARY KEY,
@@ -276,6 +274,12 @@ async function initDatabase() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
+}
+
+/* =====================================================
+   COMPTES
+   ===================================================== */
+
 /* =====================================================
    COMPTES
    ===================================================== */
