@@ -905,10 +905,20 @@ if (Number(userId) === Number(match.whiteUser)) {
 
  /* ÉCHEC ET MAT CLASSIQUE OU ÉCHEC ET MAT UNO */
 
+console.log("DIAGNOSTIC FIN DE PARTIE :", {
+  chessCheck: match.chess.isCheck(),
+  chessCheckmate: match.chess.isCheckmate(),
+  chessTurn: match.chess.turn(),
+  opponentSide,
+  opponentCards: match.hands[opponentSide].length,
+  opponentHasDefense: hasUnoLegalDefense(match, opponentSide)
+});
+
 if (
   match.chess.isCheckmate() ||
   !hasUnoLegalDefense(match, opponentSide)
 ) {
+  console.log("VICTOIRE DÉCLARÉE PAR LE BLOC ÉCHEC ET MAT");
   await finishOnlineMatch(data.room, match, userId);
   return;
 }
