@@ -598,6 +598,37 @@ app.get("/api/messages/:friendId", requireLogin, async (req, res) => {
     });
   }
 });
+
+app.get("/api/inbox", requireLogin, async (req, res) => {
+  try {
+    const userId = Number(req.session.userId);
+
+    const result = await pool.query(
+      `SELECT DISTINCT ON (u.id)
+         u.id AS sender_id,
+         u.username,
+         pm.content,
+         pm.created_at
+       FROM private_messages pm
+       JOIN users u ON u.id = pm.sender_id
+       WHERE pm.receiver_id = $1
+       ORDER BY u.id, pm.created_at DESC, pm.id DESC`,
+      [userId]
+    );
+
+    res.json({
+      messages: result.rows
+    });
+
+  } catch (error) {
+    console.error("Erreur boîte de réception :", error);
+
+    res.status(500).json({
+      error: "Impossible de charger la boîte de réception."
+    });
+  }
+});
+
 /* =====================================================
    CARTES UNO CÔTÉ SERVEUR
    ===================================================== */
