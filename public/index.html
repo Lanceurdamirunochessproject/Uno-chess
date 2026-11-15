@@ -2428,7 +2428,12 @@ function openPlayerProfile(player){
  menu.style.display="block";
 }
 function openPrivateMessages(){
-  if (!selectedPlayer) return;
+  if (!selectedPlayer) {
+  alert("Aucun joueur sélectionné.");
+  return;
+}
+
+alert("Joueur : " + selectedPlayer.username + " | ID : " + selectedPlayer.id);
 
   const friendId = Number(selectedPlayer.id);
 
