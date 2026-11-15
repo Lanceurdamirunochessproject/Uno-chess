@@ -567,7 +567,14 @@ function hasUnoLegalDefense(match, side) {
   return hasPlayableAction(match, side);
 }
 function passChessTurn(match, nextSide) {
-  const fields = match.chess.fen().split(" ");
+  const fen = match.chess.fen();
+  const fields = fen.split(" ");
+
+  console.log("AVANT PASSAGE :", {
+    fen,
+    nextSide,
+    currentTurn: fields[1]
+  });
 
   if (fields[1] === nextSide) return true;
 
@@ -579,7 +586,16 @@ function passChessTurn(match, nextSide) {
 
   fields[1] = nextSide;
 
-  return match.chess.load(fields.join(" "));
+  const newFen = fields.join(" ");
+  const result = match.chess.load(newFen);
+
+  console.log("RÉSULTAT PASSAGE :", {
+    newFen,
+    result,
+    finalFen: match.chess.fen()
+  });
+
+  return result;
 }
 
 /* =====================================================
