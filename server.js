@@ -905,13 +905,18 @@ io.on("connection", socket => {
   }
 
   socketUsers.set(socket.id, Number(userId));
-// ENVOYER UN DÉFI À UN JOUEUR
+
+// ENVOYER UN DÉFI
 socket.on("send-challenge", async (targetId) => {
   try {
     targetId = Number(targetId);
     const challengerId = Number(userId);
 
-    if (!Number.isInteger(targetId) || targetId <= 0 || targetId === challengerId) {
+    if (
+      !Number.isInteger(targetId) ||
+      targetId <= 0 ||
+      targetId === challengerId
+    ) {
       socket.emit("challenge-error", "Joueur invalide.");
       return;
     }
@@ -971,7 +976,10 @@ socket.on("send-challenge", async (targetId) => {
   } catch (error) {
     console.error("Erreur défi :", error);
     socket.emit("challenge-error", "Impossible d'envoyer le défi.");
-    // ACCEPTER UN DÉFI
+  }
+});
+
+// ACCEPTER UN DÉFI
 socket.on("accept-challenge", async (challengeId) => {
   try {
     const challenge = pendingChallenges.get(challengeId);
@@ -1066,8 +1074,7 @@ socket.on("reject-challenge", (challengeId) => {
 
   pendingChallenges.delete(challengeId);
 });
-  }
-});
+
   socket.on("find-game", async () => {
     console.log("RECHERCHE REÇUE POUR :", userId);
     const alreadyPlaying = [...activeRooms.values()].some(
