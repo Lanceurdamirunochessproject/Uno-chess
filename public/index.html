@@ -2552,7 +2552,10 @@ onlineSocket.on("friend-request-rejected", data => {
 });
  onlineSocket.on("online-state",data=>{
   if(!isOnlineGame)return;
-
+if(Array.isArray(data.history)){
+  moveHistory=data.history;
+  reportIndex=Math.max(0,moveHistory.length-1);
+}
   if(data.fen){
    game.load(data.fen);
   }
