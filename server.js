@@ -553,7 +553,21 @@ function hasPlayableAction(match, side) {
   if (match.chess.turn() !== side) return false;
 
   const moves = match.chess.moves({ verbose: true });
-
+console.log("CARTES ET DÉFENSES :", {
+  side,
+  activeColor: match.activeColor,
+  discard: match.discard,
+  cards: cards.map(card => ({
+    value: card.value,
+    color: card.color,
+    matches: cardMatches(card, match)
+  })),
+  moves: moves.map(move => ({
+    from: move.from,
+    to: move.to,
+    piece: move.piece
+  }))
+});
   return cards.some(card => {
     if (!cardMatches(card, match)) return false;
 
