@@ -2348,27 +2348,35 @@ async function loadLeaderboard(){
   players.forEach((player,index)=>{
    const tr=document.createElement("tr");
 
-   const values=[
-    "#"+(index+1),
-    player.username || "Joueur",
-    player.kilo ?? 1000
-   ];
+   const rank=document.createElement("td");
+   rank.textContent="#"+(index+1);
 
-   values.forEach(value=>{
-    const td=document.createElement("td");
-    td.textContent=value;
-    tr.appendChild(td);
-   });
+   const name=document.createElement("td");
+   const nameButton=document.createElement("button");
+
+   nameButton.textContent=player.username || "Joueur";
+   nameButton.onclick=()=>{
+    openPlayerProfile(player);
+   };
+
+   name.appendChild(nameButton);
+
+   const kilo=document.createElement("td");
+   kilo.textContent=player.kilo ?? 1000;
+
+   tr.appendChild(rank);
+   tr.appendChild(name);
+   tr.appendChild(kilo);
 
    table.appendChild(tr);
   });
 
   box.appendChild(table);
+
  }catch(error){
   box.textContent="Impossible de charger le classement.";
  }
 }
-
 /* =====================================
    SOCKET.IO
 ===================================== */
