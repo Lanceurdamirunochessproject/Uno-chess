@@ -2456,8 +2456,16 @@ const panel = document.getElementById("dm-panel");
 alert("Panneau trouvé : " + Boolean(panel));
 
 panel.style.display = "block";
-panel.style.position = "relative";
-panel.style.zIndex = "10000";
+panel.style.position = "fixed";
+panel.style.top = "50%";
+panel.style.left = "50%";
+panel.style.transform = "translate(-50%, -50%)";
+panel.style.zIndex = "999999";
+panel.style.width = "90%";
+panel.style.maxWidth = "450px";
+panel.style.background = "#1f2937";
+panel.style.border = "2px solid white";
+panel.style.color = "white";
 
   await loadPrivateMessages();
 }
