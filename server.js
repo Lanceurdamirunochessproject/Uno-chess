@@ -546,28 +546,37 @@ function bestColorFor(cards) {
   return best;
 }
 
+
 function hasPlayableAction(match, side) {
   const cards = match.hands[side];
-  const moves = match.chess.moves({ verbose: true });
 
-  console.log("DIAGNOSTIC ACTION :", {
-    side,
-    chessTurn: match.chess.turn(),
-    cards: cards.map(card => ({
-      value: card.value,
-      color: card.color
-    })),
-    legalMoves: moves.length
-  });
+  if (match.chess.turn() !== side) return false;
+
+  const moves = match.chess.moves({ verbose: true });
 
   return cards.some(card => {
     if (!cardMatches(card, match)) return false;
 
-    return moves.some(move =>
-      allowedPiece(card, move.piece)
-    );
+    return moves.some(move => {
+      if (!allowedPiece(card, move.piece)) return false;
+
+      const playedMove = match.chess.move({
+        from: move.from,
+        to: move.to,
+        promotion: "q"
+      });
+
+      if (!playedMove) return false;
+
+      const kingSafe = !match.chess.isCheck();
+
+      match.chess.undo();
+
+      return kingSafe;
+    });
   });
 }
+
 function hasUnoLegalDefense(match, side) {
 
   // Pas d'échec : pas de mat UNO
