@@ -43,7 +43,10 @@ const sessionMiddleware = session({
     maxAge: 7 * 24 * 60 * 60 * 1000
   }
 });
-
+app.use((req, res, next) => {
+  console.log("REQUÊTE HTTP REÇUE :", req.method, req.url);
+  next();
+});
 app.use(sessionMiddleware);
 
 const io = new Server(server, {
