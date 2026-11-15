@@ -2504,10 +2504,10 @@ async function loadPrivateMessages() {
 
     data.messages.forEach(message => {
       const line = document.createElement("p");
-      line.textContent =
-        (Number(message.sender_id) === Number(currentUser.id)
-          ? "Moi : "
-          : "Ami : ") + message.content;
+     line.textContent =
+  (Number(message.sender_id) === Number(currentUser.id)
+    ? currentUser.username
+    : currentDMFriendUsername) + " : " + message.content;
 
       container.appendChild(line);
     });
