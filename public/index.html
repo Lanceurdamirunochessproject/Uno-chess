@@ -640,7 +640,7 @@ onclick="loginAccount()"
  <h3 id="player-menu-name">PROFIL</h3>
  <p>KILO : <strong id="player-menu-kilo"></strong></p>
 
- <button disabled>DÉFIER</button>
+ <button onclick="sendPlayerChallenge()">DÉFIER</button>
  <button disabled>AJOUTER EN AMI</button>
  <button disabled>DM</button>
 
@@ -2345,7 +2345,11 @@ async function logoutAccount(){
 /* =====================================
    CLASSEMENT
 ===================================== */
+let selectedPlayer = null;
+
 function openPlayerProfile(player){
+ selectedPlayer = player;
+
  const menu=document.getElementById("player-profile-menu");
 
  document.getElementById("player-menu-name").textContent=
@@ -2359,6 +2363,20 @@ function openPlayerProfile(player){
 
 function closePlayerProfile(){
  document.getElementById("player-profile-menu").style.display="none";
+}
+
+function sendPlayerChallenge(){
+ if(!selectedPlayer){
+  alert("Aucun joueur sélectionné.");
+  return;
+ }
+
+if(!onlineSocket || !onlineSocket.connected){
+ alert("Tu dois être connecté au serveur en ligne.");
+ return;
+}
+
+onlineSocket.emit("send-challenge", selectedPlayer.id);
 }
 async function loadLeaderboard(){
  const box=document.getElementById("leaderboard-content");
@@ -2461,7 +2479,34 @@ onlineSocket.on("connect_error",(error)=>{
    "Partie en ligne trouvée ! Tu joues avec les "+
    (onlineColor==="white"?"blancs":"noirs")+".";
  });
+// RÉCEPTION D'UN DÉFI
+onlineSocket.on("challenge-received", data => {
+ const accepted = confirm(
+  data.username + " te défie dans UNO.CHESS !\n\n" +
+  "Veux-tu accepter ce défi ?"
+ );
 
+ if(accepted){
+  onlineSocket.emit("accept-challenge", data.challengeId);
+ }else{
+  onlineSocket.emit("reject-challenge", data.challengeId);
+ }
+});
+
+// CONFIRMATION D'ENVOI
+onlineSocket.on("challenge-sent", data => {
+ alert(data.message);
+});
+
+// DÉFI REFUSÉ
+onlineSocket.on("challenge-rejected", data => {
+ alert(data.message);
+});
+
+// ERREUR DE DÉFI
+onlineSocket.on("challenge-error", message => {
+ alert(message);
+});
  onlineSocket.on("online-state",data=>{
   if(!isOnlineGame)return;
 
