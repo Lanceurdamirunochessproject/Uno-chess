@@ -891,7 +891,11 @@ if (
    ===================================================== */
 
 io.engine.use(sessionMiddleware);
+// =====================================================
+// DÉFIS DIRECTS ENTRE JOUEURS
+// =====================================================
 
+const pendingChallenges = new Map();
 io.on("connection", socket => {
   const userId = socket.request.session.userId;
 
@@ -901,7 +905,169 @@ io.on("connection", socket => {
   }
 
   socketUsers.set(socket.id, Number(userId));
+// ENVOYER UN DÉFI À UN JOUEUR
+socket.on("send-challenge", async (targetId) => {
+  try {
+    targetId = Number(targetId);
+    const challengerId = Number(userId);
 
+    if (!Number.isInteger(targetId) || targetId <= 0 || targetId === challengerId) {
+      socket.emit("challenge-error", "Joueur invalide.");
+      return;
+    }
+
+    const alreadyPlaying = [...activeRooms.values()].some(
+      match =>
+        match.whiteUser === challengerId ||
+        match.blackUser === challengerId ||
+        match.whiteUser === targetId ||
+        match.blackUser === targetId
+    );
+
+    if (alreadyPlaying) {
+      socket.emit("challenge-error", "Un des joueurs a déjà une partie en cours.");
+      return;
+    }
+
+    const targetOnline = [...socketUsers.entries()].find(
+      ([, id]) => id === targetId
+    );
+
+    if (!targetOnline) {
+      socket.emit("challenge-error", "Ce joueur n'est pas connecté.");
+      return;
+    }
+
+    const targetSocket = io.sockets.sockets.get(targetOnline[0]);
+
+    if (!targetSocket) {
+      socket.emit("challenge-error", "Ce joueur n'est plus connecté.");
+      return;
+    }
+
+    const challengeId = `${challengerId}-${targetId}-${Date.now()}`;
+
+    pendingChallenges.set(challengeId, {
+      challengerId,
+      targetId,
+      challengerSocket: socket.id
+    });
+
+    const challenger = await pool.query(
+      "SELECT username FROM users WHERE id = $1",
+      [challengerId]
+    );
+
+    targetSocket.emit("challenge-received", {
+      challengeId,
+      challengerId,
+      username: challenger.rows[0]?.username || "Joueur"
+    });
+
+    socket.emit("challenge-sent", {
+      message: "Défi envoyé !"
+    });
+
+  } catch (error) {
+    console.error("Erreur défi :", error);
+    socket.emit("challenge-error", "Impossible d'envoyer le défi.");
+    // ACCEPTER UN DÉFI
+socket.on("accept-challenge", async (challengeId) => {
+  try {
+    const challenge = pendingChallenges.get(challengeId);
+
+    if (!challenge || challenge.targetId !== Number(userId)) {
+      socket.emit("challenge-error", "Défi invalide ou expiré.");
+      return;
+    }
+
+    const challengerSocket = io.sockets.sockets.get(
+      challenge.challengerSocket
+    );
+
+    if (!challengerSocket || !challengerSocket.connected) {
+      pendingChallenges.delete(challengeId);
+      socket.emit("challenge-error", "Le joueur qui t'a défié est déconnecté.");
+      return;
+    }
+
+    const alreadyPlaying = [...activeRooms.values()].some(
+      match =>
+        match.whiteUser === challenge.challengerId ||
+        match.blackUser === challenge.challengerId ||
+        match.whiteUser === challenge.targetId ||
+        match.blackUser === challenge.targetId
+    );
+
+    if (alreadyPlaying) {
+      pendingChallenges.delete(challengeId);
+      socket.emit("challenge-error", "Un des joueurs a déjà une partie en cours.");
+      return;
+    }
+
+    const result = await pool.query(
+      `INSERT INTO matches (player1, player2, status)
+       VALUES ($1, $2, 'pending')
+       RETURNING id`,
+      [challenge.challengerId, challenge.targetId]
+    );
+
+    const matchId = result.rows[0].id;
+    const room = "uno-chess-" + matchId;
+
+    const match = createMatchState(
+      matchId,
+      challenge.challengerId,
+      challenge.targetId
+    );
+
+    match.players = [challengerSocket.id, socket.id];
+
+    activeRooms.set(room, match);
+
+    challengerSocket.join(room);
+    socket.join(room);
+
+    challengerSocket.emit("game-found", {
+      room,
+      color: "white"
+    });
+
+    socket.emit("game-found", {
+      room,
+      color: "black"
+    });
+
+    sendStates(room, match);
+
+    pendingChallenges.delete(challengeId);
+
+  } catch (error) {
+    console.error("Erreur acceptation défi :", error);
+    socket.emit("challenge-error", "Impossible de démarrer la partie.");
+  }
+});
+
+// REFUSER UN DÉFI
+socket.on("reject-challenge", (challengeId) => {
+  const challenge = pendingChallenges.get(challengeId);
+
+  if (!challenge || challenge.targetId !== Number(userId)) return;
+
+  const challengerSocket = io.sockets.sockets.get(
+    challenge.challengerSocket
+  );
+
+  if (challengerSocket) {
+    challengerSocket.emit("challenge-rejected", {
+      message: "Ton défi a été refusé."
+    });
+  }
+
+  pendingChallenges.delete(challengeId);
+});
+  }
+});
   socket.on("find-game", async () => {
     console.log("RECHERCHE REÇUE POUR :", userId);
     const alreadyPlaying = [...activeRooms.values()].some(
