@@ -71,15 +71,14 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
 #uno-cards{
  display:flex;
- flex-direction:column;
- flex-wrap:nowrap;
+ flex-direction:row;
+ flex-wrap:wrap;
  align-items:center;
  justify-content:center;
- gap:7px;
- max-width:100%;
+ gap:8px;
+ width:100%;
  margin:8px auto;
 }
-@media (orientation: landscape) and (max-width: 1100px){
 
   #game-layout{
     grid-template-columns: minmax(150px, 1fr) minmax(300px, 2fr) minmax(120px, 0.8fr);
@@ -942,7 +941,7 @@ onclick="openPrivateMessages()"
 <div id="game-layout">
 
 <aside class="game-side">
-  <div id="game-chat">
+ <div id="game-chat">
    <h3>💬 CHAT DE LA PARTIE</h3>
    <div id="chat-messages">
     <p class="small">Bienvenue dans le chat !</p>
@@ -954,22 +953,10 @@ onclick="openPrivateMessages()"
    </div>
   </div>
 </aside>
-
 <div id="game-layout">
 
  <aside class="game-side">
-  <div id="game-chat">
-   <h3>💬 CHAT DE LA PARTIE</h3>
-   <div id="chat-messages">
-    <p class="small">Bienvenue dans le chat !</p>
-   </div>
-   <div class="chat-input-row">
-    <input id="chat-input" type="text" maxlength="200"
-     placeholder="Écris un message...">
-    <button onclick="sendGameChatMessage()">ENVOYER</button>
-   </div>
-  </div>
- </aside>
+
 
  <main id="board-area">
   <h2>Échiquier</h2>
