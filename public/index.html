@@ -2259,7 +2259,11 @@ async function apiRequest(path, data = null){
   credentials: "include",
   headers: {}
  };
+const token = sessionStorage.getItem("unoChessToken");
 
+if (token) {
+  options.headers.Authorization = "Bearer " + token;
+}
  if(data !== null){
   options.headers["Content-Type"] = "application/json";
   options.body = JSON.stringify(data);
@@ -2338,11 +2342,15 @@ async function loginAccount(){
  try{
   accountStatus("Connexion...");
 
-  await apiRequest("/api/login",{
-   email,
-   password,
-   rememberMe
-  });
+const data = await apiRequest("/api/login",{
+ email,
+ password,
+ rememberMe
+});
+
+if (data.token) {
+  sessionStorage.setItem("unoChessToken", data.token);
+}
 
  const profileLoaded = await loadProfile();
 
