@@ -2757,11 +2757,15 @@ function connectOnlineSocket(){
   onlineSocket.disconnect();
  }
 
- onlineSocket=io(API_BASE,{
+const token = sessionStorage.getItem("unoChessToken");
+
+onlineSocket=io(API_BASE,{
+  auth: {
+    token: token
+  },
   withCredentials:true,
   transports:["polling","websocket"]
- });
-
+});
  onlineSocket.on("connect",()=>{
   accountStatus("Connecté au serveur en ligne.");
  });
