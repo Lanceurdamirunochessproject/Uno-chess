@@ -569,7 +569,61 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .report-move:hover{
  background:#1f2937;
 }
+#game-chat{
+  margin:18px auto;
+  padding:14px;
+  background:#1f2937;
+  border:1px solid #475569;
+  border-radius:12px;
+  width:100%;
+  max-width:600px;
+  text-align:left;
+}
 
+#game-chat h3{
+  color:#facc15;
+  margin-top:0;
+}
+
+#chat-messages{
+  height:160px;
+  overflow-y:auto;
+  background:#111827;
+  border-radius:8px;
+  padding:10px;
+  margin-bottom:10px;
+  overflow-wrap:anywhere;
+}
+
+.chat-message{
+  margin:7px 0;
+  padding:7px 10px;
+  background:#374151;
+  border-radius:8px;
+}
+
+.chat-message strong{
+  color:#facc15;
+}
+
+.chat-input-row{
+  display:flex;
+  gap:8px;
+}
+
+#chat-input{
+  flex:1;
+  min-width:0;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #64748b;
+}
+
+@media(max-width:500px){
+  .chat-input-row{
+    flex-direction:column;
+  }
+}
 </style>
  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 </head>
@@ -711,6 +765,17 @@ onclick="openPrivateMessages()"
  <main id="board-area">
   <h2>Échiquier</h2>
   <div id="board"></div>
+  <div id="game-chat">
+  <h3>💬 CHAT DE LA PARTIE</h3>
+  <div id="chat-messages">
+    <p class="small">Bienvenue dans le chat !</p>
+  </div>
+  <div class="chat-input-row">
+    <input id="chat-input" type="text" maxlength="200"
+      placeholder="Écris un message...">
+    <button onclick="sendGameChatMessage()">ENVOYER</button>
+  </div>
+</div>
   <p class="small">
    Rouge : tour ou dame · Bleu : cavalier · Vert : fou · Jaune : pion · Joker : toutes les pièces
   </p>
@@ -2650,7 +2715,29 @@ async function loadLeaderboard(){
 /* =====================================
    SOCKET.IO
 ===================================== */
+// ENVOYER UN MESSAGE DANS LE CHAT
+function sendGameChatMessage(){
+  const input = document.getElementById("chat-input");
+  if (!input) return;
 
+  const message = input.value.trim();
+  if (!message) return;
+
+  if (!onlineSocket || !onlineSocket.connected || !isOnlineGame){
+    status.textContent = "Le chat est disponible pendant une partie en ligne.";
+    return;
+  }
+
+  onlineSocket.emit("game-chat-send", message);
+  input.value = "";
+}
+
+// ENVOYER AVEC LA TOUCHE ENTRÉE
+document.getElementById("chat-input").addEventListener("keydown", event => {
+  if (event.key === "Enter"){
+    sendGameChatMessage();
+  }
+});
 function connectOnlineSocket(){
  if(onlineSocket){
   onlineSocket.disconnect();
@@ -2746,6 +2833,26 @@ onlineSocket.on("friend-request-accepted", data => {
 
 onlineSocket.on("friend-request-rejected", data => {
  alert(data.message);
+});
+ // RECEVOIR LES MESSAGES DU CHAT
+onlineSocket.on("game-chat-message", data => {
+  const box = document.getElementById("chat-messages");
+  if (!box) return;
+
+  const message = document.createElement("div");
+  message.className = "chat-message";
+
+  const username = document.createElement("strong");
+  username.textContent = data.username + " : ";
+
+  const content = document.createElement("span");
+  content.textContent = data.message;
+
+  message.appendChild(username);
+  message.appendChild(content);
+
+  box.appendChild(message);
+  box.scrollTop = box.scrollHeight;
 });
  onlineSocket.on("online-state",data=>{
   if(!isOnlineGame)return;
