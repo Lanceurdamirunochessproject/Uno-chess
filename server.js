@@ -1272,7 +1272,12 @@ io.engine.use(sessionMiddleware);
 
 const pendingChallenges = new Map();
 io.on("connection", socket => {
-  const userId = socket.request.session.userId;
+  const authorization = socket.handshake.auth?.token;
+  const tokenUserId = authorization
+    ? activeTokens.get(authorization)
+    : null;
+
+  const userId = tokenUserId || socket.request.session?.userId;
 
   if (!userId) {
     socket.disconnect(true);
@@ -1280,7 +1285,6 @@ io.on("connection", socket => {
   }
 
   socketUsers.set(socket.id, Number(userId));
-
 // ENVOYER UNE DEMANDE D'AMI
 socket.on("send-friend-request", async (targetId) => {
   try {
