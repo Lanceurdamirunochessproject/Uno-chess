@@ -594,7 +594,19 @@ button:disabled{opacity:.5;cursor:not-allowed}
   margin-bottom:10px;
   overflow-wrap:anywhere;
 }
+@media (max-width: 900px){
+  #chat-messages{
+    height:100px;
+    padding:6px;
+    margin-bottom:5px;
+    font-size:12px;
+  }
 
+  #chat-messages + button{
+    min-height:38px;
+    padding:8px 16px;
+  }
+}
 .chat-message{
   margin:7px 0;
   padding:7px 10px;
