@@ -586,26 +586,16 @@ button:disabled{opacity:.5;cursor:not-allowed}
 }
 
 #chat-messages{
-  height:160px;
+  height:90px;
+  max-height:90px;
   overflow-y:auto;
   background:#111827;
   border-radius:8px;
-  padding:10px;
-  margin-bottom:10px;
+  padding:6px;
+  margin-bottom:6px;
   overflow-wrap:anywhere;
+  font-size:12px;
 }
-@media (max-width: 900px){
-  #chat-messages{
-    height:100px;
-    padding:6px;
-    margin-bottom:5px;
-    font-size:12px;
-  }
-
-  #chat-messages + button{
-    min-height:38px;
-    padding:8px 16px;
-  }
 }
 .chat-message{
   margin:7px 0;
