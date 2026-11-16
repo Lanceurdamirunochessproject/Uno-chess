@@ -2338,26 +2338,20 @@ async function loginAccount(){
  try{
   accountStatus("Connexion...");
 
-  const data=await apiRequest("/api/login",{
+  await apiRequest("/api/login",{
    email,
    password,
    rememberMe
   });
 
-  currentUser=data.user;
+ const profileLoaded = await loadProfile();
 
-  document.getElementById("auth-form").style.display="none";
-  document.getElementById("profile").style.display="block";
-  document.getElementById("online-controls").style.display="block";
+if (!profileLoaded) {
+  accountStatus("Connexion effectuée, mais le profil ne se charge pas. Problème de session.");
+  return;
+}
 
-  document.getElementById("profile-name").textContent=currentUser.username || "Joueur";
-  document.getElementById("profile-kilo").textContent=currentUser.kilo ?? 1000;
-
-  accountStatus("Connexion réussie !");
-
-  try{ connectOnlineSocket(); }catch(error){ console.error(error); }
-  try{ await loadLeaderboard(); }catch(error){ console.error(error); }
-
+accountStatus("Connexion réussie !");
  }catch(error){
   accountStatus(error.message);
  }
