@@ -64,7 +64,7 @@ const socketUsers = new Map();
 const COLORS = ["rouge", "jaune", "vert", "bleu"];
 
 function requireLogin(req, res, next) {
-if (!req.session || !req.session.userId) {
+if (!req.session.userId) {
     return res.status(401).json({
       error: "Tu dois être connecté."
     });
