@@ -884,7 +884,27 @@ onclick="openPrivateMessages()"
 
  <aside class="game-side">
 
- 
+  <div id="game-chat">
+   <h3>💬 CHAT DE LA PARTIE</h3>
+   <div id="chat-messages">
+    <p class="small">Bienvenue dans le chat !</p>
+   </div>
+   <div class="chat-input-row">
+    <input id="chat-input" type="text" maxlength="200"
+     placeholder="Écris un message...">
+    <button onclick="sendGameChatMessage()">ENVOYER</button>
+   </div>
+  </div>
+
+  <h2>TES CARTES</h2>
+  <div id="uno-cards"></div>
+
+ </aside>
+
+ <main id="board-area">
+  <h2>Échiquier</h2>
+  <div id="board"></div>
+
   <p class="small">
    Rouge : tour ou dame · Bleu : cavalier · Vert : fou · Jaune : pion · Joker : toutes les pièces
   </p>
