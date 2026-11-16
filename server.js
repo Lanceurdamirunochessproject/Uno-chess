@@ -1,6 +1,7 @@
 
 const express = require("express");
 const http = require("http");
+const crypto = require("crypto");
 const { Server } = require("socket.io");
 const { Pool } = require("pg");
 const bcrypt = require("bcryptjs");
@@ -39,7 +40,7 @@ const sessionMiddleware = session({
   cookie: {
     httpOnly: true,
     secure: true,
-sameSite: "lax",
+sameSite: "none",
     maxAge: 7 * 24 * 60 * 60 * 1000
   }
 });
@@ -64,14 +65,22 @@ const socketUsers = new Map();
 const COLORS = ["rouge", "jaune", "vert", "bleu"];
 
 function requireLogin(req, res, next) {
-if (!req.session.userId) {
+  const authorization = req.headers.authorization || "";
+  const token = authorization.startsWith("Bearer ")
+    ? authorization.slice(7)
+    : null;
+
+  const userId = token ? activeTokens.get(token) : null;
+
+  if (!userId && !req.session.userId) {
     return res.status(401).json({
       error: "Tu dois être connecté."
     });
   }
+
+  req.userId = userId || req.session.userId;
   next();
 }
-
 /* =====================================================
    KILO
    ===================================================== */
@@ -350,7 +359,7 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-
+const activeTokens = new Map();
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password, rememberMe } = req.body;
@@ -393,7 +402,8 @@ app.post("/api/login", async (req, res) => {
     });
 
     req.session.userId = user.id;
-
+const token = crypto.randomBytes(32).toString("hex");
+activeTokens.set(token, user.id);
     req.session.cookie.maxAge = rememberMe === true
       ? 30 * 24 * 60 * 60 * 1000
       : 7 * 24 * 60 * 60 * 1000;
@@ -407,13 +417,14 @@ app.post("/api/login", async (req, res) => {
         });
       }
 
-      res.json({
-        user: {
-          id: user.id,
-          username: user.username,
-          kilo: user.kilo
-        }
-      });
+     res.json({
+  token: token,
+  user: {
+    id: user.id,
+    username: user.username,
+    kilo: user.kilo
+  }
+});
     });
 
   } catch (error) {
@@ -424,7 +435,7 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-app.get("/api/me", async (req, res) => {
+app.get("/api/me", requireLogin, async (req, res) => {
   try {
     console.log("SESSION /api/me :", req.session.userId);
     if (!req.session.userId) {
@@ -437,7 +448,7 @@ app.get("/api/me", async (req, res) => {
       `SELECT id, username, kilo
        FROM users
        WHERE id = $1`,
-      [req.session.userId]
+  [req.userId]
     );
 
     if (!result.rows.length) {
