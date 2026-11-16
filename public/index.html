@@ -639,27 +639,31 @@ button:disabled{opacity:.5;cursor:not-allowed}
     gap:6px;
     width:100%;
   }
+#chat-input{
+  min-width:0;
+  flex:1;
+  width:0;
+  font-size:13px;
+}
+
 .chat-input-row button{
   display:block !important;
-  flex:0 0 90px;
-  min-width:90px;
+  flex:0 0 125px;
+  width:125px;
+  min-width:125px;
+  height:55px;
+  padding:12px 8px;
+  font-size:15px;
+  font-weight:bold;
+  color:white !important;
+  background:#16a34a !important;
+  border:2px solid white !important;
+  border-radius:10px;
   visibility:visible !important;
-  white-space:nowrap;
-}
-  #chat-input{
-    min-width:0;
-    flex:1;
-    width:0;
-    font-size:13px;
-  }
-
-  .chat-input-row button{
-    flex-shrink:0;
-    width:auto;
-    min-width:85px;
-    padding:8px;
-    font-size:12px;
-  }
+  opacity:1 !important;
+  position:relative;
+  z-index:10;
+  touch-action:manipulation;
 }
 </style>
  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
