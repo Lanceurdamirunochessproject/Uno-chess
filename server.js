@@ -1688,7 +1688,36 @@ socket.on("reject-challenge", (challengeId) => {
       });
     }
   });
+// CHAT EN DIRECT PENDANT UNE PARTIE
+socket.on("game-chat-send", async (message) => {
+  try {
+    if (typeof message !== "string") return;
 
+    const cleanMessage = message.trim().slice(0, 200);
+    if (!cleanMessage) return;
+
+    // Vérifier que le joueur participe à une partie
+    for (const [room, match] of activeRooms) {
+      if (!match.players.includes(socket.id)) continue;
+
+      const result = await pool.query(
+        "SELECT username FROM users WHERE id = $1",
+        [Number(userId)]
+      );
+
+      const username = result.rows[0]?.username || "Joueur";
+
+      io.to(room).emit("game-chat-message", {
+        username,
+        message: cleanMessage
+      });
+
+      return;
+    }
+  } catch (error) {
+    console.error("Erreur chat :", error);
+  }
+});
   socket.on("game-action", data => {
     handleOnlineAction(socket, data).catch(error => {
       console.error(error);
