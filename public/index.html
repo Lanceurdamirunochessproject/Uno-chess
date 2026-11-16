@@ -2344,8 +2344,14 @@ async function loginAccount(){
    rememberMe
   });
 
-  await loadProfile();
-  accountStatus("Connexion réussie !");
+ const profileLoaded = await loadProfile();
+
+if (!profileLoaded) {
+  accountStatus("Connexion effectuée, mais le profil ne se charge pas. Problème de session.");
+  return;
+}
+
+accountStatus("Connexion réussie !");
  }catch(error){
   accountStatus(error.message);
  }
