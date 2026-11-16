@@ -426,6 +426,7 @@ app.post("/api/login", async (req, res) => {
 
 app.get("/api/me", async (req, res) => {
   try {
+    console.log("SESSION /api/me :", req.session.userId);
     if (!req.session.userId) {
       return res.status(401).json({
         error: "Tu n'es pas connecté."
