@@ -50,7 +50,10 @@ button:disabled{opacity:.5;cursor:not-allowed}
    Rouge : tour ou dame · Bleu : cavalier · Vert : fou · Jaune : pion · Joker : toutes les pièces
   </p>
  </main>
-
+<section id="hand-area">
+  <h2>TES CARTES</h2>
+  <div id="uno-cards"></div>
+</section>
  <aside class="game-side">
   <h2>PIOCHE</h2>
   <div class="side-label">Carte défaussée</div>
@@ -158,7 +161,42 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
 @media(max-width:700px){
  body{padding:12px 5px}
+#game-layout{
+  display:grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(300px, 2fr) minmax(120px, 0.8fr);
+  grid-template-areas:
+    "chat board pile"
+    "hand hand hand";
+  gap:12px;
+  align-items:start;
+  max-width:1200px;
+  margin:12px auto;
+}
 
+#game-layout > aside:first-child{
+  grid-area:chat;
+}
+
+#board-area{
+  grid-area:board;
+}
+
+#game-layout > aside:last-child{
+  grid-area:pile;
+}
+
+#hand-area{
+  grid-area:hand;
+  width:100%;
+}
+
+#uno-cards{
+  display:flex;
+  flex-direction:row;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:8px;
+}
  #game-layout{
   grid-template-columns:minmax(85px,1fr) minmax(0,3fr) minmax(85px,1fr);
   gap:5px;
@@ -701,14 +739,34 @@ max-height:55px;
     font-size:13px;
   }
 }
- @media (orientation: landscape) and (max-width: 1100px){
+@media (orientation: landscape) and (max-width: 1100px){
 
   #game-layout{
     display:grid;
-    grid-template-columns: 1.2fr 2fr 0.9fr;
+    grid-template-columns: minmax(150px, 1fr) minmax(300px, 2fr) minmax(120px, 0.8fr);
+    grid-template-areas:
+      "chat board pile"
+      "hand hand hand";
     gap:8px;
     align-items:start;
     margin:8px auto;
+  }
+
+  #game-layout > aside:first-child{
+    grid-area:chat;
+  }
+
+  #board-area{
+    grid-area:board;
+  }
+
+  #game-layout > aside:last-child{
+    grid-area:pile;
+  }
+
+  #hand-area{
+    grid-area:hand;
+    width:100%;
   }
 
   .game-side{
@@ -723,19 +781,8 @@ max-height:55px;
     padding:6px;
   }
 
-  #game-chat h3{
-    font-size:13px;
-    margin:2px 0 5px;
-  }
-
-  #chat-messages{
-    height:55px;
-    max-height:55px;
-    padding:4px;
-    margin-bottom:4px;
-  }
-
   #uno-cards{
+    display:flex;
     flex-direction:row;
     flex-wrap:wrap;
     justify-content:center;
@@ -747,7 +794,6 @@ max-height:55px;
     height:60px;
     font-size:12px;
   }
-
 }
 </style>
  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
@@ -881,8 +927,7 @@ onclick="openPrivateMessages()"
 <!-- PLATEAU : CARTES À GAUCHE, ÉCHIQUIER AU CENTRE, PIOCHE À DROITE -->
 <div id="game-layout">
 
- <aside class="game-side">
-
+<aside class="game-side">
   <div id="game-chat">
    <h3>💬 CHAT DE LA PARTIE</h3>
    <div id="chat-messages">
@@ -894,11 +939,7 @@ onclick="openPrivateMessages()"
     <button onclick="sendGameChatMessage()">ENVOYER</button>
    </div>
   </div>
-
-  <h2>TES CARTES</h2>
-  <div id="uno-cards"></div>
-
- </aside>
+</aside>
 
  <main id="board-area">
   <h2>Échiquier</h2>
