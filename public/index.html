@@ -53,12 +53,13 @@ button:disabled{opacity:.5;cursor:not-allowed}
  background:#1f2937;
  border:1px solid #374151;
  border-radius:14px;
- padding:12px 8px;
- min-height:250px;
+ padding:8px;
+ min-height:0;
  display:flex;
  flex-direction:column;
- align-items:center;
- justify-content:center;
+ align-items:stretch;
+ justify-content:flex-start;
+ gap:10px;
 }
 
 .game-side h2{
@@ -701,6 +702,54 @@ max-height:55px;
     font-size:13px;
   }
 }
+ @media (orientation: landscape) and (max-width: 1100px){
+
+  #game-layout{
+    display:grid;
+    grid-template-columns: 1.2fr 2fr 0.9fr;
+    gap:8px;
+    align-items:start;
+    margin:8px auto;
+  }
+
+  .game-side{
+    padding:6px;
+    min-height:0;
+    justify-content:flex-start;
+  }
+
+  #game-chat{
+    width:100%;
+    margin:0;
+    padding:6px;
+  }
+
+  #game-chat h3{
+    font-size:13px;
+    margin:2px 0 5px;
+  }
+
+  #chat-messages{
+    height:55px;
+    max-height:55px;
+    padding:4px;
+    margin-bottom:4px;
+  }
+
+  #uno-cards{
+    flex-direction:row;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:5px;
+  }
+
+  .uno-card{
+    width:43px;
+    height:60px;
+    font-size:12px;
+  }
+
+}
 </style>
  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 </head>
@@ -831,28 +880,11 @@ onclick="openPrivateMessages()"
 </p>
 
 <!-- PLATEAU : CARTES À GAUCHE, ÉCHIQUIER AU CENTRE, PIOCHE À DROITE -->
-
 <div id="game-layout">
 
  <aside class="game-side">
-  <h2>TES CARTES</h2>
-  <div id="uno-cards"></div>
- </aside>
 
- <main id="board-area">
-  <h2>Échiquier</h2>
-  <div id="board"></div>
-  <div id="game-chat">
-  <h3>💬 CHAT DE LA PARTIE</h3>
-  <div id="chat-messages">
-    <p class="small">Bienvenue dans le chat !</p>
-  </div>
-  <div class="chat-input-row">
-    <input id="chat-input" type="text" maxlength="200"
-      placeholder="Écris un message...">
-    <button onclick="sendGameChatMessage()">ENVOYER</button>
-  </div>
-</div>
+ 
   <p class="small">
    Rouge : tour ou dame · Bleu : cavalier · Vert : fou · Jaune : pion · Joker : toutes les pièces
   </p>
