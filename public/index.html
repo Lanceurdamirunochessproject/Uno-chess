@@ -657,38 +657,47 @@ max-height:55px;
   z-index:10;
   touch-action:manipulation;
 }
- @media (orientation: landscape) and (max-width: 1100px){
- #game-chat{
-  margin:0 auto 5px;
-  padding:6px;
-  transform:translateY(-25px);
-}
-  #chat-messages{
-    height:45px;
-    max-height:45px;
+@media (orientation: landscape) and (max-width: 1100px){
+
+  #game-chat{
+    margin:0 auto;
     padding:5px;
-    margin-bottom:5px;
-    font-size:11px;
+    width:100%;
+    max-width:600px;
+  }
+
+  #game-chat h3{
+    margin:0 0 4px;
+    font-size:14px;
+  }
+
+  #chat-messages{
+    height:35px;
+    max-height:35px;
+    padding:4px;
+    margin-bottom:4px;
+    font-size:10px;
   }
 
   .chat-input-row{
     display:flex;
     flex-direction:row;
     flex-wrap:nowrap;
-    gap:6px;
+    gap:5px;
   }
 
   #chat-input{
     min-width:0;
     flex:1;
     font-size:12px;
+    padding:7px;
   }
 
   .chat-input-row button{
     flex:0 0 110px;
     width:110px;
     min-width:110px;
-    height:48px;
+    height:45px;
     font-size:13px;
   }
 }
