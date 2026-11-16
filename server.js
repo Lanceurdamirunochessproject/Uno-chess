@@ -439,11 +439,11 @@ app.get("/api/me", requireLogin, async (req, res) => {
   try {
     console.log("SESSION /api/me :", req.session.userId);
     console.log("TOKEN REÇU :", req.headers.authorization ? "OUI" : "NON");
-    if (!req.session.userId) {
-      return res.status(401).json({
-        error: "Tu n'es pas connecté."
-      });
-    }
+   if (!req.userId) {
+  return res.status(401).json({
+    error: "Tu n'es pas connecté."
+  });
+}
 
     const result = await pool.query(
       `SELECT id, username, kilo
