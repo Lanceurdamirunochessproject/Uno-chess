@@ -123,6 +123,20 @@ button:disabled{opacity:.5;cursor:not-allowed}
 }
 .light{background:#f0d9b5}
 .dark{background:#b58863}
+ /* THÈMES DE L'ÉCHIQUIER */
+
+:root {
+  --board-light: #f0d9b5;
+  --board-dark: #b58863;
+}
+
+.light {
+  background: var(--board-light);
+}
+
+.dark {
+  background: var(--board-dark);
+}
 .selected-square{background:#facc15!important}
 .possible{box-shadow:inset 0 0 0 5px #22c55e}
 
@@ -2858,12 +2872,25 @@ function openSettings() {
   overlay.querySelector("#settings-close").onclick = close;
   overlay.querySelector("#settings-cancel").onclick = close;
 
-  overlay.querySelector("#settings-save").onclick = () => {
-    if (overlay.dataset.selectedTheme) {
-      localStorage.setItem("unoChessBoardTheme", overlay.dataset.selectedTheme);
-    }
-    close();
+overlay.querySelector("#settings-save").onclick = () => {
+  const themes = {
+    bleu: ["#bfdbfe", "#2563eb"],
+    rose: ["#fbcfe8", "#db2777"],
+    vert: ["#bbf7d0", "#15803d"],
+    rouge: ["#fecaca", "#991b1b"]
   };
+
+  const selected = overlay.dataset.selectedTheme;
+
+  if (selected && themes[selected]) {
+    document.documentElement.style.setProperty("--board-light", themes[selected][0]);
+    document.documentElement.style.setProperty("--board-dark", themes[selected][1]);
+
+    localStorage.setItem("unoChessBoardTheme", selected);
+  }
+
+  close();
+};
 }
 
  function changeBoardTheme() {
