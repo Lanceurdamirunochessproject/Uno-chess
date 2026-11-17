@@ -827,6 +827,36 @@ max-height:55px;
     font-size:12px;
   }
 }
+ /* CORRECTION DISPOSITION UNO.CHESS */
+#game-layout{
+  display:grid !important;
+  grid-template-columns: minmax(150px, 1fr) minmax(300px, 2fr) minmax(120px, 0.8fr);
+  grid-template-areas:
+    "chat board pile"
+    "hand hand hand";
+  gap:12px;
+  align-items:start;
+  width:100%;
+  max-width:1200px;
+  margin:12px auto;
+}
+
+#game-layout > aside:first-child{
+  grid-area:chat;
+}
+
+#board-area{
+  grid-area:board;
+}
+
+#game-layout > aside:last-child{
+  grid-area:pile;
+}
+
+#hand-area{
+  grid-area:hand;
+  width:100%;
+}
 </style>
  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 </head>
