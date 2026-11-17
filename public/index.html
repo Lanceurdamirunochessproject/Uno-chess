@@ -173,19 +173,38 @@ button:disabled{opacity:.5;cursor:not-allowed}
 }
 
 @media(max-width:700px){
- body{padding:12px 5px}
-#game-layout{
-  display:grid;
-  grid-template-columns: minmax(150px, 1fr) minmax(300px, 2fr) minmax(120px, 0.8fr);
-  grid-template-areas:
-    "chat board pile"
-    "hand hand hand";
-  gap:12px;
-  align-items:start;
-  max-width:1200px;
-  margin:12px auto;
-}
+  body{
+    padding:12px 5px;
+  }
 
+  #game-layout{
+    display:grid;
+    grid-template-columns:minmax(85px,1fr) minmax(0,3fr) minmax(85px,1fr);
+    grid-template-areas:
+      "chat board pile"
+      "hand hand hand";
+    gap:5px;
+    align-items:start;
+    margin:12px auto;
+  }
+
+  #game-layout > aside:first-child{
+    grid-area:chat;
+  }
+
+  #board-area{
+    grid-area:board;
+  }
+
+  #game-layout > aside:last-child{
+    grid-area:pile;
+  }
+
+  #hand-area{
+    grid-area:hand;
+    width:100%;
+  }
+}
 #game-layout > aside:first-child{
   grid-area:chat;
 }
@@ -940,44 +959,40 @@ onclick="openPrivateMessages()"
 <!-- PLATEAU : CARTES À GAUCHE, ÉCHIQUIER AU CENTRE, PIOCHE À DROITE -->
 <div id="game-layout">
 
-<aside class="game-side">
- <div id="game-chat">
-   <h3>💬 CHAT DE LA PARTIE</h3>
-   <div id="chat-messages">
-    <p class="small">Bienvenue dans le chat !</p>
-   </div>
-   <div class="chat-input-row">
-    <input id="chat-input" type="text" maxlength="200"
-     placeholder="Écris un message...">
-    <button onclick="sendGameChatMessage()">ENVOYER</button>
-   </div>
-  </div>
-</aside>
-<div id="game-layout">
+  <aside class="game-side">
+    <div id="game-chat">
+      <h3>💬 CHAT DE LA PARTIE</h3>
+      <div id="chat-messages">
+        <p class="small">Bienvenue dans le chat !</p>
+      </div>
+      <div class="chat-input-row">
+        <input id="chat-input" type="text" maxlength="200"
+          placeholder="Écris un message...">
+        <button onclick="sendGameChatMessage()">ENVOYER</button>
+      </div>
+    </div>
+  </aside>
 
- <aside class="game-side">
+  <main id="board-area">
+    <h2>Échiquier</h2>
+    <div id="board"></div>
+    <p class="small">
+      Rouge : tour ou dame · Bleu : cavalier · Vert : fou · Jaune : pion · Joker : toutes les pièces
+    </p>
+  </main>
 
+  <aside class="game-side">
+    <h2>PIOCHE</h2>
+    <div class="side-label">Carte défaussée</div>
+    <div id="discard">Aucune</div>
+    <p id="active" class="small">Couleur active : rouge</p>
+    <button id="draw" onclick="drawForHuman()">PIOCHER</button>
+  </aside>
 
- <main id="board-area">
-  <h2>Échiquier</h2>
-  <div id="board"></div>
-  <p class="small">
-   Rouge : tour ou dame · Bleu : cavalier · Vert : fou · Jaune : pion · Joker : toutes les pièces
-  </p>
- </main>
-
- <aside class="game-side">
-  <h2>PIOCHE</h2>
-  <div class="side-label">Carte défaussée</div>
-  <div id="discard">Aucune</div>
-  <p id="active" class="small">Couleur active : rouge</p>
-  <button id="draw" onclick="drawForHuman()">PIOCHER</button>
- </aside>
-
- <section id="hand-area">
-  <h2>TES CARTES</h2>
-  <div id="uno-cards"></div>
- </section>
+  <section id="hand-area">
+    <h2>TES CARTES</h2>
+    <div id="uno-cards"></div>
+  </section>
 
 </div>
 
