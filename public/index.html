@@ -898,7 +898,8 @@ onclick="loginAccount()"
  <div id="profile">
   <h3 id="profile-name"></h3>
   <p>KILO : <strong id="profile-kilo">1000</strong></p>
-  <button onclick="logoutAccount()" class="account-secondary">DÉCONNEXION</button>
+<button onclick="openSettings()">⚙️ PARAMÈTRES</button>
+<button onclick="logoutAccount()" class="account-secondary">DÉCONNEXION</button>
  </div>
 
  <p id="account-message"></p>
@@ -2675,7 +2676,35 @@ async function logoutAccount(){
 
  accountStatus("Déconnecté.");
 }
+function openSettings(){
+ const choice = prompt(
+  "PARAMÈTRES DU COMPTE\n\n1 = Modifier le nom d'utilisateur\n2 = Modifier le mot de passe"
+ );
 
+ if(choice==="1"){
+  changeUsername();
+ }else if(choice==="2"){
+  changePassword();
+ }
+}
+ async function changeUsername(){
+ const username = prompt("Entre ton nouveau pseudo :");
+
+ if(!username)return;
+
+ try{
+  const data = await apiRequest("/api/change-username",{
+   username
+  });
+
+  currentUser = data.user;
+  accountStatus("Pseudo modifié avec succès !");
+  loadProfile();
+
+ }catch(error){
+  accountStatus(error.message || "Impossible de modifier le pseudo.");
+ }
+}
 /* =====================================
    CLASSEMENT
 ===================================== */
