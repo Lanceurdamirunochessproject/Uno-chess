@@ -2981,7 +2981,7 @@ onlineSocket.on("connect_error",(error)=>{
   onlineRoom=data.room;
   onlineColor=data.color;
   isOnlineGame=true;
-
+drawBoard();
   finished=false;
   locked=true;
   chosenCard=null;
