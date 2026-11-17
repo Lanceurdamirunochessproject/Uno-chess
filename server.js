@@ -562,7 +562,7 @@ app.post("/api/messages", requireLogin, async (req, res) => {
     if (
       !Number.isInteger(receiverId) ||
       receiverId <= 0 ||
-      receiverId === Number(req.session.userId) ||
+   receiverId === Number(req.userId) ||
       typeof content !== "string" ||
       !content.trim() ||
       content.trim().length > 1000
@@ -580,7 +580,7 @@ app.post("/api/messages", requireLogin, async (req, res) => {
          OR
          (sender_id = $2 AND receiver_id = $1)
        )`,
-      [Number(req.session.userId), receiverId]
+      [Number(req.userId), receiverId]
     );
 
     if (!friend.rows.length) {
@@ -615,7 +615,7 @@ app.post("/api/messages", requireLogin, async (req, res) => {
 });
 app.get("/api/messages/:friendId", requireLogin, async (req, res) => {
   try {
-    const userId = Number(req.session.userId);
+    const userId = Number(req.userId);
     const friendId = Number(req.params.friendId);
 
     if (
@@ -672,7 +672,7 @@ app.get("/api/messages/:friendId", requireLogin, async (req, res) => {
 
 app.get("/api/inbox", requireLogin, async (req, res) => {
   try {
-    const userId = Number(req.session.userId);
+    const userId = Number(req.userId);
 
     const result = await pool.query(
       `SELECT DISTINCT ON (u.id)
