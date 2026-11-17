@@ -9,7 +9,17 @@ const session = require("express-session");
 const PgSession = require("connect-pg-simple")(session);
 const cors = require("cors");
 const { Chess } = require("chess.js");
-
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+const tokenTableReady = pool.query(`
+  CREATE TABLE IF NOT EXISTS auth_tokens (
+    token_hash TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL
+  )
+`);
 const app = express();
 const server = http.createServer(app);
 
@@ -24,13 +34,7 @@ app.use(cors({
   credentials: true
 }));
 
-const tokenTableReady = pool.query(`
-  CREATE TABLE IF NOT EXISTS auth_tokens (
-    token_hash TEXT PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    expires_at TIMESTAMPTZ NOT NULL
-  )
-`);
+
 const sessionMiddleware = session({
   store: new PgSession({
     pool,
