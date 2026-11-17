@@ -40,58 +40,47 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
 
 
- </aside>
+/* NOUVELLE DISPOSITION DU JEU */
 
- <main id="board-area">
-  <h2>Échiquier</h2>
-  <div id="board"></div>
-
-  <p class="small">
-   Rouge : tour ou dame · Bleu : cavalier · Vert : fou · Jaune : pion · Joker : toutes les pièces
-  </p>
- </main>
-<section id="hand-area">
-  <h2>TES CARTES</h2>
-  <div id="uno-cards"></div>
-</section>
- <aside class="game-side">
-  <h2>PIOCHE</h2>
-  <div class="side-label">Carte défaussée</div>
-  <div id="discard">Aucune</div>
-  <p id="active" class="small">Couleur active : rouge</p>
-  <button id="draw" onclick="drawForHuman()">PIOCHER</button>
- </aside>
-
- <section id="hand-area">
-  <h2>TES CARTES</h2>
-  <div id="uno-cards"></div>
- </section>
-
-</div>
-
-#uno-cards{
- display:flex;
- flex-direction:row;
- flex-wrap:wrap;
- align-items:center;
- justify-content:center;
- gap:8px;
- width:100%;
- margin:8px auto;
+#game-layout{
+  display:grid;
+  grid-template-columns:minmax(150px,1fr) minmax(300px,2fr) minmax(120px,0.8fr);
+  grid-template-areas:
+    "chat board pile"
+    "hand hand hand";
+  gap:12px;
+  align-items:start;
+  width:100%;
+  max-width:1200px;
+  margin:12px auto;
 }
 
-  #game-layout{
-    grid-template-columns: minmax(150px, 1fr) minmax(300px, 2fr) minmax(120px, 0.8fr);
-    grid-template-areas:
-      "chat board pile"
-      "hand hand hand";
-    align-items:start;
-  }
+#game-layout > aside:first-child{
+  grid-area:chat;
+}
 
-  #hand-area{
-    grid-column:1 / -1;
-  }
+#board-area{
+  grid-area:board;
+}
 
+#game-layout > aside:last-child{
+  grid-area:pile;
+}
+
+#hand-area{
+  grid-area:hand;
+  width:100%;
+}
+
+#uno-cards{
+  display:flex;
+  flex-direction:row;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  width:100%;
+  margin:8px auto;
 }
 .uno-card{
  width:65px;
