@@ -2794,7 +2794,12 @@ async function loadPrivateMessages() {
   try {
     const response = await fetch(
       API_BASE + "/api/messages/" + currentDMFriendId,
-      { credentials: "include" }
+    {
+  credentials: "include",
+  headers: {
+    "Authorization": "Bearer " + sessionStorage.getItem("unoChessToken")
+  }
+}
     );
 
     const data = await response.json();
