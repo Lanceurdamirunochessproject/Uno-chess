@@ -3405,9 +3405,20 @@ function playAgainstDavid(){
 
   const kilo = Number(currentUser.kilo ?? 1000);
 
-  accountStatus("David se prépare... Niveau : " + kilo + " KILO");
+  if(kilo < 700){
+    selectedLevel = "easy";
+  }else if(kilo < 1400){
+    selectedLevel = "medium";
+  }else if(kilo < 2400){
+    selectedLevel = "hard";
+  }else{
+    selectedLevel = "savage";
+  }
 
-  console.log("KILO DE DAVID :", kilo);
+  startGame();
+
+  status.textContent =
+    "🤖 David est prêt ! Niveau adapté à ton KILO : " + kilo;
 }
 
 function cancelOnlineSearch(){
@@ -3620,6 +3631,7 @@ window.drawForHuman=function(){
 
  if(!passTurn("b"))return;
 if(checkWinner())return;
+ if(isOnlineGame)return;
  setTimeout(botTurn,500);
 };
 
