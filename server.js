@@ -1329,13 +1329,42 @@ io.engine.use(sessionMiddleware);
 // =====================================================
 
 const pendingChallenges = new Map();
-io.on("connection", socket => {
-  const authorization = socket.handshake.auth?.token;
-  const tokenUserId = authorization
-    ? activeTokens.get(authorization)
-    : null;
+io.on("connection", async socket => {
+  let userId = null;
 
-  const userId = tokenUserId || socket.request.session?.userId;
+  try {
+    const authorization = socket.handshake.auth?.token;
+
+    if (authorization) {
+      await tokenTableReady;
+
+      const tokenHash = crypto
+        .createHash("sha256")
+        .update(authorization)
+        .digest("hex");
+
+      const result = await pool.query(
+        `SELECT user_id
+         FROM auth_tokens
+         WHERE token_hash = $1
+         AND expires_at > NOW()`,
+        [tokenHash]
+      );
+
+      if (result.rows.length) {
+        userId = result.rows[0].user_id;
+      }
+    }
+
+    if (!userId) {
+      userId = socket.request.session?.userId;
+    }
+
+  } catch (error) {
+    console.error("Erreur authentification Socket.IO :", error);
+    socket.disconnect(true);
+    return;
+  }
 
   if (!userId) {
     socket.disconnect(true);
