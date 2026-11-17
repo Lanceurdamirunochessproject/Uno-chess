@@ -595,7 +595,7 @@ app.post("/api/messages", requireLogin, async (req, res) => {
        VALUES ($1, $2, $3)
        RETURNING id, sender_id, receiver_id, content, created_at`,
       [
-        Number(req.session.userId),
+      Number(req.userId),
         receiverId,
         content.trim()
       ]
