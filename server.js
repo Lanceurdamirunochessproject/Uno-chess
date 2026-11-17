@@ -24,11 +24,13 @@ app.use(cors({
   credentials: true
 }));
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
-
+const tokenTableReady = pool.query(`
+  CREATE TABLE IF NOT EXISTS auth_tokens (
+    token_hash TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL
+  )
+`);
 const sessionMiddleware = session({
   store: new PgSession({
     pool,
@@ -64,22 +66,56 @@ const socketUsers = new Map();
 
 const COLORS = ["rouge", "jaune", "vert", "bleu"];
 
-function requireLogin(req, res, next) {
-  const authorization = req.headers.authorization || "";
-  const token = authorization.startsWith("Bearer ")
-    ? authorization.slice(7)
-    : null;
+async function requireLogin(req, res, next) {
+  try {
+    const authorization = req.headers.authorization || "";
+    const token = authorization.startsWith("Bearer ")
+      ? authorization.slice(7)
+      : null;
 
-  const userId = token ? activeTokens.get(token) : null;
+    let userId = null;
 
-  if (!userId && !req.session.userId) {
-    return res.status(401).json({
-      error: "Tu dois être connecté."
+    if (token) {
+      await tokenTableReady;
+
+      const tokenHash = crypto
+        .createHash("sha256")
+        .update(token)
+        .digest("hex");
+
+      const result = await pool.query(
+        `SELECT user_id
+         FROM auth_tokens
+         WHERE token_hash = $1
+         AND expires_at > NOW()`,
+        [tokenHash]
+      );
+
+      if (result.rows.length) {
+        userId = result.rows[0].user_id;
+      }
+    }
+
+    if (!userId && req.session.userId) {
+      userId = req.session.userId;
+    }
+
+    if (!userId) {
+      return res.status(401).json({
+        error: "Tu dois être connecté."
+      });
+    }
+
+    req.userId = userId;
+    next();
+
+  } catch (error) {
+    console.error("Erreur authentification :", error);
+
+    res.status(500).json({
+      error: "Erreur lors de la vérification de la connexion."
     });
   }
-
-  req.userId = userId || req.session.userId;
-  next();
 }
 /* =====================================================
    KILO
@@ -403,7 +439,25 @@ app.post("/api/login", async (req, res) => {
 
     req.session.userId = user.id;
 const token = crypto.randomBytes(32).toString("hex");
-activeTokens.set(token, user.id);
+await tokenTableReady;
+
+const tokenHash = crypto
+  .createHash("sha256")
+  .update(token)
+  .digest("hex");
+
+const tokenDuration = rememberMe === true
+  ? 30 * 24 * 60 * 60 * 1000
+  : 7 * 24 * 60 * 60 * 1000;
+
+await pool.query(
+  `INSERT INTO auth_tokens (token_hash, user_id, expires_at)
+   VALUES ($1, $2, NOW() + ($3 * INTERVAL '1 millisecond'))
+   ON CONFLICT (token_hash)
+   DO UPDATE SET user_id = EXCLUDED.user_id,
+                 expires_at = EXCLUDED.expires_at`,
+  [tokenHash, user.id, tokenDuration]
+);
     req.session.cookie.maxAge = rememberMe === true
       ? 30 * 24 * 60 * 60 * 1000
       : 7 * 24 * 60 * 60 * 1000;
