@@ -2728,7 +2728,38 @@ panel.style.zIndex = "100001";
     list.innerHTML = "<p>Erreur de connexion au serveur.</p>";
   }
 }
+function openSettings() {
+  const choice = prompt(
+    "⚙️ PARAMÈTRES\n\n1. Changer le nom d'utilisateur\n2. Changer le mot de passe\n3. Thème de l'échiquier\n\nEntre 1, 2 ou 3 :"
+  );
 
+  if (choice === "1") {
+    alert("Changement du nom d'utilisateur : bientôt disponible !");
+  }
+
+  if (choice === "2") {
+    alert("Changement du mot de passe : bientôt disponible !");
+  }
+
+  if (choice === "3") {
+    changeBoardTheme();
+  }
+}
+ function changeBoardTheme() {
+  const theme = prompt(
+    "🎨 THÈME DE L'ÉCHIQUIER\n\n1. Bleu\n2. Rose\n3. Vert\n4. Rouge sanglant\n\nEntre 1, 2, 3 ou 4 :"
+  );
+
+  if (theme === "1") {
+    alert("Thème Bleu sélectionné !");
+  } else if (theme === "2") {
+    alert("Thème Rose sélectionné !");
+  } else if (theme === "3") {
+    alert("Thème Vert sélectionné !");
+  } else if (theme === "4") {
+    alert("Thème Rouge sanglant sélectionné !");
+  }
+}
 
 
 function openPlayerProfile(player){
@@ -3556,6 +3587,17 @@ loadProfile();
   top:45%;
   z-index:9999;
 ">
+  <button onclick="openSettings()" style="
+    display:block;
+    margin-bottom:8px;
+    padding:8px 12px;
+    border-radius:10px;
+    background:#374151;
+    color:white;
+    border:1px solid #64748b;
+    font-size:14px;
+    cursor:pointer;
+">⚙️ Paramètres</button>
   <button onclick="openInbox()" style="
     width:42px;
     height:42px;
