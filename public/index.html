@@ -906,6 +906,9 @@ onclick="loginAccount()"
  <div id="online-controls">
   <button onclick="findOnlineGame()">🔎 TROUVER UN ADVERSAIRE</button>
   <button onclick="cancelOnlineSearch()" class="account-secondary">ANNULER</button>
+  <button onclick="playAgainstDavid()" style="background:#7c3aed;color:white;border:0;padding:12px;border-radius:8px;cursor:pointer;">
+  🤖 JOUER CONTRE DAVID
+</button>
  </div>
 
  <div id="leaderboard">
@@ -3393,6 +3396,18 @@ if(!currentUser){
  onlineSocket.emit("find-game");
 
  status.textContent="Recherche d'un adversaire...";
+}
+function playAgainstDavid(){
+  if(!currentUser){
+    accountStatus("Connecte-toi d'abord.");
+    return;
+  }
+
+  const kilo = Number(currentUser.kilo ?? 1000);
+
+  accountStatus("David se prépare... Niveau : " + kilo + " KILO");
+
+  console.log("KILO DE DAVID :", kilo);
 }
 
 function cancelOnlineSearch(){
