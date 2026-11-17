@@ -2728,23 +2728,144 @@ panel.style.zIndex = "100001";
     list.innerHTML = "<p>Erreur de connexion au serveur.</p>";
   }
 }
+
 function openSettings() {
-  const choice = prompt(
-    "⚙️ PARAMÈTRES\n\n1. Changer le nom d'utilisateur\n2. Changer le mot de passe\n3. Thème de l'échiquier\n\nEntre 1, 2 ou 3 :"
-  );
+  const old = document.getElementById("settings-window");
+  if (old) old.remove();
 
-  if (choice === "1") {
-    alert("Changement du nom d'utilisateur : bientôt disponible !");
-  }
+  const overlay = document.createElement("div");
+  overlay.id = "settings-window";
 
-  if (choice === "2") {
-    alert("Changement du mot de passe : bientôt disponible !");
-  }
+  overlay.style.cssText = `
+    position:fixed;
+    inset:0;
+    z-index:200000;
+    background:rgba(0,0,0,0.85);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:12px;
+  `;
 
-  if (choice === "3") {
-    changeBoardTheme();
-  }
+  overlay.innerHTML = `
+    <div style="
+      width:900px;
+      max-width:100%;
+      height:650px;
+      max-height:90vh;
+      background:#1f2937;
+      color:white;
+      border-radius:14px;
+      display:flex;
+      overflow:hidden;
+      text-align:left;
+      font-family:Arial;
+    ">
+      <div style="
+        width:220px;
+        min-width:150px;
+        background:#111827;
+        padding:18px 10px;
+        overflow-y:auto;
+      ">
+        <h2 style="margin:5px 8px 20px">Settings</h2>
+        <input placeholder="Search Settings" style="
+          width:100%;padding:10px;border-radius:7px;
+          border:0;margin-bottom:15px;box-sizing:border-box;
+        ">
+        <div id="settings-tabs">
+          ${["Board & Pieces","Gameplay","Profile","Interface","Social","Coach","Notifications","Account","Membership","Accessibility"].map((name,i) =>
+            `<button data-tab="${name}" style="
+              display:block;width:100%;padding:12px;
+              margin-bottom:4px;text-align:left;
+              border:0;border-radius:7px;
+              background:${i===0 ? "#374151" : "transparent"};
+              color:white;cursor:pointer;
+            ">${name}</button>`
+          ).join("")}
+        </div>
+      </div>
+
+      <div style="flex:1;padding:25px;overflow-y:auto">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2 id="settings-title">Board & Pieces</h2>
+          <button id="settings-close" style="
+            background:transparent;color:white;border:0;
+            font-size:25px;cursor:pointer;
+          ">✕</button>
+        </div>
+
+        <p id="settings-description" style="color:#cbd5e1">
+          Customize the look and feel of your chess set.
+        </p>
+
+        <hr style="border-color:#475569;margin:22px 0">
+
+        <h3>Boards</h3>
+        <p>Choose your board theme.</p>
+
+        <div id="board-themes" style="
+          display:grid;
+          grid-template-columns:repeat(2,minmax(0,1fr));
+          gap:12px;
+        ">
+          <button data-theme="bleu" style="background:#2563eb">🔵 Bleu</button>
+          <button data-theme="rose" style="background:#db2777">🩷 Rose</button>
+          <button data-theme="vert" style="background:#15803d">🟢 Vert</button>
+          <button data-theme="rouge" style="background:#991b1b">🔴 Rouge sanglant</button>
+        </div>
+
+        <div style="margin-top:30px;display:flex;justify-content:flex-end;gap:10px">
+          <button id="settings-cancel">Cancel</button>
+          <button id="settings-save" style="background:#2563eb;color:white">Save</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  overlay.querySelectorAll("#board-themes button").forEach(button => {
+    button.style.cssText += `
+      padding:20px 8px;
+      border:2px solid transparent;
+      border-radius:9px;
+      color:white;
+      font-weight:bold;
+      cursor:pointer;
+    `;
+
+    button.onclick = () => {
+      overlay.dataset.selectedTheme = button.dataset.theme;
+      overlay.querySelectorAll("#board-themes button").forEach(b => {
+        b.style.border = b === button ? "3px solid white" : "2px solid transparent";
+      });
+    };
+  });
+
+  overlay.querySelectorAll("[data-tab]").forEach(button => {
+    button.onclick = () => {
+      overlay.querySelector("#settings-title").textContent = button.dataset.tab;
+      overlay.querySelector("#settings-description").textContent =
+        button.dataset.tab === "Board & Pieces"
+          ? "Customize the look and feel of your chess set."
+          : "Settings for " + button.dataset.tab + " will be added here.";
+    };
+  });
+
+  const close = () => overlay.remove();
+
+  overlay.querySelector("#settings-close").onclick = close;
+  overlay.querySelector("#settings-cancel").onclick = close;
+
+  overlay.querySelector("#settings-save").onclick = () => {
+    if (overlay.dataset.selectedTheme) {
+      localStorage.setItem("unoChessBoardTheme", overlay.dataset.selectedTheme);
+    }
+    close();
+  };
 }
+
  function changeBoardTheme() {
   const theme = prompt(
     "🎨 THÈME DE L'ÉCHIQUIER\n\n1. Bleu\n2. Rose\n3. Vert\n4. Rouge sanglant\n\nEntre 1, 2, 3 ou 4 :"
