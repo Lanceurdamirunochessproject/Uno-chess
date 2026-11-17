@@ -2854,10 +2854,13 @@ function sendFriendRequest(){
   return;
  }
 
- if(!onlineSocket || !onlineSocket.connected){
-  alert("Tu dois être connecté au serveur en ligne.");
+console.log("SOCKET CONNECTED :", onlineSocket?.connected);
+console.log("SOCKET ID :", onlineSocket?.id);
+
+if(!onlineSocket || !onlineSocket.connected){
+  alert("Connexion Socket.IO perdue. Vérifie la console.");
   return;
- }
+}
 
  onlineSocket.emit("send-friend-request", selectedPlayer.id);
 }
