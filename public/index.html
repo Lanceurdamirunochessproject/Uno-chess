@@ -2806,9 +2806,10 @@ async function sendPrivateMessage() {
     const response = await fetch(API_BASE + "/api/messages", {
       method: "POST",
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
+     headers: {
+  "Content-Type": "application/json",
+  "Authorization": "Bearer " + sessionStorage.getItem("unoChessToken")
+},
       body: JSON.stringify({
         receiverId: currentDMFriendId,
         content: content
