@@ -94,7 +94,7 @@ async function requireLogin(req, res, next) {
          AND expires_at > NOW()`,
         [tokenHash]
       );
-
+console.log("AUTH TOKEN TROUVÉ :", result.rows.length);
       if (result.rows.length) {
         userId = result.rows[0].user_id;
       }
