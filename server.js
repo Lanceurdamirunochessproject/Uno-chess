@@ -572,23 +572,7 @@ app.post("/api/messages", requireLogin, async (req, res) => {
       });
     }
 
-    const friend = await pool.query(
-      `SELECT id FROM friend_requests
-       WHERE status = 'accepted'
-       AND (
-         (sender_id = $1 AND receiver_id = $2)
-         OR
-         (sender_id = $2 AND receiver_id = $1)
-       )`,
-      [Number(req.userId), receiverId]
-    );
-
-    if (!friend.rows.length) {
-      return res.status(403).json({
-        error: "Tu dois être ami avec ce joueur pour lui écrire."
-      });
-    }
-
+ 
     const result = await pool.query(
       `INSERT INTO private_messages
        (sender_id, receiver_id, content)
@@ -628,22 +612,7 @@ app.get("/api/messages/:friendId", requireLogin, async (req, res) => {
       });
     }
 
-    const friendship = await pool.query(
-      `SELECT id FROM friend_requests
-       WHERE status = 'accepted'
-       AND (
-         (sender_id = $1 AND receiver_id = $2)
-         OR
-         (sender_id = $2 AND receiver_id = $1)
-       )`,
-      [userId, friendId]
-    );
-
-    if (!friendship.rows.length) {
-      return res.status(403).json({
-        error: "Vous devez être amis pour consulter cette conversation."
-      });
-    }
+  
 
     const result = await pool.query(
       `SELECT id, sender_id, receiver_id, content, created_at
