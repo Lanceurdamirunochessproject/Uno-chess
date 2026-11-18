@@ -900,6 +900,51 @@ max-height:55px;
   grid-area:hand;
   width:100%;
 }
+ /* DECORATIONS DU THEME NOEL */
+
+body[data-interface-theme="noel"]::before {
+  content: "⛄";
+  position: fixed;
+  bottom: 15px;
+  left: 15px;
+  font-size: 48px;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+body[data-interface-theme="noel"]::after {
+  content: "🛷";
+  position: fixed;
+  bottom: 15px;
+  right: 15px;
+  font-size: 48px;
+  pointer-events: none;
+  z-index: 1000;
+}
+ body[data-interface-theme="noel"] {
+  background-image:
+    radial-gradient(white 1.5px, transparent 2px),
+    radial-gradient(#bfdbfe 1px, transparent 2px);
+  background-size: 75px 75px, 110px 110px;
+  background-position: 0 0, 35px 40px;
+  background-attachment: fixed;
+}
+ /* BOUTONS DU THEME GRIS & VERT */
+
+body[data-interface-theme="chess"] button {
+  background: #16a34a;
+  color: white;
+  border: 1px solid #22c55e;
+}
+
+body[data-interface-theme="chess"] button:hover {
+  background: #15803d;
+}
+
+body[data-interface-theme="chess"] button:disabled {
+  background: #4b5563;
+  border-color: #6b7280;
+}
 </style>
  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 </head>
