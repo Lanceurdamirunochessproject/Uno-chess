@@ -35,6 +35,46 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .hard{background:#dc2626}
 .savage{background:#7e22ce}
 #start{background:#facc15;color:#111827;font-size:17px;padding:13px 25px}
+ /* THÈMES UNO.CHESS */
+
+body[data-interface-theme="noel"] {
+  background: #14532d;
+  color: #ffffff;
+}
+
+body[data-interface-theme="noel"] h1 {
+  color: #ef4444;
+}
+
+body[data-interface-theme="noel"] h2 {
+  color: #facc15;
+}
+
+body[data-interface-theme="chess"] {
+  background: #374151;
+  color: #ffffff;
+}
+
+body[data-interface-theme="chess"] h1 {
+  color: #22c55e;
+}
+
+body[data-interface-theme="chess"] h2 {
+  color: #86efac;
+}
+
+body[data-interface-theme="blue"] {
+  background: #1e293b;
+  color: #ffffff;
+}
+
+body[data-interface-theme="blue"] h1 {
+  color: #38bdf8;
+}
+
+body[data-interface-theme="blue"] h2 {
+  color: #cbd5e1;
+}
 
 /* NOUVELLE DISPOSITION DU JEU */
 
@@ -2992,13 +3032,26 @@ overlay.querySelectorAll("[data-tab]").forEach(button => {
    } else if (tab === "Interface") {
       description.textContent = "Choisis l'apparence de UNO.CHESS.";
 
-      content.innerHTML = `
-        <h3>Thèmes de l'interface</h3>
-        <button data-interface="noel">🎄 Noël</button>
-        <button data-interface="chess">♟️ Gris & vert</button>
-        <button data-interface="blue">🔵 Bleu & gris</button>
-      `;
+     content.innerHTML = `
+  <h3>Thèmes de l'interface</h3>
+  <button data-interface="noel">🎄 Noël</button>
+  <button data-interface="chess">♟️ Gris & vert</button>
+  <button data-interface="blue">🔵 Bleu & gris</button>
+`;
 
+content.querySelectorAll("[data-interface]").forEach(button => {
+  button.onclick = () => {
+    const theme = button.dataset.interface;
+
+    document.body.dataset.interfaceTheme = theme;
+
+    localStorage.setItem("unoChessInterfaceTheme", theme);
+
+    content.querySelectorAll("[data-interface]").forEach(b => {
+      b.style.border = b === button ? "3px solid white" : "2px solid transparent";
+    });
+  };
+});
     } else {
       description.textContent = "Settings for " + tab + " will be added here.";
       content.innerHTML = "";
@@ -3816,7 +3869,24 @@ window.resetGame=function(){
 ===================================== */
 
 loadProfile();
+const savedInterfaceTheme = localStorage.getItem("unoChessInterfaceTheme");
 
+if(savedInterfaceTheme){
+  document.body.dataset.interfaceTheme = savedInterfaceTheme;
+}
+ const savedBoardTheme = localStorage.getItem("unoChessBoardTheme");
+
+const boardThemes = {
+  bleu: ["#bfdbfe", "#2563eb"],
+  rose: ["#fbcfe8", "#db2777"],
+  vert: ["#bbf7d0", "#15803d"],
+  rouge: ["#fecaca", "#991b1b"]
+};
+
+if (savedBoardTheme && boardThemes[savedBoardTheme]) {
+  document.documentElement.style.setProperty("--board-light", boardThemes[savedBoardTheme][0]);
+  document.documentElement.style.setProperty("--board-dark", boardThemes[savedBoardTheme][1]);
+}
 </script>
 <div id="dm-panel" style="
   display:none;
