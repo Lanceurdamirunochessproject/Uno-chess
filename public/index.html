@@ -2725,6 +2725,30 @@ async function changeUsername(){
    newPassword
   });
 
+  message.textContent = data.message || "Mot de passe modifié avec succès !";
+  document.getElementById("settings-old-password").value = "";
+  document.getElementById("settings-new-password").value = "";
+
+ }catch(error){
+  message.textContent = error.message || "Impossible de modifier le mot de passe.";
+ }
+}
+ async function changePassword(){
+ const currentPassword = document.getElementById("settings-old-password").value;
+ const newPassword = document.getElementById("settings-new-password").value;
+ const message = document.getElementById("settings-account-message");
+
+ if(!currentPassword || !newPassword){
+  message.textContent = "Remplis les deux champs.";
+  return;
+ }
+
+ try{
+  const data = await apiRequest("/api/change-password",{
+   currentPassword,
+   newPassword
+  });
+
   message.textContent = data.message || "Mot de passe modifié !";
   document.getElementById("settings-old-password").value = "";
   document.getElementById("settings-new-password").value = "";
@@ -2951,6 +2975,7 @@ overlay.querySelectorAll("[data-tab]").forEach(button => {
 
       overlay.querySelector("#save-username").onclick = changeUsername;
      overlay.querySelector("#save-password").onclick = changePassword;
+     overlay.querySelector("#save-password").onclick = changePassword;
     } else if (tab === "Board & Pieces") {
       description.textContent = "Customize the look and feel of your chess set.";
       content.innerHTML = `
@@ -2961,6 +2986,19 @@ overlay.querySelectorAll("[data-tab]").forEach(button => {
         <button data-theme="vert">🟢 Vert</button>
         <button data-theme="rouge">🔴 Rouge sanglant</button>
       `;
+   
+      
+
+   } else if (tab === "Interface") {
+      description.textContent = "Choisis l'apparence de UNO.CHESS.";
+
+      content.innerHTML = `
+        <h3>Thèmes de l'interface</h3>
+        <button data-interface="noel">🎄 Noël</button>
+        <button data-interface="chess">♟️ Gris & vert</button>
+        <button data-interface="blue">🔵 Bleu & gris</button>
+      `;
+
     } else {
       description.textContent = "Settings for " + tab + " will be added here.";
       content.innerHTML = "";
