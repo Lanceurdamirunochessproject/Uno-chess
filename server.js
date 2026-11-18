@@ -598,6 +598,55 @@ app.post("/api/change-password", requireLogin, async (req, res) => {
       });
     }
 
+    const hash = await bcrypt.hash(newPassword, 12);
+
+    await pool.query(
+      "UPDATE users SET password_hash = $1 WHERE id = $2",
+      [hash, req.userId]
+    );
+
+    res.json({ message: "Mot de passe modifié avec succès !" });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erreur du serveur." });
+  }
+});
+app.post("/api/change-password", requireLogin, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (
+      typeof currentPassword !== "string" ||
+      typeof newPassword !== "string" ||
+      newPassword.length < 8 ||
+      newPassword.length > 100
+    ) {
+      return res.status(400).json({
+        error: "Le nouveau mot de passe doit contenir entre 8 et 100 caractères."
+      });
+    }
+
+    const result = await pool.query(
+      "SELECT password_hash FROM users WHERE id = $1",
+      [req.userId]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ error: "Compte introuvable." });
+    }
+
+    const valid = await bcrypt.compare(
+      currentPassword,
+      result.rows[0].password_hash
+    );
+
+    if (!valid) {
+      return res.status(401).json({
+        error: "Mot de passe actuel incorrect."
+      });
+    }
+
     const hashedPassword = await bcrypt.hash(newPassword, 12);
 
     await pool.query(
