@@ -963,11 +963,29 @@ body[data-interface-theme="chess"] #online:hover,
 body[data-interface-theme="chess"] #reportBtn:hover {
   background: #15803d !important;
 }
+ #sleigh-left,
+#sleigh-right {
+  position: fixed;
+  top: 150px;
+  font-size: 55px;
+  z-index: 99999;
+  pointer-events: none;
+}
+
+#sleigh-left {
+  left: 10px;
+}
+
+#sleigh-right {
+  right: 10px;
+}
 </style>
  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 </head>
 
 <body>
+ <div id="sleigh-left">🛷</div>
+<div id="sleigh-right">🛷</div>
 <section id="account-panel">
  <h2>🌐 COMPTE UNO.CHESS</h2>
 
