@@ -901,24 +901,28 @@ max-height:55px;
 }
  /* DECORATIONS DU THEME NOEL */
 
+/* DECORATIONS NOEL */
+
 body[data-interface-theme="noel"]::before {
-  content: "⛄";
+  content: "🛷";
   position: fixed;
-  bottom: 15px;
-  left: 15px;
-  font-size: 48px;
+  left: 8px;
+  top: 42%;
+  font-size: 38px;
   pointer-events: none;
-  z-index: 1000;
+  z-index: 0;
+  opacity: 0.8;
 }
 
 body[data-interface-theme="noel"]::after {
   content: "🛷";
   position: fixed;
-  bottom: 15px;
-  right: 15px;
-  font-size: 48px;
+  right: 8px;
+  top: 42%;
+  font-size: 38px;
   pointer-events: none;
-  z-index: 1000;
+  z-index: 0;
+  opacity: 0.8;
 }
 body[data-interface-theme="noel"] {
   background-image:
@@ -943,6 +947,23 @@ body[data-interface-theme="chess"] button:hover {
 body[data-interface-theme="chess"] button:disabled {
   background: #4b5563 !important;
   border-color: #6b7280 !important;
+}
+ /* BOUTONS PRINCIPAUX GRIS & VERT */
+
+body[data-interface-theme="chess"] #start,
+body[data-interface-theme="chess"] #reset,
+body[data-interface-theme="chess"] #online,
+body[data-interface-theme="chess"] #reportBtn {
+  background: #16a34a !important;
+  color: white !important;
+  border: 2px solid #22c55e !important;
+}
+
+body[data-interface-theme="chess"] #start:hover,
+body[data-interface-theme="chess"] #reset:hover,
+body[data-interface-theme="chess"] #online:hover,
+body[data-interface-theme="chess"] #reportBtn:hover {
+  background: #15803d !important;
 }
 </style>
  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
