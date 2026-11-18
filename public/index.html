@@ -2687,10 +2687,14 @@ function openSettings(){
   changePassword();
  }
 }
- async function changeUsername(){
- const username = prompt("Entre ton nouveau pseudo :");
+async function changeUsername(){
+ const username = document.getElementById("settings-username").value.trim();
+ const message = document.getElementById("settings-account-message");
 
- if(!username)return;
+ if(!username){
+  message.textContent = "Entre un pseudo.";
+  return;
+ }
 
  try{
   const data = await apiRequest("/api/change-username",{
@@ -2698,11 +2702,35 @@ function openSettings(){
   });
 
   currentUser = data.user;
-  accountStatus("Pseudo modifié avec succès !");
+  message.textContent = "Pseudo modifié avec succès !";
   loadProfile();
 
  }catch(error){
-  accountStatus(error.message || "Impossible de modifier le pseudo.");
+  message.textContent = error.message || "Impossible de modifier le pseudo.";
+ }
+}
+ async function changePassword(){
+ const currentPassword = document.getElementById("settings-old-password").value;
+ const newPassword = document.getElementById("settings-new-password").value;
+ const message = document.getElementById("settings-account-message");
+
+ if(!currentPassword || !newPassword){
+  message.textContent = "Remplis les deux champs.";
+  return;
+ }
+
+ try{
+  const data = await apiRequest("/api/change-password",{
+   currentPassword,
+   newPassword
+  });
+
+  message.textContent = data.message || "Mot de passe modifié !";
+  document.getElementById("settings-old-password").value = "";
+  document.getElementById("settings-new-password").value = "";
+
+ }catch(error){
+  message.textContent = error.message || "Impossible de modifier le mot de passe.";
  }
 }
 /* =====================================
@@ -2889,15 +2917,56 @@ function openSettings() {
     };
   });
 
-  overlay.querySelectorAll("[data-tab]").forEach(button => {
-    button.onclick = () => {
-      overlay.querySelector("#settings-title").textContent = button.dataset.tab;
-      overlay.querySelector("#settings-description").textContent =
-        button.dataset.tab === "Board & Pieces"
-          ? "Customize the look and feel of your chess set."
-          : "Settings for " + button.dataset.tab + " will be added here.";
-    };
-  });
+overlay.querySelectorAll("[data-tab]").forEach(button => {
+  button.onclick = () => {
+    const tab = button.dataset.tab;
+
+    overlay.querySelector("#settings-title").textContent = tab;
+
+    const description = overlay.querySelector("#settings-description");
+    const content = overlay.querySelector("#board-themes");
+
+    if (tab === "Account") {
+      description.textContent = "Gère ton compte UNO.CHESS.";
+
+      content.innerHTML = `
+        <h3>Nom d'utilisateur</h3>
+        <input id="settings-username" value="${currentUser?.username || ""}"
+          maxlength="20" placeholder="Nouveau pseudo">
+
+        <button id="save-username">MODIFIER LE PSEUDO</button>
+
+        <hr style="margin:25px 0;border-color:#475569">
+
+        <h3>Mot de passe</h3>
+        <input id="settings-old-password" type="password"
+          placeholder="Mot de passe actuel">
+        <input id="settings-new-password" type="password"
+          placeholder="Nouveau mot de passe">
+
+        <button id="save-password">MODIFIER LE MOT DE PASSE</button>
+
+        <p id="settings-account-message"></p>
+      `;
+
+      overlay.querySelector("#save-username").onclick = changeUsername;
+     overlay.querySelector("#save-password").onclick = changePassword;
+    } else if (tab === "Board & Pieces") {
+      description.textContent = "Customize the look and feel of your chess set.";
+      content.innerHTML = `
+        <h3>Boards</h3>
+        <p>Choose your board theme.</p>
+        <button data-theme="bleu">🔵 Bleu</button>
+        <button data-theme="rose">🩷 Rose</button>
+        <button data-theme="vert">🟢 Vert</button>
+        <button data-theme="rouge">🔴 Rouge sanglant</button>
+      `;
+    } else {
+      description.textContent = "Settings for " + tab + " will be added here.";
+      content.innerHTML = "";
+    }
+  };
+});
 
   const close = () => overlay.remove();
 
