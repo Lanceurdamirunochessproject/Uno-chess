@@ -79,7 +79,6 @@ body[data-interface-theme="blue"] h2 {
 
 
 
-/* NOUVELLE DISPOSITION DU JEU */
 
 #game-layout{
   display:grid;
@@ -967,20 +966,21 @@ body[data-interface-theme="chess"] #reportBtn:hover {
 #sleigh-right {
   display: block !important;
   position: fixed !important;
-top: 600px !important;
-transform: translateY(-50%);
-  font-size: 80px !important;
+  top: 50vh !important;
+  transform: translateY(-50%) !important;
+  font-size: 130px !important;
+  line-height: 1 !important;
   z-index: 999999 !important;
-  pointer-events: none;
-background: transparent;
+  pointer-events: none !important;
+  background: transparent !important;
 }
 
 #sleigh-left {
-  left: 10px;
+  left: 5px !important;
 }
 
 #sleigh-right {
-  right: 10px;
+  right: 5px !important;
 }
 </style>
  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
@@ -989,7 +989,7 @@ background: transparent;
 <body>
  <div id="sleigh-left">🛷</div>
 <div id="sleigh-right">🛷</div>
- <p style="color:red;font-size:30px;">TEST TRAÎNEAUX</p>
+
 <section id="account-panel">
  <h2>🌐 COMPTE UNO.CHESS</h2>
 
