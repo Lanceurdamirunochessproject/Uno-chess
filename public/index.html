@@ -1334,13 +1334,19 @@ function selectLevel(level){
 
 function makeDeck(){
  let d=[];
+ const fatality = selectedGameMode === "fatality";
+ let d=[];
 
  for(const color of colorNames){
   for(let n=0;n<=9;n++){
    d.push({value:String(n),color});
   }
 
-  for(const value of ["+2","↔","PASSE"]){
+const specialCards = fatality
+  ? ["+2","+4","+6","+10","↔","PASSE"]
+  : ["+2","↔","PASSE"];
+
+for(const value of specialCards){
    d.push({value,color});
   }
  }
@@ -1452,12 +1458,12 @@ function bestColorFor(cards){
 /* EFFETS UNO */
 
 function applyCardEffect(card,opponentHand,actingHand){
- if(card.value==="+2"){
-  opponentHand.push(drawCard(),drawCard());
- }
+ if(card.value==="+2" || card.value==="+4" ||
+    card.value==="+6" || card.value==="+10"){
 
- if(card.value==="+4"){
-  for(let i=0;i<4;i++){
+  const penalty = Number(card.value.slice(1));
+
+  for(let i=0;i<penalty;i++){
    opponentHand.push(drawCard());
   }
  }
