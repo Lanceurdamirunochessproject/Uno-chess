@@ -3168,10 +3168,14 @@ content.querySelectorAll("[data-interface]").forEach(button => {
   } else if (tab === "Profile") {
   description.textContent = "Customize your UNO.CHESS profile.";
   content.innerHTML = `
-    <h3>Avatar</h3>
-    <img id="settings-avatar" src="https://api.dicebear.com/9.x/bottts/svg?seed=UNOCHESS"
-         width="100" height="100">
+  <h3>Avatar</h3>
 
+<img id="settings-avatar"
+     src="https://api.dicebear.com/9.x/bottts/svg?seed=UNOCHESS"
+     width="100" height="100"
+     style="display:block;margin-bottom:12px;border-radius:50%;">
+
+<input type="file" id="profile-avatar-input" accept="image/*">
     <h3>Description</h3>
     <textarea id="profile-description-input"
       maxlength="120"
@@ -3181,7 +3185,38 @@ content.querySelectorAll("[data-interface]").forEach(button => {
     <p id="profile-word-count">0/15 mots</p>
   `;
 
+const avatarInput = document.getElementById("profile-avatar-input");
+const avatarPreview = document.getElementById("settings-avatar");
+const savedAvatar = localStorage.getItem("unoChessProfileAvatar");
 
+if (savedAvatar) {
+  avatarPreview.src = savedAvatar;
+}
+avatarInput.addEventListener("change", () => {
+  const file = avatarInput.files[0];
+
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    alert("Choisis un fichier image.");
+    return;
+  }
+
+  const reader = new FileReader();
+reader.onload = () => {
+  avatarPreview.src = reader.result;
+
+  localStorage.setItem("unoChessProfileAvatar", reader.result);
+
+  const profileAvatar = document.getElementById("profile-avatar");
+
+  if (profileAvatar) {
+    profileAvatar.src = reader.result;
+  }
+};
+
+  reader.readAsDataURL(file);
+});
 const descriptionInput = document.getElementById("profile-description-input");
 descriptionInput.value = localStorage.getItem("unoChessProfileDescription") || "";
 
@@ -4024,6 +4059,12 @@ window.resetGame=function(){
 ===================================== */
 
 loadProfile();
+ const savedProfileDescription = localStorage.getItem("unoChessProfileDescription") || "";
+const profileDescription = document.getElementById("profile-description");
+
+if (profileDescription) {
+  profileDescription.textContent = savedProfileDescription || "Aucune description.";
+}
 const savedInterfaceTheme = localStorage.getItem("unoChessInterfaceTheme");
 
 if(savedInterfaceTheme){
