@@ -983,6 +983,51 @@ body[data-interface-theme="chess"] #reportBtn:hover {
 .mode-button.selected{
   border-color:#facc15;
 }
+ .piece-costume {
+  position: relative;
+  display: inline-block;
+  line-height: 1;
+}
+
+.piece-hat {
+  position: absolute;
+  left: 50%;
+  z-index: 2;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* Bonnet de Noël */
+.santa-hat {
+  top: -0.03em;
+  width: 0.58em;
+  height: 0.30em;
+  background: #dc2626;
+  border-radius: 85% 25% 0 0;
+  border-bottom: 0.10em solid white;
+  transform: translateX(-50%) rotate(-12deg);
+}
+
+.santa-hat::after {
+  content: "";
+  position: absolute;
+  width: 0.14em;
+  height: 0.14em;
+  background: white;
+  border-radius: 50%;
+  top: -0.07em;
+  right: -0.04em;
+}
+
+/* Taqiyah */
+.islamic-hat {
+  top: -0.02em;
+  width: 0.62em;
+  height: 0.23em;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 50% 50% 25% 25%;
+}
 </style>
  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 </head>
@@ -1536,26 +1581,21 @@ function renderCards(){
     ((boardR+boardC)%2===0?"light":"dark");
 
 if(piece){
-    const pieceSymbol = pieces[piece.color+piece.type.toUpperCase()];
-    const theme = localStorage.getItem("unoChessPieceTheme") || "classic";
+  const pieceSymbol = pieces[piece.color+piece.type.toUpperCase()];
+  const theme = localStorage.getItem("unoChessPieceTheme") || "classic";
 
-    if(theme === "christmas"){
-      square.innerHTML = `
-        <span style="position:relative;display:inline-block;">
-          <span style="position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:17px;">🎅</span>
-          ${pieceSymbol}
-        </span>
-      `;
-    } else if(theme === "islamic"){
-      square.innerHTML = `
-        <span style="position:relative;display:inline-block;">
-          <span style="position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:15px;">🕌</span>
-          ${pieceSymbol}
-        </span>
-      `;
-    } else {
-      square.textContent = pieceSymbol;
-    }
+  if(theme === "christmas" || theme === "islamic"){
+    const hatClass = theme === "christmas" ? "santa-hat" : "islamic-hat";
+
+    square.innerHTML = `
+      <span class="piece-costume">
+        <span class="piece-hat ${hatClass}"></span>
+        ${pieceSymbol}
+      </span>
+    `;
+  } else {
+    square.textContent = pieceSymbol;
+  }
 }
 
    if(selectedSquare===name){
