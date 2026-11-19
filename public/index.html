@@ -1535,10 +1535,28 @@ function renderCards(){
    square.className="square "+
     ((boardR+boardC)%2===0?"light":"dark");
 
-   if(piece){
-    square.textContent=
-     pieces[piece.color+piece.type.toUpperCase()];
-   }
+if(piece){
+    const pieceSymbol = pieces[piece.color+piece.type.toUpperCase()];
+    const theme = localStorage.getItem("unoChessPieceTheme") || "classic";
+
+    if(theme === "christmas"){
+      square.innerHTML = `
+        <span style="position:relative;display:inline-block;">
+          <span style="position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:17px;">🎅</span>
+          ${pieceSymbol}
+        </span>
+      `;
+    } else if(theme === "islamic"){
+      square.innerHTML = `
+        <span style="position:relative;display:inline-block;">
+          <span style="position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:15px;">🕌</span>
+          ${pieceSymbol}
+        </span>
+      `;
+    } else {
+      square.textContent = pieceSymbol;
+    }
+}
 
    if(selectedSquare===name){
     square.classList.add("selected-square");
@@ -2831,13 +2849,38 @@ async function logoutAccount(){
 }
 function openSettings(){
  const choice = prompt(
-  "PARAMÈTRES DU COMPTE\n\n1 = Modifier le nom d'utilisateur\n2 = Modifier le mot de passe"
+  "PARAMÈTRES UNO.CHESS\n\n" +
+  "1 = Modifier le nom d'utilisateur\n" +
+  "2 = Modifier le mot de passe\n" +
+  "3 = Gameplay"
  );
 
  if(choice==="1"){
   changeUsername();
  }else if(choice==="2"){
   changePassword();
+ }else if(choice==="3"){
+  openGameplaySettings();
+ }
+}
+ function openGameplaySettings(){
+ const choice = prompt(
+  "GAMEPLAY — APPARENCE DES PIÈCES\n\n" +
+  "1 = Classique\n" +
+  "2 = Noël 🎅\n" +
+  "3 = Islamique 🕌"
+ );
+
+ if(choice==="1"){
+  localStorage.setItem("unoChessPieceTheme","classic");
+ }else if(choice==="2"){
+  localStorage.setItem("unoChessPieceTheme","christmas");
+ }else if(choice==="3"){
+  localStorage.setItem("unoChessPieceTheme","islamic");
+ }
+
+ if(choice==="1" || choice==="2" || choice==="3"){
+  alert("Apparence enregistrée !");
  }
 }
 async function changeUsername(){
@@ -3102,7 +3145,33 @@ overlay.querySelectorAll("[data-tab]").forEach(button => {
 
     const description = overlay.querySelector("#settings-description");
     const content = overlay.querySelector("#board-themes");
+if (tab === "Gameplay") {
+  description.textContent = "Personnalise l'apparence de tes pièces.";
 
+  content.innerHTML = `
+    <h3>Apparence des pièces</h3>
+    <button data-piece-theme="classic">♟️ Classique</button>
+    <button data-piece-theme="christmas">🎅 Noël</button>
+    <button data-piece-theme="islamic">🕌 Islamique</button>
+  `;
+
+  content.querySelectorAll("[data-piece-theme]").forEach(button => {
+    button.onclick = () => {
+      const theme = button.dataset.pieceTheme;
+
+      localStorage.setItem("unoChessPieceTheme", theme);
+
+      content.querySelectorAll("[data-piece-theme]").forEach(b => {
+        b.style.border = b === button
+          ? "3px solid white"
+          : "2px solid transparent";
+      });
+
+      drawBoard();
+    };
+  });
+
+} else if (tab === "Account") {
     if (tab === "Account") {
       description.textContent = "Gère ton compte UNO.CHESS.";
 
