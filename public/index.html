@@ -3205,6 +3205,8 @@ descriptionInput.dispatchEvent(new Event("input"));
   description.textContent = "Settings for " + tab + " will be added here.";
   content.innerHTML = "";
 }
+       };
+  });
   const close = () => overlay.remove();
 
   overlay.querySelector("#settings-close").onclick = close;
