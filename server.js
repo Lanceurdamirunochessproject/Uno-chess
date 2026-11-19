@@ -323,15 +323,34 @@ async function initDatabase() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
-}
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS clubs (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT DEFAULT '',
+      emblem TEXT DEFAULT '♟️',
+      owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS club_members (
+      id SERIAL PRIMARY KEY,
+      club_id INTEGER NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role TEXT NOT NULL DEFAULT 'member',
+      joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(club_id, user_id),
+      CHECK(role IN ('owner', 'admin', 'member'))
+    )
+  `);
+  }
 /* =====================================================
    COMPTES
    ===================================================== */
 
-/* =====================================================
-   COMPTES
-   ===================================================== */
 
 app.get("/", (req, res) => {
   res.send("UNO CHESS server is running!");
@@ -680,6 +699,207 @@ app.get("/api/leaderboard", async (req, res) => {
     console.error("Erreur classement :", error);
     res.status(500).json({
       error: "Impossible de charger le classement."
+    });
+  }
+});
+app.post("/api/clubs", requireLogin, async (req, res) => {
+  try {
+    const { name, description, emblem } = req.body;
+
+    if (
+      typeof name !== "string" ||
+      name.trim().length < 3 ||
+      name.trim().length > 30
+    ) {
+      return res.status(400).json({
+        error: "Le nom du club doit contenir entre 3 et 30 caractères."
+      });
+    }
+
+    if (
+      description !== undefined &&
+      (typeof description !== "string" || description.length > 300)
+    ) {
+      return res.status(400).json({
+        error: "La description ne doit pas dépasser 300 caractères."
+      });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO clubs (name, description, emblem, owner_id)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [
+        name.trim(),
+        description || "",
+        typeof emblem === "string" ? emblem.slice(0, 10) : "♟️",
+        req.userId
+      ]
+    );
+
+    await pool.query(
+      `INSERT INTO club_members (club_id, user_id, role)
+       VALUES ($1, $2, 'owner')`,
+      [result.rows[0].id, req.userId]
+    );
+
+    res.status(201).json({
+      message: "Club créé avec succès !",
+      club: result.rows[0]
+    });
+
+  } catch (error) {
+    if (error.code === "23505") {
+      return res.status(409).json({
+        error: "Ce nom de club est déjà utilisé."
+      });
+    }
+
+    console.error("Erreur création club :", error);
+    res.status(500).json({
+      error: "Impossible de créer le club."
+    });
+  }
+});
+app.get("/api/clubs", requireLogin, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        c.id,
+        c.name,
+        c.description,
+        c.emblem,
+        c.owner_id,
+        u.username AS owner_name,
+        COUNT(cm.user_id)::INTEGER AS member_count,
+        EXISTS (
+          SELECT 1
+          FROM club_members mine
+          WHERE mine.club_id = c.id
+          AND mine.user_id = $1
+        ) AS is_member
+      FROM clubs c
+      JOIN users u ON u.id = c.owner_id
+      LEFT JOIN club_members cm ON cm.club_id = c.id
+      GROUP BY c.id, u.username
+      ORDER BY member_count DESC, c.created_at DESC
+    `, [req.userId]);
+
+    res.json({ clubs: result.rows });
+
+  } catch (error) {
+    console.error("Erreur chargement clubs :", error);
+    res.status(500).json({
+      error: "Impossible de charger les clubs."
+    });
+  }
+});
+app.post("/api/clubs/:id/join", requireLogin, async (req, res) => {
+  try {
+    const clubId = Number(req.params.id);
+
+    if (!Number.isInteger(clubId) || clubId <= 0) {
+      return res.status(400).json({ error: "Club invalide." });
+    }
+
+    const club = await pool.query(
+      "SELECT id FROM clubs WHERE id = $1",
+      [clubId]
+    );
+
+    if (!club.rows.length) {
+      return res.status(404).json({ error: "Club introuvable." });
+    }
+
+    await pool.query(
+      `INSERT INTO club_members (club_id, user_id, role)
+       VALUES ($1, $2, 'member')
+       ON CONFLICT (club_id, user_id) DO NOTHING`,
+      [clubId, req.userId]
+    );
+
+    res.json({ message: "Tu as rejoint le club !" });
+
+  } catch (error) {
+    console.error("Erreur rejoindre club :", error);
+    res.status(500).json({
+      error: "Impossible de rejoindre ce club."
+    });
+  }
+});
+app.delete("/api/clubs/:id/leave", requireLogin, async (req, res) => {
+  try {
+    const clubId = Number(req.params.id);
+
+    if (!Number.isInteger(clubId) || clubId <= 0) {
+      return res.status(400).json({ error: "Club invalide." });
+    }
+
+    const result = await pool.query(
+      `DELETE FROM club_members
+       WHERE club_id = $1
+       AND user_id = $2
+       AND role <> 'owner'
+       RETURNING id`,
+      [clubId, req.userId]
+    );
+
+    if (!result.rows.length) {
+      return res.status(400).json({
+        error: "Tu n'es pas membre ou tu es propriétaire du club."
+      });
+    }
+
+    res.json({ message: "Tu as quitté le club." });
+
+  } catch (error) {
+    console.error("Erreur quitter club :", error);
+    res.status(500).json({
+      error: "Impossible de quitter le club."
+    });
+  }
+});
+app.get("/api/clubs/:id/members", requireLogin, async (req, res) => {
+  try {
+    const clubId = Number(req.params.id);
+
+    if (!Number.isInteger(clubId) || clubId <= 0) {
+      return res.status(400).json({ error: "Club invalide." });
+    }
+
+    const membership = await pool.query(
+      `SELECT id FROM club_members
+       WHERE club_id = $1 AND user_id = $2`,
+      [clubId, req.userId]
+    );
+
+    if (!membership.rows.length) {
+      return res.status(403).json({
+        error: "Tu dois rejoindre ce club pour voir ses membres."
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT u.id, u.username, cm.role, cm.joined_at
+       FROM club_members cm
+       JOIN users u ON u.id = cm.user_id
+       WHERE cm.club_id = $1
+       ORDER BY
+         CASE cm.role
+           WHEN 'owner' THEN 1
+           WHEN 'admin' THEN 2
+           ELSE 3
+         END,
+         cm.joined_at ASC`,
+      [clubId]
+    );
+
+    res.json({ members: result.rows });
+
+  } catch (error) {
+    console.error("Erreur membres club :", error);
+    res.status(500).json({
+      error: "Impossible de charger les membres."
     });
   }
 });
