@@ -1577,6 +1577,10 @@ function renderCards(){
 
     if(theme === "dark" || theme === "ancien"){
      square.style.color = piece.color === "w" ? "#ffffff" : "#5b351f";
+
+if (theme === "ancien" && piece.color === "w") {
+ square.style.textShadow = "0 0 2px #000000, 0 0 4px #000000";
+}
     }
 
     square.textContent = pieceSymbol;
