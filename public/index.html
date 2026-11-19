@@ -1019,12 +1019,19 @@ onclick="loginAccount()"
   <p class="small">Ton compte permet de conserver ton classement KILO.</p>
  </div>
 
- <div id="profile">
+<div id="profile">
+  <img id="profile-avatar" src="https://api.dicebear.com/9.x/bottts/svg?seed=UNOCHESS"
+       alt="Avatar" width="100" height="100">
+
   <h3 id="profile-name"></h3>
+
+  <p id="profile-description">Aucune description.</p>
+
   <p>KILO : <strong id="profile-kilo">1000</strong></p>
-<button onclick="openSettings()">⚙️ PARAMÈTRES</button>
-<button onclick="logoutAccount()" class="account-secondary">DÉCONNEXION</button>
- </div>
+
+  <button onclick="openSettings()">⚙️ PARAMÈTRES</button>
+  <button onclick="logoutAccount()" class="account-secondary">DÉCONNEXION</button>
+</div>
 
  <p id="account-message"></p>
 
@@ -3158,13 +3165,46 @@ content.querySelectorAll("[data-interface]").forEach(button => {
     });
   };
 });
-    } else {
-      description.textContent = "Settings for " + tab + " will be added here.";
-      content.innerHTML = "";
-    }
-  };
+  } else if (tab === "Profile") {
+  description.textContent = "Customize your UNO.CHESS profile.";
+  content.innerHTML = `
+    <h3>Avatar</h3>
+    <img id="settings-avatar" src="https://api.dicebear.com/9.x/bottts/svg?seed=UNOCHESS"
+         width="100" height="100">
+
+    <h3>Description</h3>
+    <textarea id="profile-description-input"
+      maxlength="120"
+      placeholder="Présente-toi en 15 mots maximum..."
+      style="width:100%;padding:10px;border-radius:8px;"></textarea>
+
+    <p id="profile-word-count">0/15 mots</p>
+  `;
+
+
+const descriptionInput = document.getElementById("profile-description-input");
+descriptionInput.value = localStorage.getItem("unoChessProfileDescription") || "";
+
+const wordCount = document.getElementById("profile-word-count");
+
+descriptionInput.addEventListener("input", () => {
+  const words = descriptionInput.value.trim().split(/\s+/).filter(Boolean);
+
+  if (words.length > 15) {
+    descriptionInput.value = words.slice(0, 15).join(" ");
+  }
+
+  const count = descriptionInput.value.trim().split(/\s+/).filter(Boolean).length;
+  wordCount.textContent = count + "/15 mots";
+
+  localStorage.setItem("unoChessProfileDescription", descriptionInput.value);
 });
 
+descriptionInput.dispatchEvent(new Event("input"));
+     } else {
+  description.textContent = "Settings for " + tab + " will be added here.";
+  content.innerHTML = "";
+}
   const close = () => overlay.remove();
 
   overlay.querySelector("#settings-close").onclick = close;
