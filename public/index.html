@@ -3229,6 +3229,13 @@ overlay.querySelector("#settings-save").onclick = () => {
     localStorage.setItem("unoChessBoardTheme", selected);
   }
 
+  const savedDescription = localStorage.getItem("unoChessProfileDescription") || "";
+  const profileDescription = document.getElementById("profile-description");
+
+  if (profileDescription) {
+    profileDescription.textContent = savedDescription || "Aucune description.";
+  }
+
   close();
 };
 }
