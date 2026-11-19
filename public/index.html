@@ -4059,6 +4059,12 @@ window.resetGame=function(){
 ===================================== */
 
 loadProfile();
+ const savedProfileAvatar = localStorage.getItem("unoChessProfileAvatar");
+const profileAvatar = document.getElementById("profile-avatar");
+
+if (savedProfileAvatar && profileAvatar) {
+  profileAvatar.src = savedProfileAvatar;
+}
  const savedProfileDescription = localStorage.getItem("unoChessProfileDescription") || "";
 const profileDescription = document.getElementById("profile-description");
 
