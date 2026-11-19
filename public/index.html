@@ -962,6 +962,27 @@ body[data-interface-theme="chess"] #online:hover,
 body[data-interface-theme="chess"] #reportBtn:hover {
   background: #15803d !important;
 }
+ #game-modes{
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  flex-wrap:wrap;
+  margin:15px 0;
+}
+
+.mode-button{
+  background:#1f2937;
+  color:white;
+  border:3px solid transparent;
+  border-radius:10px;
+  padding:12px 16px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.mode-button.selected{
+  border-color:#facc15;
+}
 </style>
  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 </head>
@@ -1081,6 +1102,15 @@ onclick="openPrivateMessages()"
 <p id="level-info">Niveau choisi : MEDIUM — 1 200 KILO</p>
 
 <button id="start" onclick="resetGame()">▶ COMMENCER LA PARTIE</button>
+ <div id="game-modes">
+  <button class="mode-button selected" data-mode="classical">
+    ♟️ UNO.CHESS CLASSICAL
+  </button>
+
+  <button class="mode-button" data-mode="fatality">
+    ☠️ UNO.CHESS FATALITY
+  </button>
+</div>
 
 <p id="status">Choisis ton niveau et commence !</p>
 <p id="thinking"></p>
@@ -3950,6 +3980,34 @@ if (savedBoardTheme && boardThemes[savedBoardTheme]) {
   document.documentElement.style.setProperty("--board-light", boardThemes[savedBoardTheme][0]);
   document.documentElement.style.setProperty("--board-dark", boardThemes[savedBoardTheme][1]);
 }
+ let selectedGameMode = "classical";
+
+function updateGameModeButtons(){
+  const theme = document.body.dataset.interfaceTheme;
+
+  let color = "#facc15"; // Bleu & gris
+  if(theme === "noel") color = "#ef4444"; // Noël
+  if(theme === "chess") color = "#22c55e"; // Gris & vert
+
+  document.querySelectorAll(".mode-button").forEach(button => {
+    const selected = button.dataset.mode === selectedGameMode;
+
+    button.classList.toggle("selected", selected);
+    button.style.borderColor = selected ? color : "transparent";
+  });
+}
+
+document.querySelectorAll(".mode-button").forEach(button => {
+  button.addEventListener("click", () => {
+    selectedGameMode = button.dataset.mode;
+   status.textContent = selectedGameMode === "classical"
+  ? "Mode UNO.CHESS CLASSICAL sélectionné !"
+  : "Mode UNO.CHESS FATALITY sélectionné !";
+    updateGameModeButtons();
+  });
+});
+
+updateGameModeButtons();
 </script>
 <div id="dm-panel" style="
   display:none;
