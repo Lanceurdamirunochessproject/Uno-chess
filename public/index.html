@@ -999,7 +999,7 @@ body[data-interface-theme="chess"] #reportBtn:hover {
 
 /* Bonnet de Noël */
 .santa-hat {
-  top: -0.03em;
+  top: 0.02em;
   width: 0.58em;
   height: 0.30em;
   background: #dc2626;
@@ -1021,7 +1021,7 @@ body[data-interface-theme="chess"] #reportBtn:hover {
 
 /* Taqiyah */
 .islamic-hat {
-  top: -0.02em;
+  top: 0.02em;
   width: 0.62em;
   height: 0.23em;
   background: #fff;
@@ -1562,7 +1562,7 @@ function renderCards(){
  board.innerHTML="";
 
  const position=game.board();
-
+board.style.overflow = "visible";
  // Le joueur noir voit son côté de l'échiquier en bas.
  const flipped=isOnlineGame && onlineColor==="black";
 
