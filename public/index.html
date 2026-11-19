@@ -1540,15 +1540,17 @@ function renderCards(){
 
 
 
-   function drawBoard(){
+ function drawBoard(){
  board.innerHTML="";
 
  const position=game.board();
-    const theme = localStorage.getItem("unoChessPieceTheme") || "gaming";
-document.body.classList.toggle("dark-theme", theme === "dark");
-    document.body.classList.toggle("gaming-theme", theme === "gaming");
-board.style.overflow = "visible";
- // Le joueur noir voit son côté de l'échiquier en bas.
+ const theme = localStorage.getItem("unoChessPieceTheme") || "gaming";
+
+ document.body.classList.toggle("dark-theme", theme === "dark");
+ document.body.classList.toggle("gaming-theme", theme === "gaming");
+
+ board.style.overflow = "visible";
+
  const flipped=isOnlineGame && onlineColor==="black";
 
  for(let r=0;r<8;r++){
@@ -1565,20 +1567,20 @@ board.style.overflow = "visible";
    square.className="square "+
     ((boardR+boardC)%2===0?"light":"dark");
 
-if(piece){
-  const pieceSymbol = pieces[piece.color+piece.type.toUpperCase()];
-  const theme = localStorage.getItem("unoChessPieceTheme") || "classic";
-if (theme === "dark" || theme === "ancien") {
-  square.style.color = piece.color === "w" ? "#ffffff" : "#5b351f";
-}
+   if(theme === "ancien"){
+    square.style.background =
+     (boardR+boardC)%2===0 ? "#ffffff" : "#000000";
+   }
 
-if (theme === "ancien") {
-  square.style.background =
-    (boardR + boardC) % 2 === 0 ? "#ffffff" : "#000000";
-}
+   if(piece){
+    const pieceSymbol = pieces[piece.color+piece.type.toUpperCase()];
 
-square.textContent = pieceSymbol;
-}
+    if(theme === "dark" || theme === "ancien"){
+     square.style.color = piece.color === "w" ? "#ffffff" : "#5b351f";
+    }
+
+    square.textContent = pieceSymbol;
+   }
 
    if(selectedSquare===name){
     square.classList.add("selected-square");
@@ -3172,9 +3174,9 @@ if (tab === "Gameplay") {
 
   content.innerHTML = `
     <h3>Apparence des pièces</h3>
-    <button data-piece-theme="classic">♟️ Classique</button>
-    <button data-piece-theme="christmas">🎅 Noël</button>
-    <button data-piece-theme="islamic">🕌 Islamique</button>
+  <button data-piece-theme="gaming">🎮 GAMING</button>
+<button data-piece-theme="dark">🌑 DARK</button>
+<button data-piece-theme="ancien">🏛️ ANCIEN</button>
   `;
 
   content.querySelectorAll("[data-piece-theme]").forEach(button => {
