@@ -1351,10 +1351,14 @@ for(const value of specialCards){
   }
  }
 
- for(let i=0;i<4;i++){
+for(let i=0;i<4;i++){
   d.push({value:"JOKER",color:"joker"});
   d.push({value:"+4",color:"joker"});
- }
+
+  if(fatality){
+    d.push({value:"+10",color:"joker"});
+  }
+}
 
  for(let i=d.length-1;i>0;i--){
   const j=Math.floor(Math.random()*(i+1));
@@ -1576,7 +1580,9 @@ for(let i=0;i<startingCards;i++){
 }
  discard=drawCard();
 
- while(discard.value==="JOKER"||discard.value==="+4"){
+while(discard.value==="JOKER" ||
+      discard.value==="+4" ||
+      discard.value==="+10"){
   deck.push(discard);
   discard=drawCard();
  }
