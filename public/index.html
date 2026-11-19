@@ -3331,10 +3331,160 @@ descriptionInput.addEventListener("input", () => {
 });
 
 descriptionInput.dispatchEvent(new Event("input"));
-     } else {
+   
+} else if (tab === "Social") {
+  description.textContent = "Rejoins une communauté UNO.CHESS ou crée ton propre club.";
+
+  content.innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">
+      <button id="clubs-discover">🔎 Découvrir les clubs</button>
+      <button id="clubs-create">➕ Créer un club</button>
+      <button id="clubs-mine">♟️ Mes clubs</button>
+    </div>
+
+    <div id="clubs-message" style="color:#cbd5e1;margin-bottom:12px"></div>
+    <div id="clubs-list">Chargement des clubs...</div>
+    <div id="club-create-form" style="display:none;margin-top:20px">
+      <h3>Créer un club</h3>
+      <input id="club-name" maxlength="30" placeholder="Nom du club"
+        style="width:100%;padding:10px;margin-bottom:10px;box-sizing:border-box">
+      <textarea id="club-description" maxlength="300"
+        placeholder="Description du club"
+        style="width:100%;padding:10px;margin-bottom:10px;box-sizing:border-box"></textarea>
+      <input id="club-emblem" maxlength="4" value="♟️"
+        placeholder="Emblème"
+        style="width:100%;padding:10px;margin-bottom:10px;box-sizing:border-box">
+      <button id="club-submit">Créer</button>
+      <button id="club-create-cancel">Annuler</button>
+    </div>
+  `;
+
+  const list = content.querySelector("#clubs-list");
+  const message = content.querySelector("#clubs-message");
+  const form = content.querySelector("#club-create-form");
+
+  async function loadClubs(mineOnly = false) {
+    list.textContent = "Chargement...";
+    try {
+      const response = await fetch(API_BASE + "/api/clubs", {
+        credentials: "include"
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Erreur");
+
+      const clubs = mineOnly
+        ? data.clubs.filter(club => club.is_member)
+        : data.clubs;
+
+      if (!clubs.length) {
+        list.textContent = mineOnly
+          ? "Tu n'as encore rejoint aucun club."
+          : "Aucun club pour le moment. Crée le premier !";
+        return;
+      }
+
+      list.innerHTML = clubs.map(club => `
+        <div style="background:#374151;padding:15px;border-radius:10px;margin-bottom:12px">
+          <h3>${club.emblem || "♟️"} ${club.name}</h3>
+          <p>${club.description || "Aucune description."}</p>
+          <p style="color:#cbd5e1">
+            Créateur : ${club.owner_username || "Inconnu"} ·
+            ${club.member_count} membres
+          </p>
+          <button data-join="${club.id}">
+            ${club.is_member ? "Déjà membre" : "Rejoindre"}
+          </button>
+          <button data-members="${club.id}">Voir les membres</button>
+        </div>
+      `).join("");
+
+      list.querySelectorAll("[data-join]").forEach(button => {
+        button.onclick = async () => {
+          if (button.textContent === "Déjà membre") return;
+          try {
+            const response = await fetch(
+              API_BASE + "/api/clubs/" + button.dataset.join + "/join",
+              { method: "POST", credentials: "include" }
+            );
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || "Erreur");
+            message.textContent = "Tu as rejoint le club !";
+            loadClubs(mineOnly);
+          } catch (error) {
+            message.textContent = error.message;
+          }
+        };
+      });
+
+      list.querySelectorAll("[data-members]").forEach(button => {
+        button.onclick = async () => {
+          try {
+            const response = await fetch(
+              API_BASE + "/api/clubs/" + button.dataset.members + "/members",
+              { credentials: "include" }
+            );
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || "Erreur");
+            message.textContent = "Membres : " +
+              result.members.map(member => member.username + " (" + member.role + ")").join(", ");
+          } catch (error) {
+            message.textContent = error.message;
+          }
+        };
+      });
+    } catch (error) {
+      list.textContent = "Impossible de charger les clubs : " + error.message;
+    }
+  }
+
+  content.querySelector("#clubs-discover").onclick = () => {
+    form.style.display = "none";
+    loadClubs(false);
+  };
+
+  content.querySelector("#clubs-mine").onclick = () => {
+    form.style.display = "none";
+    loadClubs(true);
+  };
+
+  content.querySelector("#clubs-create").onclick = () => {
+    form.style.display = "block";
+  };
+
+  content.querySelector("#club-create-cancel").onclick = () => {
+    form.style.display = "none";
+  };
+
+  content.querySelector("#club-submit").onclick = async () => {
+    const name = content.querySelector("#club-name").value.trim();
+    const description = content.querySelector("#club-description").value.trim();
+    const emblem = content.querySelector("#club-emblem").value.trim() || "♟️";
+
+    try {
+      const response = await fetch(API_BASE + "/api/clubs", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, description, emblem })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Erreur");
+
+      message.textContent = "Club créé avec succès !";
+      form.style.display = "none";
+      loadClubs(true);
+    } catch (error) {
+      message.textContent = error.message;
+    }
+  };
+
+  loadClubs(false);
+
+} else {
   description.textContent = "Settings for " + tab + " will be added here.";
   content.innerHTML = "";
 }
+
        };
   });
   const close = () => overlay.remove();
