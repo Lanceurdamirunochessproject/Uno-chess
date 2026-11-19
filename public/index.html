@@ -1568,11 +1568,12 @@ function startGame(){
  reportBox.style.display="none";
  reportBtn.disabled=true;
 
- for(let i=0;i<5;i++){
+const startingCards = selectedGameMode === "fatality" ? 15 : 7;
+
+for(let i=0;i<startingCards;i++){
   hand.push(drawCard());
   botHand.push(drawCard());
- }
-
+}
  discard=drawCard();
 
  while(discard.value==="JOKER"||discard.value==="+4"){
