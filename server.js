@@ -1026,15 +1026,20 @@ app.get("/api/inbox", requireLogin, async (req, res) => {
    CARTES UNO CÔTÉ SERVEUR
    ===================================================== */
 
-function makeDeck() {
+function makeDeck(mode = "classical") {
   const deck = [];
+  const fatality = mode === "fatality";
 
   for (const color of COLORS) {
     for (let n = 0; n <= 9; n++) {
       deck.push({ value: String(n), color });
     }
 
-    for (const value of ["+2", "↔", "PASSE"]) {
+    const specialCards = fatality
+      ? ["+2", "+4", "+6", "+10", "↔", "PASSE"]
+      : ["+2", "↔", "PASSE"];
+
+    for (const value of specialCards) {
       deck.push({ value, color });
     }
   }
@@ -1042,6 +1047,10 @@ function makeDeck() {
   for (let i = 0; i < 4; i++) {
     deck.push({ value: "JOKER", color: "joker" });
     deck.push({ value: "+4", color: "joker" });
+
+    if (fatality) {
+      deck.push({ value: "+10", color: "joker" });
+    }
   }
 
   for (let i = deck.length - 1; i > 0; i--) {
@@ -1051,7 +1060,6 @@ function makeDeck() {
 
   return deck;
 }
-
 function drawCard(match) {
   if (match.deck.length === 0) {
     match.deck = makeDeck();
@@ -1201,6 +1209,7 @@ function publicState(match, userId) {
 
   return {
     matchId: match.id,
+    mode: match.mode,
     history: match.history || [],
     fen: match.chess.fen(),
     color: side === "w" ? "white" : "black",
@@ -1233,7 +1242,7 @@ function createMatchState(id, whiteUser, blackUser, mode = "classical") {
     id,
     mode,
     chess: new Chess(),
-    deck: makeDeck(),
+    deck: makeDeck(mode),
     hands: { w: [], b: [] },
     discard: null,
     activeColor: "rouge",
@@ -1243,10 +1252,11 @@ function createMatchState(id, whiteUser, blackUser, mode = "classical") {
     finished: false
   };
 
-  for (let i = 0; i < 5; i++) {
-    match.hands.w.push(drawCard(match));
-    match.hands.b.push(drawCard(match));
-  }
+const startingCards = mode === "fatality" ? 15 : 7;
+for (let i = 0; i < startingCards; i++) {
+  match.hands.w.push(drawCard(match));
+  match.hands.b.push(drawCard(match));
+}
 
   match.discard = drawCard(match);
 
@@ -1511,52 +1521,52 @@ match.discard = card;
 
 
   const opponentSide = side === "w" ? "b" : "w";
+if (match.mode === "fatality") {
+  console.log("MODE FATALITY ACTIF");
+}
+ 
+const penaltyCards = {
+  "+2": 2,
+  "+4": 4,
+  "+6": 6,
+  "+10": 10
+};
 
-  if (card.value === "+2") {
-    match.hands[opponentSide].push(
-      drawCard(match),
-      drawCard(match)
-    );
-  }
+const penalty = penaltyCards[card.value] || 0;
 
-  if (card.value === "+4") {
-    for (let i = 0; i < 4; i++) {
-      match.hands[opponentSide].push(drawCard(match));
-    }
+if (penalty > 0) {
+  for (let i = 0; i < penalty; i++) {
+    match.hands[opponentSide].push(drawCard(match));
   }
+}
 
-  if (
-    card.value === "PASSE" &&
-    match.hands[opponentSide].length > 0
-  ) {
-    match.hands[opponentSide].splice(0, 1);
-  }
+if (
+  card.value === "PASSE" &&
+  match.hands[opponentSide].length > 0
+) {
+  match.hands[opponentSide].splice(0, 1);
+}
 
-  if (card.value === "↔" || card.color === "joker") {
-    match.activeColor = bestColorFor(match.hands[side]);
-  } else {
-    match.activeColor = card.color;
-  }
+if (card.value === "↔" || card.color === "joker") {
+  match.activeColor = bestColorFor(match.hands[side]);
+} else {
+  match.activeColor = card.color;
+}
+
 const afterScore = evaluateOnlinePosition(match);
 
-const beforeAdvantage = side === "b"
-  ? beforeScore
-  : -beforeScore;
-
-const afterAdvantage = side === "b"
-  ? afterScore
-  : -afterScore;
-
+const beforeAdvantage = side === "b" ? beforeScore : -beforeScore;
+const afterAdvantage = side === "b" ? afterScore : -afterScore;
 const change = afterAdvantage - beforeAdvantage;
 
 const precision = Math.max(0, Math.min(100,
   80 + Math.max(-20, Math.min(20, change / 25))
 ));
+
 const risky =
   !!move.captured ||
   move.san.includes("+") ||
-  card.value === "+2" ||
-  card.value === "+4" ||
+  penalty > 0 ||
   card.value === "PASSE" ||
   card.value === "JOKER";
 
@@ -1577,7 +1587,8 @@ if (change >= 250) {
 } else {
   category = "blunder";
 }
-  if (!Array.isArray(match.history)) {
+
+if (!Array.isArray(match.history)) {
   match.history = [];
 }
 
@@ -1604,12 +1615,13 @@ match.history.push({
   beforeFen,
   afterFen: match.chess.fen()
 });
-if (match.hands[side].length === 0) {
 
+if (match.hands[side].length === 0) {
   sendStates(data.room, match);
   await finishOnlineMatch(data.room, match, userId);
   return;
 }
+
 
  /* ÉCHEC ET MAT CLASSIQUE OU ÉCHEC ET MAT UNO */
 
