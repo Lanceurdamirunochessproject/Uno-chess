@@ -1228,9 +1228,10 @@ function sendStates(room, match) {
   }
 }
 
-function createMatchState(id, whiteUser, blackUser) {
+function createMatchState(id, whiteUser, blackUser, mode = "classical") {
   const match = {
     id,
+    mode,
     chess: new Chess(),
     deck: makeDeck(),
     hands: { w: [], b: [] },
@@ -1852,10 +1853,16 @@ socket.on("reject-friend-request", async (requestId) => {
 });
 
 // ENVOYER UN DÉFI
-socket.on("send-challenge", async (targetId) => {
+
+socket.on("send-challenge", async (targetId, mode = "classical") => {
   try {
     targetId = Number(targetId);
     const challengerId = Number(userId);
+
+    if (!["classical", "fatality"].includes(mode)) {
+      socket.emit("challenge-error", "Mode de jeu invalide.");
+      return;
+    }
 
     if (
       !Number.isInteger(targetId) ||
@@ -1900,7 +1907,8 @@ socket.on("send-challenge", async (targetId) => {
     pendingChallenges.set(challengeId, {
       challengerId,
       targetId,
-      challengerSocket: socket.id
+      challengerSocket: socket.id,
+      mode
     });
 
     const challenger = await pool.query(
@@ -1911,11 +1919,13 @@ socket.on("send-challenge", async (targetId) => {
     targetSocket.emit("challenge-received", {
       challengeId,
       challengerId,
-      username: challenger.rows[0]?.username || "Joueur"
+      username: challenger.rows[0]?.username || "Joueur",
+      mode
     });
 
     socket.emit("challenge-sent", {
-      message: "Défi envoyé !"
+      message: "Défi envoyé !",
+      mode
     });
 
   } catch (error) {
@@ -1923,6 +1933,7 @@ socket.on("send-challenge", async (targetId) => {
     socket.emit("challenge-error", "Impossible d'envoyer le défi.");
   }
 });
+
 
 // ACCEPTER UN DÉFI
 socket.on("accept-challenge", async (challengeId) => {
@@ -1968,11 +1979,12 @@ socket.on("accept-challenge", async (challengeId) => {
     const matchId = result.rows[0].id;
     const room = "uno-chess-" + matchId;
 
-    const match = createMatchState(
-      matchId,
-      challenge.challengerId,
-      challenge.targetId
-    );
+   const match = createMatchState(
+  matchId,
+  challenge.challengerId,
+  challenge.targetId,
+  challenge.mode || "classical"
+);
 
     match.players = [challengerSocket.id, socket.id];
 
@@ -1981,15 +1993,17 @@ socket.on("accept-challenge", async (challengeId) => {
     challengerSocket.join(room);
     socket.join(room);
 
-    challengerSocket.emit("game-found", {
-      room,
-      color: "white"
-    });
+   challengerSocket.emit("game-found", {
+  room,
+  color: "white",
+  mode: match.mode
+});
 
-    socket.emit("game-found", {
-      room,
-      color: "black"
-    });
+socket.emit("game-found", {
+  room,
+  color: "black",
+  mode: match.mode
+});
 
     sendStates(room, match);
 
