@@ -1335,6 +1335,7 @@ let selectedLevel="medium";
  
 let onlineColor=null;
 let isOnlineGame=false;
+ let onlineMode = "classical";
 
 let deck=[];
 let hand=[];
@@ -3679,19 +3680,81 @@ function closePlayerProfile(){
  document.getElementById("player-profile-menu").style.display="none";
 }
 
+
 function sendPlayerChallenge(){
- if(!selectedPlayer){
-  alert("Aucun joueur sélectionné.");
-  return;
- }
+  if(!selectedPlayer){
+    alert("Aucun joueur sélectionné.");
+    return;
+  }
 
-if(!onlineSocket || !onlineSocket.connected){
- alert("Tu dois être connecté au serveur en ligne.");
- return;
+  if(!onlineSocket || !onlineSocket.connected){
+    alert("Tu dois être connecté au serveur en ligne.");
+    return;
+  }
+
+  const old = document.getElementById("challenge-mode-window");
+  if(old) old.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = "challenge-mode-window";
+  overlay.style.cssText = `
+    position:fixed;
+    inset:0;
+    z-index:300000;
+    background:rgba(0,0,0,0.85);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:15px;
+  `;
+
+  overlay.innerHTML = `
+    <div style="
+      background:#1f2937;
+      color:white;
+      padding:25px;
+      border-radius:15px;
+      width:350px;
+      max-width:100%;
+      text-align:center;
+    ">
+      <h2>CHOISIR LE MODE</h2>
+      <p>Quel type de défi veux-tu envoyer ?</p>
+
+      <button id="challenge-classical"
+        style="display:block;width:100%;padding:16px;margin:12px 0;background:#2563eb;color:white;border:0;border-radius:9px;cursor:pointer">
+        ♟️ CLASSICAL
+      </button>
+
+      <button id="challenge-fatality"
+        style="display:block;width:100%;padding:16px;margin:12px 0;background:#991b1b;color:white;border:0;border-radius:9px;cursor:pointer">
+        💀 FATALITY
+      </button>
+
+      <button id="challenge-cancel"
+        style="padding:10px 20px;margin-top:10px;cursor:pointer">
+        ANNULER
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  overlay.querySelector("#challenge-classical").onclick = () => {
+    onlineSocket.emit("send-challenge", selectedPlayer.id, "classical");
+    overlay.remove();
+  };
+
+  overlay.querySelector("#challenge-fatality").onclick = () => {
+    onlineSocket.emit("send-challenge", selectedPlayer.id, "fatality");
+    overlay.remove();
+  };
+
+  overlay.querySelector("#challenge-cancel").onclick = () => {
+    overlay.remove();
+  };
 }
 
-onlineSocket.emit("send-challenge", selectedPlayer.id);
-}
  
 function sendFriendRequest(){
  if(!selectedPlayer){
@@ -3825,6 +3888,7 @@ onlineSocket.on("connect_error",(error)=>{
   onlineSearching=false;
   onlineRoom=data.room;
   onlineColor=data.color;
+  onlineMode = data.mode || "classical";
   isOnlineGame=true;
 drawBoard();
   finished=false;
