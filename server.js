@@ -1035,24 +1035,23 @@ function makeDeck(mode = "classical") {
       deck.push({ value: String(n), color });
     }
 
-    const specialCards = fatality
-      ? ["+2", "+4", "+6", "+10", "↔", "PASSE"]
-      : ["+2", "↔", "PASSE"];
+  const specialCards = fatality
+  ? ["+2", "+4", "+6", "↔", "PASSE"]
+  : ["+2", "↔", "PASSE"];
 
     for (const value of specialCards) {
       deck.push({ value, color });
     }
   }
 
-  for (let i = 0; i < 4; i++) {
-    deck.push({ value: "JOKER", color: "joker" });
-    deck.push({ value: "+4", color: "joker" });
+ for (let i = 0; i < 4; i++) {
+  deck.push({ value: "JOKER", color: "joker" });
+  deck.push({ value: "+4", color: "joker" });
 
-    if (fatality) {
-      deck.push({ value: "+10", color: "joker" });
-    }
+  if (fatality) {
+    deck.push({ value: "+10", color: "joker" });
   }
-
+}
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];
