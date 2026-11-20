@@ -1146,6 +1146,7 @@ onclick="openPrivateMessages()"
   </button>
 </div>
 
+
 <p id="status">Choisis ton niveau et commence !</p>
 <p id="thinking"></p>
 
@@ -3979,6 +3980,7 @@ onlineSocket.on("game-chat-message", data => {
 });
  onlineSocket.on("online-state",data=>{
   if(!isOnlineGame)return;
+  onlineMode = data.mode || onlineMode;
 if(Array.isArray(data.history)){
   const mySide = data.color === "white" ? "w" : "b";
 
