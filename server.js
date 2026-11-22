@@ -1224,10 +1224,9 @@ function makeDeck(mode = "classical") {
       deck.push({ value: String(n), color });
     }
 
-  const specialCards = fatality
-  ? ["+2", "+4", "+6", "↔", "PASSE"]
+ const specialCards = fatality
+  ? ["+2", "+6", "↔", "PASSE"]
   : ["+2", "↔", "PASSE"];
-
     for (const value of specialCards) {
       deck.push({ value, color });
     }
@@ -2080,7 +2079,13 @@ socket.on("send-challenge", async (targetId, mode = "classical") => {
       socket.emit("challenge-error", "Joueur invalide.");
       return;
     }
+if (waitingPlayers.get(challenge.challengerId) === challengerSocket) {
+  waitingPlayers.delete(challenge.challengerId);
+}
 
+if (waitingPlayers.get(challenge.targetId) === socket) {
+  waitingPlayers.delete(challenge.targetId);
+}
     const alreadyPlaying = [...activeRooms.values()].some(
       match =>
         match.whiteUser === challengerId ||
@@ -2098,17 +2103,27 @@ socket.on("send-challenge", async (targetId, mode = "classical") => {
       ([, id]) => id === targetId
     );
 
-    if (!targetOnline) {
-      socket.emit("challenge-error", "Ce joueur n'est pas connecté.");
-      return;
-    }
+   if (!targetOnline) {
+  socket.emit("challenge-error", "Ce joueur n'est pas connecté.");
+  return;
+}
 
-    const targetSocket = io.sockets.sockets.get(targetOnline[0]);
+const targetSocket = io.sockets.sockets.get(targetOnline[0]);
 
-    if (!targetSocket) {
-      socket.emit("challenge-error", "Ce joueur n'est plus connecté.");
-      return;
-    }
+if (!targetSocket) {
+  socket.emit("challenge-error", "Ce joueur n'est plus connecté.");
+  return;
+}
+
+// Retirer les deux joueurs de la file d'attente
+if (waitingPlayers.get(challengerId) === socket) {
+  waitingPlayers.delete(challengerId);
+}
+
+if (waitingPlayers.get(targetId) === targetSocket) {
+  waitingPlayers.delete(targetId);
+}
+    
 
     const challengeId = `${challengerId}-${targetId}-${Date.now()}`;
 
@@ -2242,100 +2257,108 @@ socket.on("reject-challenge", (challengeId) => {
   pendingChallenges.delete(challengeId);
 });
 
-  socket.on("find-game", async () => {
-    console.log("RECHERCHE REÇUE POUR :", userId);
-    const alreadyPlaying = [...activeRooms.values()].some(
-      match =>
-        match.whiteUser === Number(userId) ||
-        match.blackUser === Number(userId)
-    );
+ 
+socket.on("find-game", async (requestedMode = "classical") => {
+  console.log("RECHERCHE REÇUE POUR :", userId);
 
-    if (alreadyPlaying) {
-      socket.emit("game-error", {
-        message: "Tu as déjà une partie en cours."
-      });
-      return;
-    }
+  const mode = ["classical", "fatality"].includes(requestedMode)
+    ? requestedMode
+    : "classical";
 
-    if (waitingPlayers.has(Number(userId))) return;
-
-    let opponent = null;
-
-    for (const [id, waitingSocket] of waitingPlayers) {
-      if (
-        id !== Number(userId) &&
-        waitingSocket.connected &&
-        socketUsers.has(waitingSocket.id)
-      ) {
-        opponent = waitingSocket;
-        waitingPlayers.delete(id);
-        break;
-      }
-    }
-
-   if (!opponent) {
-  waitingPlayers.set(Number(userId), socket);
-
-  console.log("JOUEUR EN ATTENTE :", userId);
-
-  socket.emit("waiting");
-
-  console.log("SIGNAL WAITING ENVOYÉ");
-
-  return;
-}
-    const opponentId = socketUsers.get(opponent.id);
-
-    try {
-  const result = await pool.query(
-    `INSERT INTO matches (player1, player2, status, mode)
-     VALUES ($1, $2, 'pending', 'classical')
-     RETURNING id`,
-    [opponentId, Number(userId)]
+  const alreadyPlaying = [...activeRooms.values()].some(
+    match =>
+      match.whiteUser === Number(userId) ||
+      match.blackUser === Number(userId)
   );
 
-      const matchId = result.rows[0].id;
-      const room = "uno-chess-" + matchId;
+  if (alreadyPlaying) {
+    socket.emit("game-error", {
+      message: "Tu as déjà une partie en cours."
+    });
+    return;
+  }
 
-      const match = createMatchState(
-        matchId,
-        opponentId,
-        Number(userId)
-      );
+  if (waitingPlayers.has(Number(userId))) return;
 
-      match.players = [opponent.id, socket.id];
+  socket.data.gameMode = mode;
 
-      activeRooms.set(room, match);
+  let opponent = null;
 
-      opponent.join(room);
-      socket.join(room);
-
-      opponent.emit("game-found", {
-        room,
-        color: "white"
-      });
-
-      socket.emit("game-found", {
-        room,
-        color: "black"
-      });
-
-      sendStates(room, match);
-
-    } catch (error) {
-      console.error(error);
-
-      waitingPlayers.delete(opponentId);
-
-      socket.emit("game-error", {
-        message: "Impossible de créer la partie."
-      });
-
-      opponent.emit("game-error", {
-        message: "Impossible de créer la partie."
-      });
+  for (const [id, waitingSocket] of waitingPlayers) {
+    if (
+      id !== Number(userId) &&
+      waitingSocket.connected &&
+      socketUsers.has(waitingSocket.id) &&
+      (waitingSocket.data.gameMode || "classical") === mode
+    ) {
+      opponent = waitingSocket;
+      waitingPlayers.delete(id);
+      break;
     }
-  });
+  }
+
+  if (!opponent) {
+    waitingPlayers.set(Number(userId), socket);
+    console.log("JOUEUR EN ATTENTE :", userId, "MODE :", mode);
+    socket.emit("waiting");
+    return;
+  }
+
+  const opponentId = socketUsers.get(opponent.id);
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO matches (player1, player2, status, mode)
+       VALUES ($1, $2, 'pending', $3)
+       RETURNING id`,
+      [opponentId, Number(userId), mode]
+    );
+
+    const matchId = result.rows[0].id;
+    const room = "uno-chess-" + matchId;
+
+    const match = createMatchState(
+      matchId,
+      opponentId,
+      Number(userId),
+      mode
+    );
+
+    match.players = [opponent.id, socket.id];
+    activeRooms.set(room, match);
+
+    opponent.join(room);
+    socket.join(room);
+
+    opponent.emit("game-found", {
+      room,
+      color: "white",
+      mode
+    });
+
+    socket.emit("game-found", {
+      room,
+      color: "black",
+      mode
+    });
+
+    sendStates(room, match);
+
+  } catch (error) {
+    console.error(error);
+
+    waitingPlayers.delete(opponentId);
+
+    socket.emit("game-error", {
+      message: "Impossible de créer la partie."
+    });
+
+    opponent.emit("game-error", {
+      message: "Impossible de créer la partie."
+    });
+  }
+});
+
 // CHAT EN DIRECT PENDANT UNE PARTIE
 socket.on("game-chat-send", async (message) => {
   try {
