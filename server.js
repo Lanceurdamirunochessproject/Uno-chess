@@ -754,14 +754,102 @@ app.get("/api/leaderboard", async (req, res) => {
   }
 });
 
+app.get("/api/search-player", requireLogin, async (req, res) => {
+  try {
+    const username = String(req.query.username || "").trim();
+
+    if (username.length < 3 || username.length > 20) {
+      return res.status(400).json({
+        error: "Le pseudo doit contenir entre 3 et 20 caractères."
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT
+   u.id,
+   u.username,
+   u.classical_kilo,
+   u.fatality_kilo,
+   u.avatar,
+   u.description,
+   (
+     SELECT COUNT(*) + 1
+     FROM users other
+     WHERE other.classical_kilo > u.classical_kilo
+        OR (
+          other.classical_kilo = u.classical_kilo
+          AND other.username < u.username
+        )
+   ) AS classical_rank,
+   (
+     SELECT COUNT(*) + 1
+     FROM users other
+     WHERE other.fatality_kilo > u.fatality_kilo
+        OR (
+          other.fatality_kilo = u.fatality_kilo
+          AND other.username < u.username
+        )
+   ) AS fatality_rank
+ FROM users u
+ WHERE LOWER(u.username) = LOWER($1)
+ LIMIT 1`,
+      [username]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({
+        error: "Aucun joueur trouvé avec ce pseudo."
+      });
+    }
+
+    res.json({
+      player: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error("Erreur recherche joueur :", error);
+    res.status(500).json({
+      error: "Impossible de rechercher ce joueur."
+    });
+  }
+});
+
 app.get("/api/players/:id", async (req, res) => {
   try {
     const playerId = Number(req.params.id);
 
    const playerResult = await pool.query(
- `SELECT id, username, kilo, classical_kilo, fatality_kilo, avatar, description
- FROM users
- WHERE id = $1`,
+`SELECT
+   u.id,
+   u.username,
+   u.kilo,
+   u.classical_kilo,
+   u.fatality_kilo,
+   u.avatar,
+   u.description,
+
+   (
+     SELECT COUNT(*) + 1
+     FROM users other
+     WHERE other.classical_kilo > u.classical_kilo
+        OR (
+          other.classical_kilo = u.classical_kilo
+          AND other.username < u.username
+        )
+   ) AS classical_rank,
+
+   (
+     SELECT COUNT(*) + 1
+     FROM users other
+     WHERE other.fatality_kilo > u.fatality_kilo
+        OR (
+          other.fatality_kilo = u.fatality_kilo
+          AND other.username < u.username
+        )
+   ) AS fatality_rank
+
+ FROM users u
+ WHERE u.id = $1`,
  [playerId]
 );
 
