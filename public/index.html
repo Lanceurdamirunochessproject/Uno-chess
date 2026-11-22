@@ -3725,6 +3725,7 @@ document.getElementById("player-menu-kilo").textContent =
 
  try {
   const data = await apiRequest(`/api/players/${player.id}`);
+  console.log("KILO REÇUS :", data.player);
   console.log("HISTORIQUE JOUEUR :", data);
 const profile = data.player || player;
 
