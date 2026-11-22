@@ -1091,6 +1091,16 @@ onclick="loginAccount()"
 ">
  <h3 id="player-menu-name">PROFIL</h3>
  <p>KILO : <strong id="player-menu-kilo"></strong></p>
+<div id="player-menu-history" style="
+ margin:15px 0;
+ padding:10px;
+ background:#111827;
+ border-radius:10px;
+ max-height:220px;
+ overflow-y:auto;
+">
+ Chargement de l'historique...
+</div>
 
  <button onclick="sendPlayerChallenge()">DÉFIER</button>
 <button onclick="sendFriendRequest()">AJOUTER EN AMI</button>
@@ -2989,6 +2999,7 @@ async function changeUsername(){
 let selectedPlayer = null;
 
 
+
 async function openInbox() {
   const panel = document.getElementById("inbox-panel");
 
@@ -2998,25 +3009,17 @@ async function openInbox() {
   }
 
   panel.style.display = "block";
-panel.style.zIndex = "100001";
+  panel.style.zIndex = "100001";
+
   const list = document.getElementById("inbox-list");
   list.innerHTML = "<h3>Messages</h3><p>Chargement...</p>";
 
   try {
-    const response = await fetch(API_BASE + "/api/inbox", {
-      credentials: "include"
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      list.innerHTML = "<p>" + (data.error || "Erreur de chargement.") + "</p>";
-      return;
-    }
+    const data = await apiRequest("/api/inbox");
 
     list.innerHTML = "<h3>Messages</h3>";
 
-    if (!data.messages.length) {
+    if (!data.messages || !data.messages.length) {
       list.innerHTML += "<p>Aucun message pour le moment.</p>";
       return;
     }
@@ -3035,8 +3038,7 @@ panel.style.zIndex = "100001";
       button.style.textAlign = "left";
       button.style.cursor = "pointer";
 
-      button.innerHTML =
-        "<strong></strong><br><span></span>";
+      button.innerHTML = "<strong></strong><br><span></span>";
 
       button.querySelector("strong").textContent = message.username;
       button.querySelector("span").textContent = message.content;
@@ -3049,7 +3051,7 @@ panel.style.zIndex = "100001";
     });
 
   } catch (error) {
-    list.innerHTML = "<p>Erreur de connexion au serveur.</p>";
+    list.innerHTML = "<p>" + error.message + "</p>";
   }
 }
 
@@ -3365,15 +3367,10 @@ descriptionInput.dispatchEvent(new Event("input"));
   const message = content.querySelector("#clubs-message");
   const form = content.querySelector("#club-create-form");
 
-  async function loadClubs(mineOnly = false) {
+ async function loadClubs(mineOnly = false) {
     list.textContent = "Chargement...";
     try {
-      const response = await fetch(API_BASE + "/api/clubs", {
-        credentials: "include"
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Erreur");
-
+     const data = await apiRequest("/api/clubs");
       const clubs = mineOnly
         ? data.clubs.filter(club => club.is_member)
         : data.clubs;
@@ -3404,12 +3401,10 @@ descriptionInput.dispatchEvent(new Event("input"));
         button.onclick = async () => {
           if (button.textContent === "Déjà membre") return;
           try {
-            const response = await fetch(
-              API_BASE + "/api/clubs/" + button.dataset.join + "/join",
-              { method: "POST", credentials: "include" }
-            );
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.error || "Erreur");
+           const result = await apiRequest(
+  `/api/clubs/${button.dataset.join}/join`,
+  {}
+);
             message.textContent = "Tu as rejoint le club !";
             loadClubs(mineOnly);
           } catch (error) {
@@ -3421,12 +3416,9 @@ descriptionInput.dispatchEvent(new Event("input"));
       list.querySelectorAll("[data-members]").forEach(button => {
         button.onclick = async () => {
           try {
-            const response = await fetch(
-              API_BASE + "/api/clubs/" + button.dataset.members + "/members",
-              { credentials: "include" }
-            );
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.error || "Erreur");
+           const result = await apiRequest(
+  `/api/clubs/${button.dataset.members}/members`
+);
             message.textContent = "Membres : " +
               result.members.map(member => member.username + " (" + member.role + ")").join(", ");
           } catch (error) {
@@ -3463,15 +3455,11 @@ descriptionInput.dispatchEvent(new Event("input"));
     const emblem = content.querySelector("#club-emblem").value.trim() || "♟️";
 
     try {
-      const response = await fetch(API_BASE + "/api/clubs", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, description, emblem })
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Erreur");
-
+    const result = await apiRequest("/api/clubs", {
+  name,
+  description,
+  emblem
+});
       message.textContent = "Club créé avec succès !";
       form.style.display = "none";
       loadClubs(true);
@@ -3539,19 +3527,60 @@ overlay.querySelector("#settings-save").onclick = () => {
 }
 
 
-function openPlayerProfile(player){
+
+async function openPlayerProfile(player){
  selectedPlayer = player;
 
- const menu=document.getElementById("player-profile-menu");
+ const menu = document.getElementById("player-profile-menu");
+ const historyBox = document.getElementById("player-menu-history");
 
- document.getElementById("player-menu-name").textContent=
+ document.getElementById("player-menu-name").textContent =
   player.username || "Joueur";
 
- document.getElementById("player-menu-kilo").textContent=
+ document.getElementById("player-menu-kilo").textContent =
   player.kilo ?? 1000;
 
- menu.style.display="block";
+ menu.style.display = "block";
+ historyBox.textContent = "Chargement de l'historique...";
+
+ try {
+  const data = await apiRequest(`/api/players/${player.id}`);
+
+  if (!Array.isArray(data.history) || data.history.length === 0) {
+   historyBox.textContent = "Aucune partie terminée.";
+   return;
+  }
+
+  historyBox.innerHTML = "<strong>♟ DERNIÈRES PARTIES</strong>";
+
+  data.history.forEach(match => {
+   const item = document.createElement("div");
+   item.style.padding = "9px 0";
+   item.style.borderBottom = "1px solid #374151";
+
+   const mode = match.mode === "fatality" ? "FATALITY" : "CLASSIQUE";
+   const date = match.settled_at
+    ? new Date(match.settled_at).toLocaleDateString("fr-CA")
+    : "";
+
+   const kilo = match.result === "VICTOIRE"
+    ? `+${match.kilo_change || 0}`
+    : match.result === "DÉFAITE"
+     ? `-${match.kilo_change || 0}`
+     : "0";
+
+   item.textContent =
+    `${match.result} • vs ${match.opponent} • ${mode} • ${kilo} KILO • ${date}`;
+
+   historyBox.appendChild(item);
+  });
+
+ } catch (error) {
+  console.error("Erreur historique :", error);
+  historyBox.textContent = "Impossible de charger l'historique.";
+ }
 }
+
 function openPrivateMessages(){
   if (!selectedPlayer) {
   alert("Aucun joueur sélectionné.");
