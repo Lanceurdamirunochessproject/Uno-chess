@@ -1074,22 +1074,44 @@ onclick="loginAccount()"
   <h3>🏆 CLASSEMENT KILO</h3>
   <div id="leaderboard-content">Connecte-toi pour consulter le classement.</div>
  </div>
- <div id="player-profile-menu" style="
+<div id="player-profile-menu" style="
  display:none;
  position:fixed;
- top:50%;
- left:50%;
- transform:translate(-50%,-50%);
-width:94%;
-max-width:650px;
-max-height:85vh;
-overflow-y:auto;
-padding:25px;
- background:#1f2937;
- border:2px solid #facc15;
- border-radius:14px;
- z-index:9999;
+ inset:12px;
+ width:auto;
+ height:auto;
+ max-width:none;
+ max-height:none;
+ overflow-y:auto;
+ padding:75px 35px 35px;
+ background:#111827;
+ border:1px solid #374151;
+ border-radius:16px;
+ z-index:99999;
  color:white;
+ text-align:left;
+">
+ <button onclick="closePlayerProfile()" style="
+ position:fixed;
+ top:15px;
+ right:15px;
+ z-index:100000;
+ width:48px;
+ height:48px;
+ font-size:24px;
+ background:#374151;
+ color:white;
+ border:1px solid #64748b;
+ border-radius:12px;
+">
+ ✕
+</button>
+
+<div style="
+ display:flex;
+ align-items:center;
+ gap:20px;
+ margin-bottom:20px;
 ">
 <div style="
  display:flex;
@@ -1143,9 +1165,7 @@ onclick="openPrivateMessages()"
   💬 MESSAGE PRIVÉ
 </button>
 
- <button onclick="closePlayerProfile()" class="account-secondary">
-  FERMER
- </button>
+
 </div>
 </section>
 <h1>UNO.CHESS</h1>
