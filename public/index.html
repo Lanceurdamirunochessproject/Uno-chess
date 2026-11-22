@@ -1082,6 +1082,67 @@ onclick="loginAccount()"
   🤖 JOUER CONTRE DAVID
 </button>
  </div>
+ <div id="game-mode-menu" style="
+ display:none;
+ position:fixed;
+ inset:0;
+ background:rgba(0,0,0,0.8);
+ z-index:9999;
+ justify-content:center;
+ align-items:center;
+">
+ <div style="
+  background:#1f2937;
+  padding:25px;
+  border-radius:15px;
+  width:90%;
+  max-width:350px;
+  border:2px solid #facc15;
+ ">
+  <h2 style="color:#facc15;">CHOISIS TON MODE</h2>
+
+  <button onclick="selectMatchmakingMode('classical')" style="
+   width:100%;
+   padding:14px;
+   margin:8px 0;
+   background:#2563eb;
+   color:white;
+   border:0;
+   border-radius:8px;
+   font-weight:bold;
+   cursor:pointer;
+  ">
+   ♟️ CLASSICAL
+  </button>
+
+  <button onclick="selectMatchmakingMode('fatality')" style="
+   width:100%;
+   padding:14px;
+   margin:8px 0;
+   background:#dc2626;
+   color:white;
+   border:0;
+   border-radius:8px;
+   font-weight:bold;
+   cursor:pointer;
+  ">
+   🔥 FATALITY
+  </button>
+
+  <button onclick="closeGameModeMenu()" style="
+   width:100%;
+   padding:10px;
+   margin-top:10px;
+   background:#4b5563;
+   color:white;
+   border:0;
+   border-radius:8px;
+   cursor:pointer;
+  ">
+   ANNULER
+  </button>
+ </div>
+</div>
 
  <div id="leaderboard">
   <h3>🏆 CLASSEMENT KILO</h3>
@@ -4492,9 +4553,10 @@ loadProfile();
    RECHERCHE D'ADVERSAIRE
 ===================================== */
 
+
 function findOnlineGame(){
 
-if(!currentUser){
+ if(!currentUser){
   accountStatus("Connecte-toi d'abord.");
   return;
  }
@@ -4509,11 +4571,23 @@ if(!currentUser){
   return;
  }
 
- onlineSearching=true;
-onlineSocket.emit("find-game", selectedGameMode);
-
- status.textContent="Recherche d'un adversaire...";
+ document.getElementById("game-mode-menu").style.display = "flex";
 }
+
+function selectMatchmakingMode(mode){
+
+ selectedGameMode = mode;
+
+ document.getElementById("game-mode-menu").style.display = "none";
+
+ onlineSearching = true;
+ onlineSocket.emit("find-game", selectedGameMode);
+}
+
+function closeGameModeMenu(){
+ document.getElementById("game-mode-menu").style.display = "none";
+}
+
 function playAgainstDavid(){
   if(!currentUser){
     accountStatus("Connecte-toi d'abord.");
