@@ -3704,7 +3704,7 @@ document.getElementById("player-menu-description").textContent =
 
   historyBox.innerHTML = "<strong>♟ DERNIÈRES PARTIES</strong>";
 
-  data.history.forEach(match => {
+ data.history.forEach(match => {
    const item = document.createElement("div");
 
    item.style.padding = "12px 8px";
@@ -3714,13 +3714,13 @@ document.getElementById("player-menu-description").textContent =
 
    const mode = match.mode === "fatality" ? "FATALITY" : "CLASSIQUE";
 
-   const kilo = match.result === "VICTOIRE"
-    ? `+${match.kilo_change || 0}`
-    : match.result === "DÉFAITE"
-     ? `-${match.kilo_change || 0}`
-     : "0";
+  const kilo = match.result === "VICTOIRE"
+ ? `<span style="color:#22c55e;font-weight:bold;">+</span>${match.kilo_change || 0}`
+ : match.result === "DÉFAITE"
+  ? `<span style="color:#ef4444;font-weight:bold;">−</span>${match.kilo_change || 0}`
+  : "0";
 
-   item.textContent =
+  item.innerHTML =
     `${match.result} • vs ${match.opponent} • ${mode} • ${kilo} KILO`;
 
    item.onmouseenter = () => {
