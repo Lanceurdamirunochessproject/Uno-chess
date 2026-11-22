@@ -4118,63 +4118,97 @@ if(!onlineSocket || !onlineSocket.connected){
  onlineSocket.emit("send-friend-request", selectedPlayer.id);
 }
 
+
 async function loadLeaderboard(){
- const box=document.getElementById("leaderboard-content");
+ const box = document.getElementById("leaderboard-content");
 
- try{
-  const data=await apiRequest("/api/leaderboard");
-  const players=data.leaderboard || data.players || [];
+ try {
+  const [classicalData, fatalityData] = await Promise.all([
+   apiRequest("/api/leaderboard?mode=classical"),
+   apiRequest("/api/leaderboard?mode=fatality")
+  ]);
 
-  box.innerHTML="";
+  box.innerHTML = "";
 
-  if(!players.length){
-   box.textContent="Aucun joueur classé pour le moment.";
-   return;
+  function createRanking(title, players, color) {
+   const section = document.createElement("div");
+   section.style.marginBottom = "25px";
+
+   const heading = document.createElement("h3");
+   heading.textContent = title;
+   heading.style.color = color;
+   section.appendChild(heading);
+
+   if (!players.length) {
+    const empty = document.createElement("p");
+    empty.textContent = "Aucun joueur classé.";
+    section.appendChild(empty);
+    return section;
+   }
+
+   const table = document.createElement("table");
+
+   const header = document.createElement("tr");
+
+   ["Rang", "Joueur", "KILO"].forEach(value => {
+    const th = document.createElement("th");
+    th.textContent = value;
+    header.appendChild(th);
+   });
+
+   table.appendChild(header);
+
+   players.forEach((player, index) => {
+    const tr = document.createElement("tr");
+
+    const rank = document.createElement("td");
+    rank.textContent = "#" + (index + 1);
+
+    const name = document.createElement("td");
+    const nameButton = document.createElement("button");
+
+    nameButton.textContent = player.username || "Joueur";
+    nameButton.onclick = () => openPlayerProfile(player);
+
+    name.appendChild(nameButton);
+
+    const kilo = document.createElement("td");
+    kilo.textContent = player.kilo ?? 1000;
+
+    tr.appendChild(rank);
+    tr.appendChild(name);
+    tr.appendChild(kilo);
+
+    table.appendChild(tr);
+   });
+
+   section.appendChild(table);
+
+   return section;
   }
 
-  const table=document.createElement("table");
-  const header=document.createElement("tr");
+  box.appendChild(
+   createRanking(
+    "♟ CLASSEMENT CLASSICAL",
+    classicalData.leaderboard || [],
+    "#60a5fa"
+   )
+  );
 
-  ["Rang","Joueur","KILO"].forEach(value=>{
-   const th=document.createElement("th");
-   th.textContent=value;
-   header.appendChild(th);
-  });
+  box.appendChild(
+   createRanking(
+    "☠️ CLASSEMENT FATALITY",
+    fatalityData.leaderboard || [],
+    "#f87171"
+   )
+  );
 
-  table.appendChild(header);
-
-  players.forEach((player,index)=>{
-   const tr=document.createElement("tr");
-
-   const rank=document.createElement("td");
-   rank.textContent="#"+(index+1);
-
-   const name=document.createElement("td");
-   const nameButton=document.createElement("button");
-
-   nameButton.textContent=player.username || "Joueur";
-   nameButton.onclick=()=>{
-    openPlayerProfile(player);
-   };
-
-   name.appendChild(nameButton);
-
-   const kilo=document.createElement("td");
-   kilo.textContent=player.kilo ?? 1000;
-
-   tr.appendChild(rank);
-   tr.appendChild(name);
-   tr.appendChild(kilo);
-
-   table.appendChild(tr);
-  });
-
-  box.appendChild(table);
-
- }catch(error){
-  box.textContent="Impossible de charger le classement.";
+ } catch(error) {
+  console.error("Erreur classements :", error);
+  box.textContent = "Impossible de charger les classements.";
  }
 }
+
 /* =====================================
    SOCKET.IO
 ===================================== */
