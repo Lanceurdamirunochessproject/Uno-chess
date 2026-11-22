@@ -754,6 +754,8 @@ app.get("/api/players/:id", async (req, res) => {
          m.winner,
          m.settled_at,
          m.kilo_change,
+m.player1,
+m.player2,
          CASE
            WHEN m.player1 = $1 THEN u2.username
            ELSE u1.username
