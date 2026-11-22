@@ -136,6 +136,7 @@ function calculateKiloChange(winnerKilo, loserKilo) {
   );
 }
 
+
 async function settleMatch(matchId, winnerId, loserId, history = []) {
   const client = await pool.connect();
 
@@ -143,7 +144,7 @@ async function settleMatch(matchId, winnerId, loserId, history = []) {
     await client.query("BEGIN");
 
     const result = await client.query(
-      `SELECT id, player1, player2, status
+      `SELECT id, player1, player2, status, mode
        FROM matches
        WHERE id = $1
        FOR UPDATE`,
@@ -174,8 +175,13 @@ async function settleMatch(matchId, winnerId, loserId, history = []) {
       throw new Error("Joueurs invalides.");
     }
 
+    // Choisir le KILO correspondant au mode
+    const kiloColumn = match.mode === "fatality"
+      ? "fatality_kilo"
+      : "classical_kilo";
+
     const users = await client.query(
-      `SELECT id, kilo
+      `SELECT id, ${kiloColumn} AS kilo
        FROM users
        WHERE id = ANY($1::integer[])
        ORDER BY id
@@ -203,12 +209,16 @@ async function settleMatch(matchId, winnerId, loserId, history = []) {
     const loss = Math.min(gain, Number(loser.kilo));
 
     await client.query(
-      "UPDATE users SET kilo = kilo + $1 WHERE id = $2",
+      `UPDATE users
+       SET ${kiloColumn} = ${kiloColumn} + $1
+       WHERE id = $2`,
       [gain, winnerId]
     );
 
     await client.query(
-      "UPDATE users SET kilo = GREATEST(0, kilo - $1) WHERE id = $2",
+      `UPDATE users
+       SET ${kiloColumn} = GREATEST(0, ${kiloColumn} - $1)
+       WHERE id = $2`,
       [loss, loserId]
     );
 
@@ -234,6 +244,7 @@ async function settleMatch(matchId, winnerId, loserId, history = []) {
     client.release();
   }
 }
+
 async function finishDraw(matchId, history = []) {
   await pool.query(
     `UPDATE matches
@@ -282,6 +293,11 @@ async function initDatabase() {
   ADD COLUMN IF NOT EXISTS avatar TEXT DEFAULT '',
   ADD COLUMN IF NOT EXISTS description TEXT DEFAULT ''
 `);
+    await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS classical_kilo INTEGER NOT NULL DEFAULT 1000,
+    ADD COLUMN IF NOT EXISTS fatality_kilo INTEGER NOT NULL DEFAULT 1000
+  `);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS matches (
@@ -546,13 +562,12 @@ app.get("/api/me", requireLogin, async (req, res) => {
   });
 }
 
-    const result = await pool.query(
-     `SELECT id, username, kilo, avatar, description
+   const result = await pool.query(
+ `SELECT id, username, kilo, classical_kilo, fatality_kilo, avatar, description
  FROM users
  WHERE id = $1`,
-  [req.userId]
-    );
-
+ [req.userId]
+);
     if (!result.rows.length) {
       return res.status(401).json({
         error: "Compte introuvable."
@@ -732,12 +747,12 @@ app.get("/api/players/:id", async (req, res) => {
   try {
     const playerId = Number(req.params.id);
 
-    const playerResult = await pool.query(
-     `SELECT id, username, kilo, avatar, description
+   const playerResult = await pool.query(
+ `SELECT id, username, kilo, classical_kilo, fatality_kilo, avatar, description
  FROM users
  WHERE id = $1`,
-      [playerId]
-    );
+ [playerId]
+);
 
     if (playerResult.rows.length === 0) {
       return res.status(404).json({
