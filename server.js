@@ -301,6 +301,10 @@ async function initDatabase() {
     ALTER TABLE matches
     ADD COLUMN IF NOT EXISTS kilo_change INTEGER
   `);
+  await pool.query(`
+  ALTER TABLE matches
+  ADD COLUMN IF NOT EXISTS mode TEXT DEFAULT 'classical'
+`);
   
    await pool.query(`
     CREATE TABLE IF NOT EXISTS friend_requests (
@@ -699,6 +703,62 @@ app.get("/api/leaderboard", async (req, res) => {
     console.error("Erreur classement :", error);
     res.status(500).json({
       error: "Impossible de charger le classement."
+    });
+  }
+});
+app.get("/api/players/:id", async (req, res) => {
+  try {
+    const playerId = Number(req.params.id);
+
+    const playerResult = await pool.query(
+      `SELECT id, username, kilo
+       FROM users
+       WHERE id = $1`,
+      [playerId]
+    );
+
+    if (playerResult.rows.length === 0) {
+      return res.status(404).json({
+        error: "Joueur introuvable."
+      });
+    }
+
+    const historyResult = await pool.query(
+      `SELECT
+         m.id,
+         m.status,
+         m.mode,
+         m.winner,
+         m.settled_at,
+         m.kilo_change,
+         CASE
+           WHEN m.player1 = $1 THEN u2.username
+           ELSE u1.username
+         END AS opponent,
+         CASE
+           WHEN m.winner IS NULL THEN 'NUL'
+           WHEN m.winner = $1 THEN 'VICTOIRE'
+           ELSE 'DÉFAITE'
+         END AS result
+       FROM matches m
+       JOIN users u1 ON u1.id = m.player1
+       JOIN users u2 ON u2.id = m.player2
+       WHERE (m.player1 = $1 OR m.player2 = $1)
+         AND m.status = 'finished'
+       ORDER BY m.settled_at DESC
+       LIMIT 20`,
+      [playerId]
+    );
+
+    res.json({
+      player: playerResult.rows[0],
+      history: historyResult.rows
+    });
+
+  } catch (error) {
+    console.error("Erreur profil joueur :", error);
+    res.status(500).json({
+      error: "Impossible de charger le profil."
     });
   }
 });
@@ -1980,12 +2040,12 @@ socket.on("accept-challenge", async (challengeId) => {
       return;
     }
 
-    const result = await pool.query(
-      `INSERT INTO matches (player1, player2, status)
-       VALUES ($1, $2, 'pending')
-       RETURNING id`,
-      [challenge.challengerId, challenge.targetId]
-    );
+   const result = await pool.query(
+  `INSERT INTO matches (player1, player2, status, mode)
+   VALUES ($1, $2, 'pending', $3)
+   RETURNING id`,
+  [challenge.challengerId, challenge.targetId, challenge.mode || "classical"]
+);
 
     const matchId = result.rows[0].id;
     const room = "uno-chess-" + matchId;
@@ -2090,12 +2150,12 @@ socket.on("reject-challenge", (challengeId) => {
     const opponentId = socketUsers.get(opponent.id);
 
     try {
-      const result = await pool.query(
-        `INSERT INTO matches (player1, player2, status)
-         VALUES ($1, $2, 'pending')
-         RETURNING id`,
-        [opponentId, Number(userId)]
-      );
+  const result = await pool.query(
+    `INSERT INTO matches (player1, player2, status, mode)
+     VALUES ($1, $2, 'pending', 'classical')
+     RETURNING id`,
+    [opponentId, Number(userId)]
+  );
 
       const matchId = result.rows[0].id;
       const room = "uno-chess-" + matchId;
