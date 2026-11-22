@@ -2923,22 +2923,7 @@ async function logoutAccount(){
 
  accountStatus("Déconnecté.");
 }
-function openSettings(){
- const choice = prompt(
-  "PARAMÈTRES UNO.CHESS\n\n" +
-  "1 = Modifier le nom d'utilisateur\n" +
-  "2 = Modifier le mot de passe\n" +
-  "3 = Gameplay"
- );
 
- if(choice==="1"){
-  changeUsername();
- }else if(choice==="2"){
-  changePassword();
- }else if(choice==="3"){
-  openGameplaySettings();
- }
-}
  function openGameplaySettings(){
  const choice = prompt(
   "GAMEPLAY — APPARENCE DES PIÈCES\n\n" +
@@ -2981,30 +2966,7 @@ async function changeUsername(){
   message.textContent = error.message || "Impossible de modifier le pseudo.";
  }
 }
- async function changePassword(){
- const currentPassword = document.getElementById("settings-old-password").value;
- const newPassword = document.getElementById("settings-new-password").value;
- const message = document.getElementById("settings-account-message");
 
- if(!currentPassword || !newPassword){
-  message.textContent = "Remplis les deux champs.";
-  return;
- }
-
- try{
-  const data = await apiRequest("/api/change-password",{
-   currentPassword,
-   newPassword
-  });
-
-  message.textContent = data.message || "Mot de passe modifié avec succès !";
-  document.getElementById("settings-old-password").value = "";
-  document.getElementById("settings-new-password").value = "";
-
- }catch(error){
-  message.textContent = error.message || "Impossible de modifier le mot de passe.";
- }
-}
  async function changePassword(){
  const currentPassword = document.getElementById("settings-old-password").value;
  const newPassword = document.getElementById("settings-new-password").value;
@@ -3262,18 +3224,30 @@ if (tab === "Gameplay") {
       `;
 
       overlay.querySelector("#save-username").onclick = changeUsername;
-     overlay.querySelector("#save-password").onclick = changePassword;
-     overlay.querySelector("#save-password").onclick = changePassword;
-    } else if (tab === "Board & Pieces") {
-      description.textContent = "Customize the look and feel of your chess set.";
-      content.innerHTML = `
-        <h3>Boards</h3>
-        <p>Choose your board theme.</p>
-        <button data-theme="bleu">🔵 Bleu</button>
-        <button data-theme="rose">🩷 Rose</button>
-        <button data-theme="vert">🟢 Vert</button>
-        <button data-theme="rouge">🔴 Rouge sanglant</button>
-      `;
+     
+   } else if (tab === "Board & Pieces") {
+  description.textContent = "Customize the look and feel of your chess set.";
+
+  content.innerHTML = `
+    <h3>Boards</h3>
+    <p>Choose your board theme.</p>
+    <button data-theme="bleu">🔵 Bleu</button>
+    <button data-theme="rose">🩷 Rose</button>
+    <button data-theme="vert">🟢 Vert</button>
+    <button data-theme="rouge">🔴 Rouge sanglant</button>
+  `;
+
+  content.querySelectorAll("[data-theme]").forEach(button => {
+    button.onclick = () => {
+      overlay.dataset.selectedTheme = button.dataset.theme;
+
+      content.querySelectorAll("[data-theme]").forEach(b => {
+        b.style.border = b === button
+          ? "3px solid white"
+          : "2px solid transparent";
+      });
+    };
+  });
    
       
 
@@ -3779,6 +3753,11 @@ function openPrivateMessages(){
  let currentDMFriendId = null;
 let currentDMFriendUsername = "";
 async function openDM(friendId, username) {
+  if (!currentUser) {
+    alert("Connecte-toi pour utiliser les messages privés.");
+    return;
+  }
+
   currentDMFriendId = friendId;
 currentDMFriendUsername = username;
   document.getElementById("dm-title").textContent =
@@ -3807,6 +3786,10 @@ panel.style.boxSizing = "border-box";
 async function loadPrivateMessages() {
   if (!currentDMFriendId) return;
 
+  if (!currentUser || !sessionStorage.getItem("unoChessToken")) {
+    alert("Ta session a expiré. Reconnecte-toi.");
+    return;
+  }
   try {
     const response = await fetch(
       API_BASE + "/api/messages/" + currentDMFriendId,
@@ -3851,6 +3834,11 @@ function closeDM() {
 }
 async function sendPrivateMessage() {
   if (!currentDMFriendId) return;
+
+  if (!currentUser || !sessionStorage.getItem("unoChessToken")) {
+    alert("Ta session a expiré. Reconnecte-toi.");
+    return;
+  }
 
   const input = document.getElementById("dm-input");
   const content = input.value.trim();
@@ -4060,11 +4048,16 @@ function sendGameChatMessage(){
 }
 
 // ENVOYER AVEC LA TOUCHE ENTRÉE
-document.getElementById("chat-input").addEventListener("keydown", event => {
-  if (event.key === "Enter"){
-    sendGameChatMessage();
-  }
-});
+const gameChatInput = document.getElementById("chat-input");
+
+if (gameChatInput) {
+  gameChatInput.addEventListener("keydown", event => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      sendGameChatMessage();
+    }
+  });
+}
 function connectOnlineSocket(){
  if(onlineSocket){
   onlineSocket.disconnect();
@@ -4291,7 +4284,7 @@ if(!currentUser){
  }
 
  onlineSearching=true;
- onlineSocket.emit("find-game");
+onlineSocket.emit("find-game", selectedGameMode);
 
  status.textContent="Recherche d'un adversaire...";
 }
@@ -4591,7 +4584,7 @@ const savedDescription =
 
 const profileDescription = document.getElementById("profile-description");
 if (profileDescription) {
-  profileDescription.textContent = savedProfileDescription || "Aucune description.";
+  profileDescription.textContent = savedDescription || "Aucune description.";
 }
 const savedInterfaceTheme = localStorage.getItem("unoChessInterfaceTheme");
 
