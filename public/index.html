@@ -1140,7 +1140,8 @@ onclick="loginAccount()"
 </div>
 <div id="player-menu-history" style="
  position:absolute;
- left:25px;
+right:25px;
+left:auto;
  bottom:25px;
  width:45%;
  height:55%;
@@ -3714,7 +3715,7 @@ document.getElementById("player-menu-avatar").src =
 
 document.getElementById("player-menu-description").textContent =
   profile.description || "Aucune description.";
- const classicalMatches = data.history.filter(
+const classicalMatches = data.history.filter(
  match => match.mode !== "fatality"
 );
 
@@ -3722,18 +3723,21 @@ const fatalityMatches = data.history.filter(
  match => match.mode === "fatality"
 );
 
+const classicalKilo = Number(profile.classical_kilo) || 1000;
+const fatalityKilo = Number(profile.fatality_kilo) || 1000;
+
 document.getElementById("classical-kilo").textContent =
- "Parties : " + classicalMatches.length;
+ "KILO : " + classicalKilo + " • Parties : " + classicalMatches.length;
 
 document.getElementById("fatality-kilo").textContent =
- "Parties : " + fatalityMatches.length;
-  function drawKiloChart(canvasId, matches) {
+ "KILO : " + fatalityKilo + " • Parties : " + fatalityMatches.length;
+
+function drawKiloChart(canvasId, matches, currentKilo) {
  const canvas = document.getElementById(canvasId);
 
  if (!canvas) return;
 
  const ctx = canvas.getContext("2d");
-
  const width = canvas.clientWidth;
  const height = 180;
 
@@ -3741,7 +3745,6 @@ document.getElementById("fatality-kilo").textContent =
  canvas.height = height * window.devicePixelRatio;
 
  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-
  ctx.clearRect(0, 0, width, height);
 
  if (matches.length === 0) {
@@ -3752,14 +3755,10 @@ document.getElementById("fatality-kilo").textContent =
  }
 
  // Les parties arrivent de la plus récente à la plus ancienne.
- const ordered = [...matches].reverse();
-
- let kilo = Number(profile.kilo) || 1000;
-
+ let kilo = currentKilo;
  const points = [kilo];
 
- for (let i = 0; i < ordered.length; i++) {
-  const match = ordered[i];
+ for (const match of matches) {
   const change = Number(match.kilo_change) || 0;
 
   if (match.result === "VICTOIRE") {
@@ -3768,8 +3767,10 @@ document.getElementById("fatality-kilo").textContent =
    kilo += change;
   }
 
-  points.unshift(kilo);
+  points.push(kilo);
  }
+
+ points.reverse();
 
  const min = Math.min(...points) - 10;
  const max = Math.max(...points) + 10;
@@ -3792,8 +3793,9 @@ document.getElementById("fatality-kilo").textContent =
 
  ctx.stroke();
 }
-  drawKiloChart("classical-kilo-chart", classicalMatches);
-drawKiloChart("fatality-kilo-chart", fatalityMatches);
+
+drawKiloChart("classical-kilo-chart", classicalMatches, classicalKilo);
+drawKiloChart("fatality-kilo-chart", fatalityMatches, fatalityKilo);
   matchList.innerHTML = "";
 
  data.history.forEach(match => {
