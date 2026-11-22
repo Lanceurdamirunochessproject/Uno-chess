@@ -2575,7 +2575,7 @@ function nextReportMove(){
 
 /* OUVERTURE DU BILAN */
 
-function showReport(){
+function showReport(force = false){
 
  if(!finished){
   status.textContent="Termine la partie pour consulter le bilan.";
@@ -3595,6 +3595,7 @@ overlay.querySelector("#settings-save").onclick = () => {
 
 
 
+
 async function openPlayerProfile(player){
  selectedPlayer = player;
 
@@ -3622,13 +3623,13 @@ async function openPlayerProfile(player){
 
   data.history.forEach(match => {
    const item = document.createElement("div");
-   item.style.padding = "9px 0";
+
+   item.style.padding = "12px 8px";
    item.style.borderBottom = "1px solid #374151";
+   item.style.cursor = "pointer";
+   item.style.borderRadius = "6px";
 
    const mode = match.mode === "fatality" ? "FATALITY" : "CLASSIQUE";
-   const date = match.settled_at
-    ? new Date(match.settled_at).toLocaleDateString("fr-CA")
-    : "";
 
    const kilo = match.result === "VICTOIRE"
     ? `+${match.kilo_change || 0}`
@@ -3637,7 +3638,31 @@ async function openPlayerProfile(player){
      : "0";
 
    item.textContent =
-    `${match.result} • vs ${match.opponent} • ${mode} • ${kilo} KILO • ${date}`;
+    `${match.result} • vs ${match.opponent} • ${mode} • ${kilo} KILO`;
+
+   item.onmouseenter = () => {
+    item.style.background = "#374151";
+   };
+
+   item.onmouseleave = () => {
+    item.style.background = "transparent";
+   };
+
+   item.onclick = () => {
+    if (!Array.isArray(match.history)) {
+     alert("Le bilan de cette partie n'est pas disponible.");
+     return;
+    }
+
+    moveHistory = match.history.map((move, index) => ({
+     ...move,
+     side: move.side === "w" ? "Blancs" : "Noirs",
+     number: Math.floor(index / 2) + 1
+    }));
+
+    reportIndex = 0;
+    showReport(true);
+   };
 
    historyBox.appendChild(item);
   });
@@ -3647,6 +3672,7 @@ async function openPlayerProfile(player){
   historyBox.textContent = "Impossible de charger l'historique.";
  }
 }
+
 
 function openPrivateMessages(){
   if (!selectedPlayer) {
