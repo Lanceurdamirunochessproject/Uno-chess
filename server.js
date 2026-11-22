@@ -647,6 +647,10 @@ app.post("/api/change-password", requireLogin, async (req, res) => {
 });
 
 /* NOUVELLE ROUTE DU CLASSEMENT */
+// ===============================
+// 💬 MESSAGES DES CLUBS
+// ===============================
+
 
 app.get("/api/leaderboard", async (req, res) => {
   try {
