@@ -1165,6 +1165,7 @@ onclick="loginAccount()"
    <canvas id="fatality-kilo-chart" style="width:100%;height:180px;"></canvas>
   </div>
  </div>
+ <div id="player-menu-match-list"></div>
 </div>
  <button onclick="sendPlayerChallenge()">DÉFIER</button>
 <button onclick="sendFriendRequest()">AJOUTER EN AMI</button>
@@ -3678,6 +3679,7 @@ async function openPlayerProfile(player){
 
  const menu = document.getElementById("player-profile-menu");
  const historyBox = document.getElementById("player-menu-history");
+ const matchList = document.getElementById("player-menu-match-list");
 
  document.getElementById("player-menu-name").textContent =
   player.username || "Joueur";
@@ -3690,10 +3692,11 @@ async function openPlayerProfile(player){
  document.getElementById("player-menu-description").textContent =
   player.description || "Aucune description.";
  menu.style.display = "block";
- historyBox.textContent = "Chargement de l'historique...";
+ matchList.textContent = "Chargement de l'historique...";
 
  try {
   const data = await apiRequest(`/api/players/${player.id}`);
+  console.log("HISTORIQUE JOUEUR :", data);
 const profile = data.player || player;
 
 document.getElementById("player-menu-name").textContent =
@@ -3791,7 +3794,7 @@ document.getElementById("fatality-kilo").textContent =
 }
   drawKiloChart("classical-kilo-chart", classicalMatches);
 drawKiloChart("fatality-kilo-chart", fatalityMatches);
-  historyBox.innerHTML = "";
+  matchList.innerHTML = "";
 
  data.history.forEach(match => {
    const item = document.createElement("div");
@@ -3836,12 +3839,12 @@ drawKiloChart("fatality-kilo-chart", fatalityMatches);
     showReport(true);
    };
 
-   historyBox.appendChild(item);
+   matchList.appendChild(item);
   });
 
  } catch (error) {
   console.error("Erreur historique :", error);
-  historyBox.textContent = "Impossible de charger l'historique.";
+  matchList.textContent = "Impossible de charger l'historique.";
  }
 }
 
