@@ -1065,6 +1065,19 @@ onclick="loginAccount()"
  <div id="online-controls">
   <button onclick="findOnlineGame()">🔎 TROUVER UN ADVERSAIRE</button>
   <button onclick="cancelOnlineSearch()" class="account-secondary">ANNULER</button>
+  <div style="margin:12px auto;max-width:320px;">
+  <input
+    id="player-search-input"
+    type="text"
+    placeholder="Rechercher un pseudo..."
+    maxlength="20"
+    style="width:100%;padding:12px;border-radius:8px;"
+  >
+
+  <button onclick="searchPlayer()" style="margin-top:8px;width:100%;">
+    🔎 RECHERCHER UN JOUEUR
+  </button>
+</div>
   <button onclick="playAgainstDavid()" style="background:#7c3aed;color:white;border:0;padding:12px;border-radius:8px;cursor:pointer;">
   🤖 JOUER CONTRE DAVID
 </button>
@@ -1182,12 +1195,14 @@ onclick="loginAccount()"
    <div style="background:#1f2937;padding:10px;border-radius:8px;">
     <h4 style="color:#60a5fa;">♟ CLASSICAL</h4>
     <p id="classical-kilo">KILO : --</p>
+    <p id="classical-rank">RANG : --</p>
     <canvas id="classical-kilo-chart" style="width:100%;height:180px;"></canvas>
    </div>
 
    <div style="background:#1f2937;padding:10px;border-radius:8px;">
     <h4 style="color:#f87171;">☠️ FATALITY</h4>
     <p id="fatality-kilo">KILO : --</p>
+    <p id="fatality-rank">RANG : --</p>
     <canvas id="fatality-kilo-chart" style="width:100%;height:180px;"></canvas>
    </div>
 
@@ -3700,7 +3715,31 @@ const profileDescription = document.getElementById("profile-description");
   }
 }
 
+async function searchPlayer(){
+ const input = document.getElementById("player-search-input");
+ const username = input.value.trim();
 
+ if(username.length < 3){
+  alert("Entre un pseudo d'au moins 3 caractères.");
+  return;
+ }
+
+ try{
+  const response = await apiRequest(
+   "/api/search-player?username=" + encodeURIComponent(username)
+  );
+
+  if(!response.player){
+   alert("Aucun joueur trouvé.");
+   return;
+  }
+
+  await openPlayerProfile(response.player);
+
+ }catch(error){
+  alert("Erreur : " + error.message);
+ }
+}
 
 
 async function openPlayerProfile(player){
@@ -3762,6 +3801,11 @@ document.getElementById("classical-kilo").textContent =
 
 document.getElementById("fatality-kilo").textContent =
  "KILO : " + fatalityKilo + " • Parties : " + fatalityMatches.length;
+  document.getElementById("classical-rank").textContent =
+ "RANG : #" + (profile.classical_rank ?? "--");
+
+document.getElementById("fatality-rank").textContent =
+ "RANG : #" + (profile.fatality_rank ?? "--");
 
 function drawKiloChart(canvasId, matches, currentKilo) {
  const canvas = document.getElementById(canvasId);
