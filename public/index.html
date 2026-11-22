@@ -3384,7 +3384,12 @@ descriptionInput.dispatchEvent(new Event("input"));
 
       list.innerHTML = clubs.map(club => `
         <div style="background:#374151;padding:15px;border-radius:10px;margin-bottom:12px">
-          <h3>${club.emblem || "♟️"} ${club.name}</h3>
+          <h3>
+  <button data-open-club="${club.id}"
+    style="background:none;border:none;color:white;font-size:20px;font-weight:bold;cursor:pointer">
+    ${club.emblem || "♟️"} ${club.name} →
+  </button>
+</h3>
           <p>${club.description || "Aucune description."}</p>
           <p style="color:#cbd5e1">
             Créateur : ${club.owner_username || "Inconnu"} ·
@@ -3426,6 +3431,68 @@ descriptionInput.dispatchEvent(new Event("input"));
           }
         };
       });
+     list.querySelectorAll("[data-open-club]").forEach(button => {
+  button.onclick = async () => {
+    const clubId = button.dataset.openClub;
+    const club = clubs.find(c => String(c.id) === String(clubId));
+
+    content.innerHTML = `
+      <button id="club-back">← Retour aux clubs</button>
+      <h2>${club.emblem || "♟️"} ${club.name}</h2>
+      <p>${club.description || ""}</p>
+
+      <div id="club-chat-messages"
+        style="background:#1f2937;padding:15px;border-radius:10px;height:300px;overflow-y:auto">
+        Chargement des messages...
+      </div>
+
+      <input id="club-chat-input" placeholder="Écris un message..."
+        style="width:75%;padding:12px">
+      <button id="club-chat-send">Envoyer</button>
+    `;
+
+    content.querySelector("#club-back").onclick = () => {
+      renderTab("Social");
+    };
+
+    async function loadClubMessages() {
+      try {
+        const data = await apiRequest(`/api/clubs/${clubId}/messages`);
+        const box = content.querySelector("#club-chat-messages");
+
+        box.innerHTML = "";
+
+        data.messages.forEach(msg => {
+          const line = document.createElement("p");
+          line.textContent = `${msg.username}: ${msg.content}`;
+          box.appendChild(line);
+        });
+
+        box.scrollTop = box.scrollHeight;
+      } catch (error) {
+        content.querySelector("#club-chat-messages").textContent =
+          "Erreur : " + error.message;
+      }
+    }
+
+    content.querySelector("#club-chat-send").onclick = async () => {
+      const input = content.querySelector("#club-chat-input");
+      const message = input.value.trim();
+
+      if (!message) return;
+
+      try {
+     await apiRequest(`/api/clubs/${clubId}/messages`, { content: message });
+        input.value = "";
+        loadClubMessages();
+      } catch (error) {
+        alert(error.message);
+      }
+    };
+
+    loadClubMessages();
+  };
+});
     } catch (error) {
       list.textContent = "Impossible de charger les clubs : " + error.message;
     }
