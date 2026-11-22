@@ -2926,8 +2926,9 @@ async function loadProfile(){
   document.getElementById("profile-name").textContent=
    currentUser.username || "Joueur";
 
-  document.getElementById("profile-kilo").textContent=
-   currentUser.kilo ?? 1000;
+ document.getElementById("profile-kilo").textContent =
+ "♟ CLASSICAL : " + (currentUser.classical_kilo ?? 1000) +
+ " | ☠️ FATALITY : " + (currentUser.fatality_kilo ?? 1000);
 const profileAvatar = document.getElementById("profile-avatar");
 if (profileAvatar) {
   profileAvatar.src =
