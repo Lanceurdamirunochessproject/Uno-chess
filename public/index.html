@@ -2577,7 +2577,7 @@ function nextReportMove(){
 
 function showReport(force = false){
 
- if(!finished){
+ if(!finished && !force){
   status.textContent="Termine la partie pour consulter le bilan.";
   return;
  }
