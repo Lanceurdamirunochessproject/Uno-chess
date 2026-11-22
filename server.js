@@ -350,7 +350,17 @@ async function initDatabase() {
       CHECK(role IN ('owner', 'admin', 'member'))
     )
   `);
-  }
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS club_messages (
+      id SERIAL PRIMARY KEY,
+      club_id INTEGER NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      content TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+}
 /* =====================================================
    COMPTES
    ===================================================== */
@@ -635,55 +645,7 @@ app.post("/api/change-password", requireLogin, async (req, res) => {
     res.status(500).json({ error: "Erreur du serveur." });
   }
 });
-app.post("/api/change-password", requireLogin, async (req, res) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
 
-    if (
-      typeof currentPassword !== "string" ||
-      typeof newPassword !== "string" ||
-      newPassword.length < 8 ||
-      newPassword.length > 100
-    ) {
-      return res.status(400).json({
-        error: "Le nouveau mot de passe doit contenir entre 8 et 100 caractères."
-      });
-    }
-
-    const result = await pool.query(
-      "SELECT password_hash FROM users WHERE id = $1",
-      [req.userId]
-    );
-
-    if (!result.rows.length) {
-      return res.status(404).json({ error: "Compte introuvable." });
-    }
-
-    const valid = await bcrypt.compare(
-      currentPassword,
-      result.rows[0].password_hash
-    );
-
-    if (!valid) {
-      return res.status(401).json({
-        error: "Mot de passe actuel incorrect."
-      });
-    }
-
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
-
-    await pool.query(
-      "UPDATE users SET password_hash = $1 WHERE id = $2",
-      [hashedPassword, req.userId]
-    );
-
-    res.json({ message: "Mot de passe modifié avec succès !" });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erreur du serveur." });
-  }
-});
 /* NOUVELLE ROUTE DU CLASSEMENT */
 
 app.get("/api/leaderboard", async (req, res) => {
@@ -887,6 +849,112 @@ app.post("/api/clubs/:id/join", requireLogin, async (req, res) => {
     });
   }
 });
+
+// RÉCUPÉRER LES MESSAGES D'UN CLUB
+app.get("/api/clubs/:id/messages", requireLogin, async (req, res) => {
+  try {
+    const clubId = Number(req.params.id);
+
+    if (!Number.isInteger(clubId) || clubId <= 0) {
+      return res.status(400).json({ error: "Club invalide." });
+    }
+
+    const membership = await pool.query(
+      `SELECT 1 FROM club_members
+       WHERE club_id = $1 AND user_id = $2`,
+      [clubId, req.userId]
+    );
+
+    if (!membership.rows.length) {
+      return res.status(403).json({
+        error: "Tu dois être membre de ce club pour voir son chat."
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT * FROM (
+         SELECT
+           m.id,
+           m.content,
+           m.created_at,
+           u.username
+         FROM club_messages m
+         JOIN users u ON u.id = m.user_id
+         WHERE m.club_id = $1
+         ORDER BY m.created_at DESC
+         LIMIT 100
+       ) recent
+       ORDER BY created_at ASC`,
+      [clubId]
+    );
+
+    res.json({ messages: result.rows });
+
+  } catch (error) {
+    console.error("Erreur chargement chat club :", error);
+    res.status(500).json({
+      error: "Impossible de charger les messages."
+    });
+  }
+});
+
+
+// ENVOYER UN MESSAGE DANS UN CLUB
+app.post("/api/clubs/:id/messages", requireLogin, async (req, res) => {
+  try {
+    const clubId = Number(req.params.id);
+    const content = String(req.body.content || "").trim();
+
+    if (!Number.isInteger(clubId) || clubId <= 0) {
+      return res.status(400).json({ error: "Club invalide." });
+    }
+
+    if (!content || content.length > 1000) {
+      return res.status(400).json({
+        error: "Le message doit contenir entre 1 et 1000 caractères."
+      });
+    }
+
+    const membership = await pool.query(
+      `SELECT 1 FROM club_members
+       WHERE club_id = $1 AND user_id = $2`,
+      [clubId, req.userId]
+    );
+
+    if (!membership.rows.length) {
+      return res.status(403).json({
+        error: "Tu dois être membre de ce club pour écrire."
+      });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO club_messages (club_id, user_id, content)
+       VALUES ($1, $2, $3)
+       RETURNING id, content, created_at`,
+      [clubId, req.userId, content]
+    );
+
+      const userResult = await pool.query(
+      "SELECT username FROM users WHERE id = $1",
+      [req.userId]
+    );
+
+    res.json({
+      message: "Message envoyé !",
+      messageData: {
+        ...result.rows[0],
+        username: userResult.rows[0]?.username || "Joueur"
+      }
+    });
+
+  } catch (error) {
+    console.error("Erreur envoi message club :", error);
+    res.status(500).json({
+      error: "Impossible d'envoyer le message."
+    });
+  }
+});
+
 app.delete("/api/clubs/:id/leave", requireLogin, async (req, res) => {
   try {
     const clubId = Number(req.params.id);
@@ -1121,7 +1189,7 @@ function makeDeck(mode = "classical") {
 }
 function drawCard(match) {
   if (match.deck.length === 0) {
-    match.deck = makeDeck();
+    match.deck = makeDeck(match.mode);
   }
 
   return match.deck.pop();
@@ -1319,10 +1387,11 @@ for (let i = 0; i < startingCards; i++) {
 
   match.discard = drawCard(match);
 
-  while (
-    match.discard.value === "JOKER" ||
-    match.discard.value === "+4"
-  ) {
+ while (
+  match.discard.value === "JOKER" ||
+  match.discard.value === "+4" ||
+  match.discard.value === "+10"
+) {
     match.deck.push(match.discard);
     match.discard = drawCard(match);
   }
@@ -1337,14 +1406,13 @@ for (let i = 0; i < startingCards; i++) {
    ===================================================== */
 
 async function finishOnlineMatch(room, match, winnerId) {
-  if (match.finished) return;
+if (match.finished || match.finishing) return;
 
-  match.finished = true;
-
+match.finishing = true;
   try {
     if (winnerId === null) {
       await finishDraw(match.id);
-
+match.finished = true;
       io.to(room).emit("online-finished", {
         draw: true,
         message: "Match nul ! Aucun KILO gagné ou perdu."
@@ -1363,7 +1431,7 @@ async function finishOnlineMatch(room, match, winnerId) {
       winnerId,
       loserId
     );
-
+match.finished = true;
     io.to(room).emit("online-finished", {
       draw: false,
       winnerId: Number(winnerId),
@@ -1372,6 +1440,7 @@ async function finishOnlineMatch(room, match, winnerId) {
     });
 
   } catch (error) {
+    match.finishing = false;
     console.error("Settlement error:", error);
 
     io.to(room).emit("online-finished", {
