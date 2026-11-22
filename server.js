@@ -27,7 +27,7 @@ const FRONTEND_URL =
   "https://lanceurdamirunochessproject.github.io";
 
 app.set("trust proxy", 1);
-app.use(express.json({ limit: "20kb" }));
+app.use(express.json({ limit: "5mb" }));
 
 app.use(cors({
   origin: FRONTEND_URL,
@@ -567,6 +567,52 @@ app.get("/api/me", requireLogin, async (req, res) => {
     console.error("Erreur /api/me :", error);
     res.status(500).json({
       error: "Erreur lors du chargement du profil."
+    });
+  }
+});
+app.post("/api/update-profile", requireLogin, async (req, res) => {
+  try {
+    const { avatar, description } = req.body;
+
+   if (
+  typeof avatar !== "string" ||
+  avatar.length > 6500000 ||
+  (
+    avatar &&
+    !(
+      /^https?:\/\/\S+$/i.test(avatar) ||
+      /^data:image\/(png|jpeg|webp|gif);base64,/i.test(avatar)
+    )
+  )
+) {
+  return res.status(400).json({
+    error: "Photo invalide ou trop volumineuse."
+  });
+}
+
+    if (
+      typeof description !== "string" ||
+      description.trim().split(/\s+/).filter(Boolean).length > 15
+    ) {
+      return res.status(400).json({
+        error: "La description ne doit pas dépasser 15 mots."
+      });
+    }
+
+    const result = await pool.query(
+      `UPDATE users
+       SET avatar = $1, description = $2
+       WHERE id = $3
+       RETURNING id, username, kilo, avatar, description`,
+      [avatar.trim(), description.trim(), req.userId]
+    );
+
+    res.json({ user: result.rows[0] });
+
+  } catch (error) {
+    console.error("Erreur modification profil :", error);
+    res.status(500).json({
+      error: "Impossible de modifier le profil."
     });
   }
 });
