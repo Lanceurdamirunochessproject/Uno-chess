@@ -552,6 +552,54 @@ await pool.query(
   }
 });
 
+app.post("/api/logout", async (req, res) => {
+  try {
+    const authorization = req.headers.authorization || "";
+    const token = authorization.startsWith("Bearer ")
+      ? authorization.slice(7)
+      : null;
+
+    if (token) {
+      await tokenTableReady;
+
+      const tokenHash = crypto
+        .createHash("sha256")
+        .update(token)
+        .digest("hex");
+
+      await pool.query(
+        "DELETE FROM auth_tokens WHERE token_hash = $1",
+        [tokenHash]
+      );
+    }
+
+    req.session.destroy(error => {
+      if (error) {
+        console.error("Erreur déconnexion :", error);
+        return res.status(500).json({
+          error: "Impossible de fermer la session."
+        });
+      }
+
+      res.clearCookie("connect.sid", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none"
+      });
+
+      res.json({
+        message: "Déconnexion réussie."
+      });
+    });
+
+  } catch (error) {
+    console.error("Erreur logout :", error);
+    res.status(500).json({
+      error: "Erreur pendant la déconnexion."
+    });
+  }
+});
+
 app.get("/api/me", requireLogin, async (req, res) => {
   try {
     console.log("SESSION /api/me :", req.session.userId);
