@@ -2243,13 +2243,7 @@ socket.on("send-challenge", async (targetId, mode = "classical") => {
       socket.emit("challenge-error", "Joueur invalide.");
       return;
     }
-if (waitingPlayers.get(challenge.challengerId) === challengerSocket) {
-  waitingPlayers.delete(challenge.challengerId);
-}
 
-if (waitingPlayers.get(challenge.targetId) === socket) {
-  waitingPlayers.delete(challenge.targetId);
-}
     const alreadyPlaying = [...activeRooms.values()].some(
       match =>
         match.whiteUser === challengerId ||
