@@ -1140,7 +1140,7 @@ onclick="loginAccount()"
 </div>
 <div id="player-menu-history" style="
  position:absolute;
- right:25px;
+ left:25px;
  bottom:25px;
  width:45%;
  height:55%;
@@ -1150,7 +1150,21 @@ onclick="loginAccount()"
  border-radius:10px;
  overflow-y:auto;
 ">
- Chargement de l'historique...
+ <h3 style="margin-top:0;">📊 HISTORIQUE KILO</h3>
+
+ <div style="display:flex;gap:12px;height:85%;">
+  <div style="flex:1;min-width:0;background:#1f2937;padding:10px;border-radius:8px;">
+   <h4 style="color:#60a5fa;">♟ CLASSICAL</h4>
+   <p id="classical-kilo">KILO : --</p>
+   <canvas id="classical-kilo-chart" style="width:100%;height:180px;"></canvas>
+  </div>
+
+  <div style="flex:1;min-width:0;background:#1f2937;padding:10px;border-radius:8px;">
+   <h4 style="color:#f87171;">☠️ FATALITY</h4>
+   <p id="fatality-kilo">KILO : --</p>
+   <canvas id="fatality-kilo-chart" style="width:100%;height:180px;"></canvas>
+  </div>
+ </div>
 </div>
  <button onclick="sendPlayerChallenge()">DÉFIER</button>
 <button onclick="sendFriendRequest()">AJOUTER EN AMI</button>
@@ -3697,12 +3711,87 @@ document.getElementById("player-menu-avatar").src =
 
 document.getElementById("player-menu-description").textContent =
   profile.description || "Aucune description.";
-  if (!Array.isArray(data.history) || data.history.length === 0) {
-   historyBox.textContent = "Aucune partie terminée.";
-   return;
+ const classicalMatches = data.history.filter(
+ match => match.mode !== "fatality"
+);
+
+const fatalityMatches = data.history.filter(
+ match => match.mode === "fatality"
+);
+
+document.getElementById("classical-kilo").textContent =
+ "Parties : " + classicalMatches.length;
+
+document.getElementById("fatality-kilo").textContent =
+ "Parties : " + fatalityMatches.length;
+  function drawKiloChart(canvasId, matches) {
+ const canvas = document.getElementById(canvasId);
+
+ if (!canvas) return;
+
+ const ctx = canvas.getContext("2d");
+
+ const width = canvas.clientWidth;
+ const height = 180;
+
+ canvas.width = width * window.devicePixelRatio;
+ canvas.height = height * window.devicePixelRatio;
+
+ ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+ ctx.clearRect(0, 0, width, height);
+
+ if (matches.length === 0) {
+  ctx.fillStyle = "#9ca3af";
+  ctx.textAlign = "center";
+  ctx.fillText("Aucune partie", width / 2, height / 2);
+  return;
+ }
+
+ // Les parties arrivent de la plus récente à la plus ancienne.
+ const ordered = [...matches].reverse();
+
+ let kilo = Number(profile.kilo) || 1000;
+
+ const points = [kilo];
+
+ for (let i = 0; i < ordered.length; i++) {
+  const match = ordered[i];
+  const change = Number(match.kilo_change) || 0;
+
+  if (match.result === "VICTOIRE") {
+   kilo -= change;
+  } else if (match.result === "DÉFAITE") {
+   kilo += change;
   }
 
-  historyBox.innerHTML = "<strong>♟ DERNIÈRES PARTIES</strong>";
+  points.unshift(kilo);
+ }
+
+ const min = Math.min(...points) - 10;
+ const max = Math.max(...points) + 10;
+ const range = Math.max(1, max - min);
+
+ ctx.strokeStyle = canvasId.includes("fatality")
+  ? "#f87171"
+  : "#60a5fa";
+
+ ctx.lineWidth = 3;
+ ctx.beginPath();
+
+ points.forEach((value, index) => {
+  const x = 10 + index * (width - 20) / Math.max(1, points.length - 1);
+  const y = height - 15 - ((value - min) / range) * (height - 30);
+
+  if (index === 0) ctx.moveTo(x, y);
+  else ctx.lineTo(x, y);
+ });
+
+ ctx.stroke();
+}
+  drawKiloChart("classical-kilo-chart", classicalMatches);
+drawKiloChart("fatality-kilo-chart", fatalityMatches);
+  historyBox.innerHTML = "";
 
  data.history.forEach(match => {
    const item = document.createElement("div");
