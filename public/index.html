@@ -1138,36 +1138,63 @@ onclick="loginAccount()"
   ">Aucune description.</p>
  </div>
 </div>
+
 <div id="player-menu-history" style="
  position:absolute;
-right:25px;
-left:auto;
+ right:25px;
+ left:auto;
  bottom:25px;
- width:45%;
- height:55%;
+ width:65%;
+ height:65%;
  padding:15px;
  background:#111827;
  border:1px solid #374151;
  border-radius:10px;
- overflow-y:auto;
+ display:flex;
+ flex-direction:column;
 ">
  <h3 style="margin-top:0;">📊 HISTORIQUE KILO</h3>
 
- <div style="display:flex;gap:12px;height:85%;">
-  <div style="flex:1;min-width:0;background:#1f2937;padding:10px;border-radius:8px;">
-   <h4 style="color:#60a5fa;">♟ CLASSICAL</h4>
-   <p id="classical-kilo">KILO : --</p>
-   <canvas id="classical-kilo-chart" style="width:100%;height:180px;"></canvas>
+ <div style="display:flex;gap:15px;flex:1;min-height:0;">
+
+  <!-- LISTE DES PARTIES À GAUCHE -->
+  <div style="
+   width:35%;
+   min-width:0;
+   background:#1f2937;
+   padding:10px;
+   border-radius:8px;
+   overflow-y:auto;
+  ">
+   <h4>📜 PARTIES</h4>
+   <div id="player-menu-match-list"></div>
   </div>
 
-  <div style="flex:1;min-width:0;background:#1f2937;padding:10px;border-radius:8px;">
-   <h4 style="color:#f87171;">☠️ FATALITY</h4>
-   <p id="fatality-kilo">KILO : --</p>
-   <canvas id="fatality-kilo-chart" style="width:100%;height:180px;"></canvas>
+  <!-- GRAPHIQUES À DROITE -->
+  <div style="
+   width:65%;
+   display:flex;
+   flex-direction:column;
+   gap:12px;
+   overflow-y:auto;
+  ">
+
+   <div style="background:#1f2937;padding:10px;border-radius:8px;">
+    <h4 style="color:#60a5fa;">♟ CLASSICAL</h4>
+    <p id="classical-kilo">KILO : --</p>
+    <canvas id="classical-kilo-chart" style="width:100%;height:180px;"></canvas>
+   </div>
+
+   <div style="background:#1f2937;padding:10px;border-radius:8px;">
+    <h4 style="color:#f87171;">☠️ FATALITY</h4>
+    <p id="fatality-kilo">KILO : --</p>
+    <canvas id="fatality-kilo-chart" style="width:100%;height:180px;"></canvas>
+   </div>
+
   </div>
  </div>
- <div id="player-menu-match-list"></div>
 </div>
+
  <button onclick="sendPlayerChallenge()">DÉFIER</button>
 <button onclick="sendFriendRequest()">AJOUTER EN AMI</button>
 <button
@@ -3685,8 +3712,9 @@ async function openPlayerProfile(player){
  document.getElementById("player-menu-name").textContent =
   player.username || "Joueur";
 
- document.getElementById("player-menu-kilo").textContent =
-  player.kilo ?? 1000;
+document.getElementById("player-menu-kilo").textContent =
+  "CLASSICAL : " + (player.classical_kilo ?? 1000) +
+  " | FATALITY : " + (player.fatality_kilo ?? 1000);
  document.getElementById("player-menu-avatar").src =
   player.avatar || "https://placehold.co/120x120?text=PHOTO";
 
@@ -3704,7 +3732,8 @@ document.getElementById("player-menu-name").textContent =
   profile.username || "Joueur";
 
 document.getElementById("player-menu-kilo").textContent =
-  profile.kilo ?? 1000;
+  "CLASSICAL : " + (profile.classical_kilo ?? 1000) +
+  " | FATALITY : " + (profile.fatality_kilo ?? 1000);
 
 const avatar = profile.avatar || "";
 
