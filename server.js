@@ -723,16 +723,26 @@ app.post("/api/change-password", requireLogin, async (req, res) => {
 // ===============================
 
 
+
 app.get("/api/leaderboard", async (req, res) => {
   try {
+    const mode = req.query.mode === "fatality"
+      ? "fatality"
+      : "classical";
+
+    const kiloColumn = mode === "fatality"
+      ? "fatality_kilo"
+      : "classical_kilo";
+
     const result = await pool.query(
-      `SELECT id, username, kilo
+      `SELECT id, username, ${kiloColumn} AS kilo
        FROM users
-       ORDER BY kilo DESC, username ASC
+       ORDER BY ${kiloColumn} DESC, username ASC
        LIMIT 50`
     );
 
     res.json({
+      mode,
       leaderboard: result.rows
     });
 
@@ -743,6 +753,7 @@ app.get("/api/leaderboard", async (req, res) => {
     });
   }
 });
+
 app.get("/api/players/:id", async (req, res) => {
   try {
     const playerId = Number(req.params.id);
