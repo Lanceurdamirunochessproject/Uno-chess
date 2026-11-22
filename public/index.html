@@ -2862,7 +2862,18 @@ async function loadProfile(){
 
   document.getElementById("profile-kilo").textContent=
    currentUser.kilo ?? 1000;
+const profileAvatar = document.getElementById("profile-avatar");
+if (profileAvatar) {
+  profileAvatar.src =
+    currentUser.avatar ||
+    "https://api.dicebear.com/9.x/bottts/svg?seed=UNOCHESS";
+}
 
+const profileDescription = document.getElementById("profile-description");
+if (profileDescription) {
+  profileDescription.textContent =
+    currentUser.description || "Aucune description.";
+}
  }catch(error){
   console.error("ERREUR PROFIL :",error);
   currentUser=null;
@@ -3196,7 +3207,7 @@ function openSettings() {
 overlay.querySelectorAll("[data-tab]").forEach(button => {
   button.onclick = () => {
     const tab = button.dataset.tab;
-
+overlay.dataset.activeTab = tab;
     overlay.querySelector("#settings-title").textContent = tab;
 
     const description = overlay.querySelector("#settings-description");
@@ -3311,7 +3322,15 @@ content.querySelectorAll("[data-interface]").forEach(button => {
 
 const avatarInput = document.getElementById("profile-avatar-input");
 const avatarPreview = document.getElementById("settings-avatar");
-const savedAvatar = localStorage.getItem("unoChessProfileAvatar");
+ if (currentUser) {
+  document.getElementById("profile-description-input").value =
+    currentUser.description || "";
+
+  document.getElementById("settings-avatar").src =
+    currentUser.avatar || "https://api.dicebear.com/9.x/bottts/svg?seed=UNOCHESS";
+}
+const savedAvatar =
+  currentUser?.avatar || localStorage.getItem("unoChessProfileAvatar");
 
 if (savedAvatar) {
   avatarPreview.src = savedAvatar;
@@ -3342,7 +3361,8 @@ reader.onload = () => {
   reader.readAsDataURL(file);
 });
 const descriptionInput = document.getElementById("profile-description-input");
-descriptionInput.value = localStorage.getItem("unoChessProfileDescription") || "";
+descriptionInput.value =
+  currentUser?.description || localStorage.getItem("unoChessProfileDescription") || "";
 
 const wordCount = document.getElementById("profile-word-count");
 
@@ -3574,7 +3594,7 @@ descriptionInput.dispatchEvent(new Event("input"));
   overlay.querySelector("#settings-close").onclick = close;
   overlay.querySelector("#settings-cancel").onclick = close;
 
-overlay.querySelector("#settings-save").onclick = () => {
+overlay.querySelector("#settings-save").onclick = async () => {
   const themes = {
     bleu: ["#bfdbfe", "#2563eb"],
     rose: ["#fbcfe8", "#db2777"],
@@ -3590,10 +3610,31 @@ overlay.querySelector("#settings-save").onclick = () => {
 
     localStorage.setItem("unoChessBoardTheme", selected);
   }
+if (overlay.dataset.activeTab === "Profile") {
+  const avatar = document.getElementById("settings-avatar").src;
+  const description =
+    document.getElementById("profile-description-input").value.trim();
 
-  const savedDescription = localStorage.getItem("unoChessProfileDescription") || "";
-  const profileDescription = document.getElementById("profile-description");
+  try {
+    const response = await apiRequest("/api/update-profile", {
+      avatar,
+      description
+    });
 
+    currentUser = response.user || currentUser;
+
+    alert("Profil enregistré sur le serveur !");
+  } catch (error) {
+    alert("Erreur : " + error.message);
+    return;
+  }
+}
+ const savedDescription =
+  currentUser?.description ||
+  localStorage.getItem("unoChessProfileDescription") ||
+  "";
+
+const profileDescription = document.getElementById("profile-description");
   if (profileDescription) {
     profileDescription.textContent = savedDescription || "Aucune description.";
   }
@@ -3642,7 +3683,23 @@ async function openPlayerProfile(player){
 
  try {
   const data = await apiRequest(`/api/players/${player.id}`);
+const profile = data.player || player;
 
+document.getElementById("player-menu-name").textContent =
+  profile.username || "Joueur";
+
+document.getElementById("player-menu-kilo").textContent =
+  profile.kilo ?? 1000;
+
+const avatar = profile.avatar || "";
+
+document.getElementById("player-menu-avatar").src =
+  /^(https?:\/\/|data:image\/(png|jpeg|webp|gif);base64,)/i.test(avatar)
+    ? avatar
+    : "https://placehold.co/120x120?text=PHOTO";
+
+document.getElementById("player-menu-description").textContent =
+  profile.description || "Aucune description.";
   if (!Array.isArray(data.history) || data.history.length === 0) {
    historyBox.textContent = "Aucune partie terminée.";
    return;
@@ -4527,9 +4584,12 @@ const profileAvatar = document.getElementById("profile-avatar");
 if (savedProfileAvatar && profileAvatar) {
   profileAvatar.src = savedProfileAvatar;
 }
- const savedProfileDescription = localStorage.getItem("unoChessProfileDescription") || "";
-const profileDescription = document.getElementById("profile-description");
+const savedDescription =
+  currentUser?.description ||
+  localStorage.getItem("unoChessProfileDescription") ||
+  "";
 
+const profileDescription = document.getElementById("profile-description");
 if (profileDescription) {
   profileDescription.textContent = savedProfileDescription || "Aucune description.";
 }
