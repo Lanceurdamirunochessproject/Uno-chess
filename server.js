@@ -136,7 +136,7 @@ function calculateKiloChange(winnerKilo, loserKilo) {
   );
 }
 
-async function settleMatch(matchId, winnerId, loserId) {
+async function settleMatch(matchId, winnerId, loserId, history = []) {
   const client = await pool.connect();
 
   try {
@@ -217,9 +217,10 @@ async function settleMatch(matchId, winnerId, loserId) {
        SET winner = $1,
            status = 'finished',
            settled_at = CURRENT_TIMESTAMP,
-           kilo_change = $2
-       WHERE id = $3`,
-      [winnerId, gain, matchId]
+           kilo_change = $2,
+           history = $3::jsonb
+       WHERE id = $4`,
+      [winnerId, gain, JSON.stringify(history), matchId]
     );
 
     await client.query("COMMIT");
@@ -233,16 +234,16 @@ async function settleMatch(matchId, winnerId, loserId) {
     client.release();
   }
 }
-
-async function finishDraw(matchId) {
+async function finishDraw(matchId, history = []) {
   await pool.query(
     `UPDATE matches
      SET status = 'finished',
          winner = NULL,
          settled_at = CURRENT_TIMESTAMP,
-         kilo_change = 0
+         kilo_change = 0,
+         history = $2::jsonb
      WHERE id = $1 AND status = 'pending'`,
-    [matchId]
+    [matchId, JSON.stringify(history)]
   );
 }
 
@@ -304,6 +305,10 @@ async function initDatabase() {
   await pool.query(`
   ALTER TABLE matches
   ADD COLUMN IF NOT EXISTS mode TEXT DEFAULT 'classical'
+`);
+  await pool.query(`
+  ALTER TABLE matches
+  ADD COLUMN IF NOT EXISTS history JSONB NOT NULL DEFAULT '[]'::jsonb
 `);
   
    await pool.query(`
@@ -694,6 +699,7 @@ app.get("/api/players/:id", async (req, res) => {
          m.id,
          m.status,
          m.mode,
+         m.history,
          m.winner,
          m.settled_at,
          m.kilo_change,
@@ -1410,13 +1416,18 @@ for (let i = 0; i < startingCards; i++) {
    ===================================================== */
 
 async function finishOnlineMatch(room, match, winnerId) {
-if (match.finished || match.finishing) return;
+  if (match.finished || match.finishing) return;
 
-match.finishing = true;
+  match.finishing = true;
+
   try {
+    const history = match.history || [];
+
     if (winnerId === null) {
-      await finishDraw(match.id);
-match.finished = true;
+      await finishDraw(match.id, history);
+
+      match.finished = true;
+
       io.to(room).emit("online-finished", {
         draw: true,
         message: "Match nul ! Aucun KILO gagné ou perdu."
@@ -1433,9 +1444,12 @@ match.finished = true;
     const result = await settleMatch(
       match.id,
       winnerId,
-      loserId
+      loserId,
+      history
     );
-match.finished = true;
+
+    match.finished = true;
+
     io.to(room).emit("online-finished", {
       draw: false,
       winnerId: Number(winnerId),
@@ -1454,7 +1468,6 @@ match.finished = true;
     });
   }
 }
-
 /* =====================================================
    ACTIONS DE PARTIE VALIDÉES
    ===================================================== */
