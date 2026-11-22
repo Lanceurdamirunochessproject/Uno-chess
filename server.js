@@ -277,6 +277,11 @@ async function initDatabase() {
     CREATE UNIQUE INDEX IF NOT EXISTS users_username_lower_idx
     ON users (LOWER(username))
   `);
+  await pool.query(`
+  ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS avatar TEXT DEFAULT '',
+  ADD COLUMN IF NOT EXISTS description TEXT DEFAULT ''
+`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS matches (
@@ -542,9 +547,9 @@ app.get("/api/me", requireLogin, async (req, res) => {
 }
 
     const result = await pool.query(
-      `SELECT id, username, kilo
-       FROM users
-       WHERE id = $1`,
+     `SELECT id, username, kilo, avatar, description
+ FROM users
+ WHERE id = $1`,
   [req.userId]
     );
 
@@ -682,9 +687,9 @@ app.get("/api/players/:id", async (req, res) => {
     const playerId = Number(req.params.id);
 
     const playerResult = await pool.query(
-      `SELECT id, username, kilo
-       FROM users
-       WHERE id = $1`,
+     `SELECT id, username, kilo, avatar, description
+ FROM users
+ WHERE id = $1`,
       [playerId]
     );
 
