@@ -1630,12 +1630,27 @@ function drawCard(){
 function cardMatches(card,color=activeColor,top=discard){
  if(!card||!top)return false;
 
+ // En FATALITY, +4 et +10 sont toujours des jokers.
+ if(
+  selectedGameMode==="fatality" &&
+  (card.value==="+4"||card.value==="+10")
+ ){
+  return true;
+ }
+
  return card.color==="joker"||
         card.color===color||
         card.value===top.value;
 }
 
 function allowedPiece(card,piece){
+ if(
+  selectedGameMode==="fatality" &&
+  (card.value==="+4"||card.value==="+10")
+ ){
+  return true;
+ }
+
  if(card.color==="joker")return true;
 
  if(card.color==="rouge"){
@@ -1648,7 +1663,6 @@ function allowedPiece(card,piece){
 
  return false;
 }
-
 /* VÉRIFICATION D'UNE VRAIE ACTION JOUABLE */
 
 function hasPlayableAction(cards,side){
