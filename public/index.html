@@ -4745,26 +4745,34 @@ function playAgainstCoach(){
   }
 
   const coach = localStorage.getItem("unoChessCoach") || "david";
-activeCoach = coach;
+  activeCoach = coach;
 
-  if(coach === "david"){
-    playAgainstDavid();
+  const choice = prompt(
+    "CHOISIS TON MODE :\n\n1 = CLASSICAL\n2 = FATALITY"
+  );
+
+  if(choice === null) return;
+
+  if(choice !== "1" && choice !== "2"){
+    alert("Choix invalide !");
     return;
   }
 
- if(coach === "zoubir" || coach === "ayman"){
+  selectedGameMode = choice === "1" ? "classical" : "fatality";
+  updateGameModeButtons();
+
   selectedLevel = "medium";
-  selectedGameMode = "classical";
+
   startGame();
 
-  status.textContent = coach === "zoubir"
-    ? "♟️ Zoubir est prêt !"
-    : "⚡ Ayman est prêt !";
-
-  return;
+  if(coach === "david"){
+    status.textContent = "🤖 David est prêt !";
+  }else if(coach === "zoubir"){
+    status.textContent = "♟️ Zoubir est prêt !";
+  }else if(coach === "ayman"){
+    status.textContent = "⚡ Ayman est prêt !";
+  }
 }
-}
-
 function cancelOnlineSearch(){
  if(!onlineSocket)return;
 
