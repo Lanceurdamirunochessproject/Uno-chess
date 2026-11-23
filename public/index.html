@@ -4736,15 +4736,17 @@ activeCoach = coach;
     return;
   }
 
-  if(coach === "zoubir"){
-    accountStatus("♟️ Zoubir a été sélectionné ! Son comportement pédagogique sera ajouté ensuite.");
-    return;
-  }
+ if(coach === "zoubir" || coach === "ayman"){
+  selectedLevel = "medium";
+  selectedGameMode = "classical";
+  startGame();
 
-  if(coach === "ayman"){
-    accountStatus("⚡ Ayman a été sélectionné ! Son style chaotique sera ajouté ensuite.");
-    return;
-  }
+  status.textContent = coach === "zoubir"
+    ? "♟️ Zoubir est prêt !"
+    : "⚡ Ayman est prêt !";
+
+  return;
+}
 }
 
 function cancelOnlineSearch(){
