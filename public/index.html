@@ -1078,8 +1078,38 @@ onclick="loginAccount()"
     🔎 RECHERCHER UN JOUEUR
   </button>
 </div>
-  <button onclick="playAgainstDavid()" style="background:#7c3aed;color:white;border:0;padding:12px;border-radius:8px;cursor:pointer;">
-  🤖 JOUER CONTRE DAVID
+  
+<div id="coach-selection-menu" style="
+ display:none;
+ position:fixed;
+ inset:0;
+ background:rgba(0,0,0,0.85);
+ z-index:9999;
+ justify-content:center;
+ align-items:center;
+ padding:20px;
+">
+ <div style="
+  background:#1f2937;
+  padding:25px;
+  border-radius:15px;
+  width:100%;
+  max-width:400px;
+ ">
+  <h2>🤖 CHOISIS TON COACH</h2>
+
+  <button onclick="selectCoach('zoubir')">♟️ ZOUBIR — GRAND MAÎTRE</button>
+
+  <button onclick="selectCoach('ayman')">🔥 AYMAN — CHAOTIQUE</button>
+
+  <button onclick="selectCoach('david')">🤖 DAVID</button>
+
+  <button onclick="closeCoachMenu()">ANNULER</button>
+ </div>
+</div>
+
+  <button onclick="playAgainstCoach()" style="background:#7c3aed;color:white;border:0;padding:12px;border-radius:8px;cursor:pointer;">
+  🤖 JOUER CONTRE UN COACH
 </button>
  </div>
  <div id="game-mode-menu" style="
@@ -1510,6 +1540,17 @@ const levels = {
 };
 
 let selectedLevel="medium";
+let activeCoach = localStorage.getItem("unoChessCoach") || "david";
+ 
+ function playAgainstDavid(){
+  selectedLevel = "medium";
+  selectedGameMode = "classical";
+  startGame();
+
+  status.textContent =
+    "🤖 David est prêt ! Niveau : " +
+    levels[selectedLevel].name;
+}
  
 let onlineColor=null;
 let isOnlineGame=false;
@@ -2456,7 +2497,27 @@ if(checkWinner())return;
 }
  let bestAction=null;
  let bestScore=-Infinity;
+function getCoachBonus(action){
+  if(activeCoach === "david") return 0;
 
+  let bonus = 0;
+
+  const move = action.move;
+
+  // ZOUBIR : préfère développer ses pièces et jouer solidement.
+  if(activeCoach === "zoubir"){
+    if(move.promotion) bonus += 15;
+    if(move.captured) bonus += 10;
+  }
+
+  // AYMAN : préfère les prises et les promotions audacieuses.
+  if(activeCoach === "ayman"){
+    if(move.captured) bonus += 35;
+    if(move.promotion) bonus += 45;
+  }
+
+  return bonus;
+}
  const depth=levels[selectedLevel].depth;
 
  for(const action of actions){
@@ -2465,10 +2526,20 @@ if(checkWinner())return;
   if(!undo)continue;
 
   const score=searchAI(depth-1,-Infinity,Infinity);
+let personalityBonus = 0;
 
+if(activeCoach === "zoubir"){
+  // Zoubir privilégie les positions solides.
+  personalityBonus += Math.random() * 0.2;
+}
+
+if(activeCoach === "ayman"){
+  // Ayman préfère les possibilités plus audacieuses.
+  personalityBonus += Math.random() * 0.2;
+}
   undo();
 
-  if(score>bestScore){
+  if(score + personalityBonus + getCoachBonus(action) > bestScore){
    bestScore=score;
    bestAction=action;
   }
@@ -3699,6 +3770,68 @@ descriptionInput.dispatchEvent(new Event("input"));
 
   loadClubs(false);
 
+} else if (tab === "Coach") {
+  description.textContent = "Choisis ton entraîneur pour tes parties contre l'IA.";
+
+  const savedCoach = localStorage.getItem("unoChessCoach") || "david";
+
+  content.innerHTML = `
+    <h3>🤖 Choisis ton coach</h3>
+
+    <div style="display:grid;gap:12px">
+
+      <button data-coach="zoubir">
+        ♟️ ZOUBIR — LE GRAND MAÎTRE
+        <p>Il explique les coups et t'apprend les ouvertures,
+        les tactiques et la stratégie.</p>
+      </button>
+
+      <button data-coach="ayman">
+        ⚡ AYMAN — LE CHAOTIQUE
+        <p>Il aime les sacrifices, les surprises et les
+        tactiques audacieuses.</p>
+      </button>
+
+      <button data-coach="david">
+        🤖 DAVID
+        <p>Retrouve ton coach habituel.</p>
+      </button>
+
+    </div>
+
+    <p id="coach-selection-message"></p>
+  `;
+
+  const coachButtons = content.querySelectorAll("[data-coach]");
+
+  function updateCoachSelection() {
+    coachButtons.forEach(button => {
+      const selected = button.dataset.coach ===
+        localStorage.getItem("unoChessCoach");
+
+      button.style.border = selected
+        ? "3px solid #22c55e"
+        : "2px solid transparent";
+    });
+  }
+
+  coachButtons.forEach(button => {
+    button.style.padding = "15px";
+    button.style.borderRadius = "10px";
+    button.style.cursor = "pointer";
+
+    button.onclick = () => {
+      localStorage.setItem("unoChessCoach", button.dataset.coach);
+
+      document.getElementById("coach-selection-message").textContent =
+        "Coach sélectionné : " + button.dataset.coach.toUpperCase();
+
+      updateCoachSelection();
+    };
+  });
+
+  updateCoachSelection();
+
 } else {
   description.textContent = "Settings for " + tab + " will be added here.";
   content.innerHTML = "";
@@ -4588,28 +4721,30 @@ function closeGameModeMenu(){
  document.getElementById("game-mode-menu").style.display = "none";
 }
 
-function playAgainstDavid(){
+
+function playAgainstCoach(){
   if(!currentUser){
     accountStatus("Connecte-toi d'abord.");
     return;
   }
 
-  const kilo = Number(currentUser.kilo ?? 1000);
+  const coach = localStorage.getItem("unoChessCoach") || "david";
+activeCoach = coach;
 
-  if(kilo < 700){
-    selectedLevel = "easy";
-  }else if(kilo < 1400){
-    selectedLevel = "medium";
-  }else if(kilo < 2400){
-    selectedLevel = "hard";
-  }else{
-    selectedLevel = "savage";
+  if(coach === "david"){
+    playAgainstDavid();
+    return;
   }
 
-  startGame();
+  if(coach === "zoubir"){
+    accountStatus("♟️ Zoubir a été sélectionné ! Son comportement pédagogique sera ajouté ensuite.");
+    return;
+  }
 
-  status.textContent =
-    "🤖 David est prêt ! Niveau adapté à ton KILO : " + kilo;
+  if(coach === "ayman"){
+    accountStatus("⚡ Ayman a été sélectionné ! Son style chaotique sera ajouté ensuite.");
+    return;
+  }
 }
 
 function cancelOnlineSearch(){
