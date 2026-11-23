@@ -2939,9 +2939,26 @@ let onlineMyTurn = false;
 
 const accountMessage = document.getElementById("account-message");
 
+
+let accountMessage = null;
+
 function accountStatus(message){
- accountMessage.textContent = message;
+  if(!accountMessage){
+    accountMessage = document.createElement("p");
+    accountMessage.id = "account-message";
+
+    const authForm = document.getElementById("auth-form");
+
+    if(authForm){
+      authForm.appendChild(accountMessage);
+    }else{
+      document.body.appendChild(accountMessage);
+    }
+  }
+
+  accountMessage.textContent = message;
 }
+
 
 
 async function apiRequest(path, data = null){
