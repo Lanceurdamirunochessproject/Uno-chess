@@ -4274,7 +4274,10 @@ function openBanMenu(){
  document.getElementById("player-profile-menu").style.display = "block";
 }
 
+
 async function confirmBan(){
+
+ if(!selectedPlayer) return;
 
  const duration =
   document.getElementById("ban-duration").value;
@@ -4294,29 +4297,11 @@ async function confirmBan(){
   return;
  }
 
- closeBanMenu();
-
+ // On garde le menu ouvert pendant la requête.
  await executeBan(duration, reason);
+
 }
- async function executeBan(duration, reason){
 
- try{
-  const result = await apiRequest(
-   `/api/admin/ban/${selectedPlayer.id}`,
-   {
-    duration: duration,
-    reason: reason
-   }
-  );
-
-  alert(result.message || "Joueur banni !");
-  await updatePlayerAdminActions(selectedPlayer);
-
- }catch(error){
-  alert(error.message || "Erreur lors du BAN.");
-  console.error("Erreur BAN :", error);
- }
-}
  async function unbanSelectedPlayer(){
 
  if(!selectedPlayer) return;
