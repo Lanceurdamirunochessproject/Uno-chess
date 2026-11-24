@@ -70,6 +70,7 @@ const socketUsers = new Map();
 
 const COLORS = ["rouge", "jaune", "vert", "bleu"];
 
+
 async function requireLogin(req, res, next) {
   try {
     const authorization = req.headers.authorization || "";
@@ -94,7 +95,7 @@ async function requireLogin(req, res, next) {
          AND expires_at > NOW()`,
         [tokenHash]
       );
-console.log("AUTH TOKEN TROUVÉ :", result.rows.length);
+
       if (result.rows.length) {
         userId = result.rows[0].user_id;
       }
@@ -110,6 +111,45 @@ console.log("AUTH TOKEN TROUVÉ :", result.rows.length);
       });
     }
 
+    // VÉRIFICATION DU COMPTE ET DU BAN
+    const userResult = await pool.query(
+      `SELECT is_banned, ban_reason, ban_until
+       FROM users
+       WHERE id = $1`,
+      [userId]
+    );
+
+    if (!userResult.rows.length) {
+      return res.status(401).json({
+        error: "Compte introuvable."
+      });
+    }
+
+    const user = userResult.rows[0];
+
+    if (user.is_banned) {
+      const banExpired =
+        user.ban_until &&
+        new Date(user.ban_until) <= new Date();
+
+      if (banExpired) {
+        await pool.query(
+          `UPDATE users
+           SET is_banned = FALSE,
+               ban_reason = '',
+               ban_until = NULL
+           WHERE id = $1`,
+          [userId]
+        );
+      } else {
+        return res.status(403).json({
+          error: "Ton compte est banni.",
+          reason: user.ban_reason || "Aucune raison indiquée.",
+          until: user.ban_until
+        });
+      }
+    }
+
     req.userId = userId;
     next();
 
@@ -121,6 +161,198 @@ console.log("AUTH TOKEN TROUVÉ :", result.rows.length);
     });
   }
 }
+// RÉCUPÉRER LE RÔLE D'UN JOUEUR
+async function getUserRole(userId) {
+  const result = await pool.query(
+    "SELECT role FROM users WHERE id = $1",
+    [userId]
+  );
+
+  return result.rows[0]?.role || "joueur";
+}
+
+// VÉRIFIER SI LE JOUEUR EST ADMIN OU PROPRIÉTAIRE
+async function requireAdmin(req, res, next) {
+  try {
+    const role = await getUserRole(req.userId);
+
+    if (role !== "admin" && role !== "proprietaire") {
+      return res.status(403).json({
+        error: "Tu n'as pas les permissions nécessaires."
+      });
+    }
+
+    req.userRole = role;
+    next();
+
+  } catch (error) {
+    console.error("Erreur permissions admin :", error);
+
+    res.status(500).json({
+      error: "Erreur lors de la vérification des permissions."
+    });
+  }
+}
+
+// VÉRIFIER SI LE JOUEUR EST PROPRIÉTAIRE
+async function requireOwner(req, res, next) {
+  try {
+    const role = await getUserRole(req.userId);
+
+    if (role !== "proprietaire") {
+      return res.status(403).json({
+        error: "Seul le propriétaire peut effectuer cette action."
+      });
+    }
+
+    req.userRole = role;
+    next();
+
+  } catch (error) {
+    console.error("Erreur permissions propriétaire :", error);
+
+    res.status(500).json({
+      error: "Erreur lors de la vérification des permissions."
+    });
+  }
+}
+// BANNIR UN JOUEUR
+app.post("/api/admin/ban/:userId", requireLogin, requireAdmin, async (req, res) => {
+  try {
+    const userId = Number(req.params.userId);
+    const { duration, reason } = req.body;
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({ error: "Joueur invalide." });
+    }
+
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({ error: "Une raison est obligatoire." });
+    }
+
+    if (!["1d", "7d", "30d", "permanent"].includes(duration)) {
+      return res.status(400).json({ error: "Durée invalide." });
+    }
+
+    const target = await pool.query(
+      "SELECT id, username, role FROM users WHERE id = $1",
+      [userId]
+    );
+
+    if (!target.rows.length) {
+      return res.status(404).json({ error: "Joueur introuvable." });
+    }
+
+    if (target.rows[0].role === "proprietaire") {
+      return res.status(403).json({
+        error: "Le propriétaire ne peut pas être banni."
+      });
+    }
+    // Un administrateur ne peut pas bannir un autre administrateur.
+if (
+  target.rows[0].role === "admin" &&
+  req.userRole !== "proprietaire"
+) {
+  return res.status(403).json({
+    error: "Seul le propriétaire peut bannir un administrateur."
+  });
+}
+
+    const banUntil = duration === "permanent"
+      ? null
+      : new Date(Date.now() + ({
+          "1d": 1,
+          "7d": 7,
+          "30d": 30
+        }[duration] * 24 * 60 * 60 * 1000));
+
+    await pool.query(
+      `UPDATE users
+       SET is_banned = TRUE,
+           ban_reason = $1,
+           ban_until = $2
+       WHERE id = $3`,
+      [reason.trim(), banUntil, userId]
+    );
+
+    res.json({
+      success: true,
+      message: "Joueur banni avec succès."
+    });
+
+  } catch (error) {
+    console.error("Erreur BAN :", error);
+    res.status(500).json({ error: "Erreur lors du bannissement." });
+  }
+});
+// DÉBANNIR UN JOUEUR
+app.post("/api/admin/unban/:userId", requireLogin, requireAdmin, async (req, res) => {
+  try {
+    const userId = Number(req.params.userId);
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({ error: "Joueur invalide." });
+    }
+
+    const result = await pool.query(
+      `UPDATE users
+       SET is_banned = FALSE,
+           ban_reason = '',
+           ban_until = NULL
+       WHERE id = $1
+       RETURNING username`,
+      [userId]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ error: "Joueur introuvable." });
+    }
+
+    res.json({
+      success: true,
+      message: result.rows[0].username + " a été débanni."
+    });
+
+  } catch (error) {
+    console.error("Erreur UNBAN :", error);
+    res.status(500).json({ error: "Erreur lors du débannissement." });
+  }
+});
+// CONSULTER LE STATUT BAN D'UN JOUEUR
+app.get("/api/admin/ban-status/:userId", requireLogin, requireAdmin, async (req, res) => {
+  try {
+    const userId = Number(req.params.userId);
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({
+        error: "Joueur invalide."
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT username, is_banned, ban_reason, ban_until
+       FROM users
+       WHERE id = $1`,
+      [userId]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({
+        error: "Joueur introuvable."
+      });
+    }
+
+    res.json({
+      player: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error("Erreur statut BAN :", error);
+    res.status(500).json({
+      error: "Impossible de consulter le statut BAN."
+    });
+  }
+});
 /* =====================================================
    KILO
    ===================================================== */
@@ -306,6 +538,12 @@ async function initDatabase() {
     ALTER TABLE users
     ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'joueur'
   `);
+    // PROPRIÉTAIRE OFFICIEL DE UNO.CHESS
+  await pool.query(`
+   UPDATE users
+SET role = 'proprietaire'
+WHERE username = 'OWNER_LANCEURDAMIR'
+  `);
     await pool.query(`
     ALTER TABLE users
     ADD COLUMN IF NOT EXISTS classical_kilo INTEGER NOT NULL DEFAULT 1000,
@@ -486,9 +724,10 @@ app.post("/api/login", async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT id, username, kilo, password_hash
-       FROM users
-       WHERE email = $1`,
+     `SELECT id, username, kilo, password_hash,
+        is_banned, ban_reason, ban_until
+ FROM users
+ WHERE email = $1`,
       [email.trim().toLowerCase()]
     );
 
@@ -505,6 +744,29 @@ app.post("/api/login", async (req, res) => {
         error: "Email ou mot de passe incorrect."
       });
     }
+    // VÉRIFICATION DU BAN AVANT LA CONNEXION
+if (user.is_banned) {
+  const banExpired =
+    user.ban_until &&
+    new Date(user.ban_until) <= new Date();
+
+  if (banExpired) {
+    await pool.query(
+      `UPDATE users
+       SET is_banned = FALSE,
+           ban_reason = '',
+           ban_until = NULL
+       WHERE id = $1`,
+      [user.id]
+    );
+  } else {
+    return res.status(403).json({
+      error: "Ton compte est banni.",
+      reason: user.ban_reason || "Aucune raison indiquée.",
+      until: user.ban_until
+    });
+  }
+}
 
     await new Promise((resolve, reject) => {
       req.session.regenerate(error => {
@@ -625,7 +887,7 @@ app.get("/api/me", requireLogin, async (req, res) => {
 }
 
    const result = await pool.query(
- `SELECT id, username, kilo, classical_kilo, fatality_kilo, avatar, description
+`SELECT id, username, kilo, classical_kilo, fatality_kilo, avatar, description, role
  FROM users
  WHERE id = $1`,
  [req.userId]
@@ -2080,9 +2342,48 @@ io.on("connection", async socket => {
     return;
   }
 
-  if (!userId) {
+   if (!userId) {
     socket.disconnect(true);
     return;
+  }
+
+  // VÉRIFICATION DU BAN SUR SOCKET.IO
+  const banResult = await pool.query(
+    `SELECT is_banned, ban_until
+     FROM users
+     WHERE id = $1`,
+    [userId]
+  );
+
+  if (!banResult.rows.length) {
+    socket.disconnect(true);
+    return;
+  }
+
+  const banUser = banResult.rows[0];
+
+  if (banUser.is_banned) {
+    const banExpired =
+      banUser.ban_until &&
+      new Date(banUser.ban_until) <= new Date();
+
+    if (banExpired) {
+      await pool.query(
+        `UPDATE users
+         SET is_banned = FALSE,
+             ban_reason = '',
+             ban_until = NULL
+         WHERE id = $1`,
+        [userId]
+      );
+    } else {
+      socket.emit("account-banned", {
+        message: "Ton compte est banni."
+      });
+
+      socket.disconnect(true);
+      return;
+    }
   }
 
   socketUsers.set(socket.id, Number(userId));
