@@ -293,6 +293,19 @@ async function initDatabase() {
   ADD COLUMN IF NOT EXISTS avatar TEXT DEFAULT '',
   ADD COLUMN IF NOT EXISTS description TEXT DEFAULT ''
 `);
+    // SYSTÈME DE BAN
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS ban_reason TEXT DEFAULT '',
+    ADD COLUMN IF NOT EXISTS ban_until TIMESTAMP NULL
+  `);
+
+  // RÔLES DES COMPTES
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'joueur'
+  `);
     await pool.query(`
     ALTER TABLE users
     ADD COLUMN IF NOT EXISTS classical_kilo INTEGER NOT NULL DEFAULT 1000,
@@ -603,6 +616,7 @@ app.post("/api/logout", async (req, res) => {
 app.get("/api/me", requireLogin, async (req, res) => {
   try {
     console.log("SESSION /api/me :", req.session.userId);
+    console.log("ID DU COMPTE CONNECTÉ :", req.userId);
     console.log("TOKEN REÇU :", req.headers.authorization ? "OUI" : "NON");
    if (!req.userId) {
   return res.status(401).json({
