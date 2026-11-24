@@ -3326,7 +3326,7 @@ async function loadProfile(){
   const data=await apiRequest("/api/me");
 
   currentUser=data.user || data;
-
+console.log("MON RÔLE UNO.CHESS :", currentUser.role);
   document.getElementById("auth-form").style.display="none";
   document.getElementById("profile").style.display="block";
   document.getElementById("online-controls").style.display="block";
