@@ -1300,7 +1300,46 @@ onclick="loginAccount()"
   </div>
  </div>
 </div>
+<div id="player-admin-actions" style="
+ display:none;
+ margin:20px 0;
+ padding:18px;
+ background:#1f2937;
+ border:1px solid #ef4444;
+ border-radius:12px;
+">
+ <h3 style="color:#f87171;">🛡️ ADMINISTRATION DU JOUEUR</h3>
 
+ <button id="player-ban-button"
+  onclick="openBanMenu()"
+  style="
+   background:#dc2626;
+   color:white;
+   padding:12px 20px;
+   border:0;
+   border-radius:8px;
+   cursor:pointer;
+  ">
+  🚫 BAN
+ </button>
+
+ <button id="player-unban-button"
+  onclick="unbanSelectedPlayer()"
+  style="
+   display:none;
+   background:#16a34a;
+   color:white;
+   padding:12px 20px;
+   border:0;
+   border-radius:8px;
+   cursor:pointer;
+  ">
+  ✅ UNBAN
+ </button>
+
+ <p id="player-ban-status"></p>
+</div>
+ 
  <button onclick="sendPlayerChallenge()">DÉFIER</button>
 <button onclick="sendFriendRequest()">AJOUTER EN AMI</button>
 <button
@@ -3006,11 +3045,16 @@ if (token) {
   throw new Error("Le serveur a envoyé une réponse invalide.");
  }
 
- if(!response.ok){
-  throw new Error(
+if(!response.ok){
+  const error = new Error(
    result.error || result.message || "Erreur serveur."
   );
- }
+
+  error.status = response.status;
+  error.data = result;
+
+  throw error;
+}
 
  return result;
 }
@@ -3050,6 +3094,7 @@ async function registerAccount(){
    CONNEXION
 ===================================== */
 
+
 async function loginAccount(){
  const email=document.getElementById("auth-email").value.trim();
  const password=document.getElementById("auth-password").value;
@@ -3063,28 +3108,44 @@ async function loginAccount(){
  try{
   accountStatus("Connexion...");
 
-const data = await apiRequest("/api/login",{
- email,
- password,
- rememberMe
-});
+  const data = await apiRequest("/api/login",{
+   email,
+   password,
+   rememberMe
+  });
 
-if (data.token) {
-  sessionStorage.setItem("unoChessToken", data.token);
-}
+  if (data.token) {
+   sessionStorage.setItem("unoChessToken", data.token);
+  }
 
- const profileLoaded = await loadProfile();
+  const profileLoaded = await loadProfile();
 
-if (!profileLoaded) {
-  accountStatus("Connexion effectuée, mais le profil ne se charge pas. Problème de session.");
-  return;
-}
+  if (!profileLoaded) {
+   accountStatus("Connexion effectuée, mais le profil ne se charge pas.");
+   return;
+  }
 
-accountStatus("Connexion réussie !");
+  accountStatus("Connexion réussie !");
+
  }catch(error){
+
+  if(error.status === 403 && error.data?.reason !== undefined){
+   const until = error.data.until
+    ? new Date(error.data.until).toLocaleString("fr-CA")
+    : "Permanent";
+
+   accountStatus(
+    "🚫 COMPTE BANNI — Motif : " +
+    error.data.reason +
+    " — Durée : " + until
+   );
+   return;
+  }
+
   accountStatus(error.message);
  }
 }
+
 /* =====================================
    PROFIL
 ===================================== */
@@ -3964,11 +4025,150 @@ async function searchPlayer(){
   alert("Erreur : " + error.message);
  }
 }
+async function updatePlayerAdminActions(player){
 
+ const adminBox = document.getElementById("player-admin-actions");
+ const banButton = document.getElementById("player-ban-button");
+ const unbanButton = document.getElementById("player-unban-button");
+ const status = document.getElementById("player-ban-status");
+
+ const isAdmin =
+  currentUser &&
+  ["admin", "proprietaire"].includes(currentUser.role);
+
+ if(!isAdmin){
+  adminBox.style.display = "none";
+  return;
+ }
+
+ adminBox.style.display = "block";
+ banButton.style.display = "none";
+ unbanButton.style.display = "none";
+ status.textContent = "Vérification du statut...";
+
+ try{
+  const data = await apiRequest(
+   `/api/admin/ban-status/${player.id}`
+  );
+
+  const target = data.player;
+
+  if(target.is_banned){
+   banButton.style.display = "none";
+   unbanButton.style.display = "inline-block";
+
+   const until = target.ban_until
+    ? new Date(target.ban_until).toLocaleString("fr-CA")
+    : "Permanent";
+
+   status.textContent =
+    "🚫 Banni — Motif : " +
+    (target.ban_reason || "Non précisé") +
+    " — Expiration : " + until;
+
+  }else{
+   banButton.style.display = "inline-block";
+   unbanButton.style.display = "none";
+   status.textContent = "✅ Ce joueur n'est pas banni.";
+  }
+
+ }catch(error){
+  status.textContent = "Impossible de vérifier le statut BAN.";
+  console.error("Erreur statut BAN :", error);
+ }
+}
+ function openBanMenu(){
+
+ if(!selectedPlayer) return;
+
+ const duration = prompt(
+  "DURÉE DU BAN :\n\n" +
+  "1 = 1 jour\n" +
+  "2 = 7 jours\n" +
+  "3 = 30 jours\n" +
+  "4 = Permanent"
+ );
+
+ const durations = {
+  "1": "1d",
+  "2": "7d",
+  "3": "30d",
+  "4": "permanent"
+ };
+
+ if(!durations[duration]){
+  alert("Durée invalide.");
+  return;
+ }
+
+ const reason = prompt(
+  "Pourquoi veux-tu bannir " +
+  selectedPlayer.username + " ?"
+ );
+
+ if(!reason || !reason.trim()){
+  alert("Tu dois obligatoirement indiquer un motif.");
+  return;
+ }
+
+ if(!confirm(
+  "Confirmer le BAN de " +
+  selectedPlayer.username + " ?"
+ )){
+  return;
+ }
+
+ executeBan(durations[duration], reason.trim());
+}
+ async function executeBan(duration, reason){
+
+ try{
+  const result = await apiRequest(
+   `/api/admin/ban/${selectedPlayer.id}`,
+   {
+    duration: duration,
+    reason: reason
+   }
+  );
+
+  alert(result.message || "Joueur banni !");
+  await updatePlayerAdminActions(selectedPlayer);
+
+ }catch(error){
+  alert(error.message || "Erreur lors du BAN.");
+  console.error("Erreur BAN :", error);
+ }
+}
+ async function unbanSelectedPlayer(){
+
+ if(!selectedPlayer) return;
+
+ const confirmed = confirm(
+  "Veux-tu vraiment débannir " +
+  selectedPlayer.username + " ?"
+ );
+
+ if(!confirmed) return;
+
+ try{
+  const result = await apiRequest(
+   `/api/admin/unban/${selectedPlayer.id}`,
+   {}
+  );
+
+  alert(result.message || "Joueur débanni !");
+
+  await updatePlayerAdminActions(selectedPlayer);
+
+ }catch(error){
+  alert(error.message || "Erreur lors du UNBAN.");
+  console.error("Erreur UNBAN :", error);
+ }
+}
 
 async function openPlayerProfile(player){
  selectedPlayer = player;
-
+updatePlayerAdminActions(player);
  const menu = document.getElementById("player-profile-menu");
  const historyBox = document.getElementById("player-menu-history");
  const matchList = document.getElementById("player-menu-match-list");
