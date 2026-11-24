@@ -635,6 +635,12 @@ app.get("/api/me", requireLogin, async (req, res) => {
         error: "Compte introuvable."
       });
     }
+    console.log(
+  "COMPTE CONNECTÉ :",
+  result.rows[0].username,
+  "| ID :",
+  result.rows[0].id
+);
 
     res.json({
       user: result.rows[0]
