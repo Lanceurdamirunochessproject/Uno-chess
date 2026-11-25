@@ -1276,7 +1276,18 @@ onclick="loginAccount()"
   ">
 
  <div style="flex:1;">
-  <h2 id="player-menu-name">PROFIL</h2>
+  <div style="
+ display:flex;
+ align-items:center;
+ gap:10px;
+ flex-wrap:wrap;
+">
+ <h2 id="player-menu-name" style="margin:0;">PROFIL</h2>
+
+ <button onclick="sendPlayerChallenge()">⚔️ DÉFIER</button>
+ <button onclick="sendFriendRequest()">➕ AJOUTER EN AMI</button>
+ <button onclick="openPrivateMessages()">💬 MESSAGE</button>
+</div>
   <p>KILO : <strong id="player-menu-kilo"></strong></p>
   <p id="player-menu-description" style="
    color:#d1d5db;
@@ -1385,21 +1396,7 @@ onclick="loginAccount()"
  <p id="player-ban-status"></p>
 </div>
  
- <button onclick="sendPlayerChallenge()">DÉFIER</button>
-<button onclick="sendFriendRequest()">AJOUTER EN AMI</button>
-<button
-onclick="openPrivateMessages()"
-  style="
-    display:block;
-    width:100%;
-    min-height:55px;
-    padding:15px;
-    cursor:pointer;
-    touch-action:manipulation;
-  "
->
-  💬 MESSAGE PRIVÉ
-</button>
+
 
 
 </div>
@@ -4389,12 +4386,7 @@ console.log("CONFIRMATION BAN :", selectedPlayer.username);
   return;
  }
 
- if(!confirm(
-  "Confirmer le bannissement de " +
-  selectedPlayer.username + " ?"
- )){
-  return;
- }
+
 
  // On garde le menu ouvert pendant la requête.
  await executeBan(duration, reason);
