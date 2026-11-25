@@ -4424,12 +4424,6 @@ const classicalMatches = history.filter(
 const fatalityMatches = history.filter(
   match => match.mode === "fatality"
 );
- match => match.mode !== "fatality"
-);
-
-const fatalityMatches = data.history.filter(
- match => match.mode === "fatality"
-);
 
 const classicalKilo = Number(profile.classical_kilo) || 1000;
 const fatalityKilo = Number(profile.fatality_kilo) || 1000;
