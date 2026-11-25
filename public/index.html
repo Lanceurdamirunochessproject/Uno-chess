@@ -4311,17 +4311,78 @@ if(!reason){
 }
  
 
-function showBanNotice(message, success){
- const status = document.getElementById("player-ban-status");
 
- if(status){
-  status.textContent = message;
-  status.style.color = success ? "#4ade80" : "#f87171";
- }
+function showBanNotice(message, success){
+ let oldNotice = document.getElementById("ban-popup");
+ if(oldNotice) oldNotice.remove();
+
+ const popup = document.createElement("div");
+ popup.id = "ban-popup";
+
+ popup.style.cssText = `
+  position:fixed;
+  inset:0;
+  z-index:99999;
+  background:rgba(0,0,0,0.65);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:15px;
+ `;
+
+ const windowBox = document.createElement("div");
+
+ windowBox.style.cssText = `
+  width:100%;
+  max-width:380px;
+  background:#20242d;
+  border:2px solid #596273;
+  border-radius:8px;
+  padding:24px;
+  color:white;
+  font-family:Arial,sans-serif;
+  text-align:left;
+  box-shadow:0 10px 35px rgba(0,0,0,0.6);
+ `;
+
+ const title = document.createElement("h2");
+ title.textContent = success ? "JOUEUR BANNI" : "ERREUR";
+ title.style.cssText = "margin:0 0 18px;font-size:21px;";
+
+ const text = document.createElement("p");
+ text.textContent = message;
+ text.style.cssText = `
+  color:${success ? "#f87171" : "#fca5a5"};
+  font-size:16px;
+  line-height:1.5;
+  overflow-wrap:anywhere;
+ `;
+
+ const close = document.createElement("button");
+ close.textContent = "OK";
+ close.style.cssText = `
+  width:100%;
+  margin-top:15px;
+  padding:12px;
+  border:0;
+  border-radius:5px;
+  background:#3b82f6;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+ `;
+
+ close.onclick = () => popup.remove();
+
+ windowBox.append(title, text, close);
+ popup.appendChild(windowBox);
+ document.body.appendChild(popup);
 }
 
 async function executeBan(duration, reason){
  try{
+  const bannedUsername = selectedPlayer.username;
+
   const result = await apiRequest(
    `/api/admin/ban/${selectedPlayer.id}`,
    {
@@ -4333,7 +4394,7 @@ async function executeBan(duration, reason){
   await updatePlayerAdminActions(selectedPlayer);
 
   showBanNotice(
-   result.message || "Joueur banni avec succès !",
+   `Le joueur ${bannedUsername} a été banni avec succès !`,
    true
   );
 
