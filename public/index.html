@@ -418,7 +418,7 @@ body.dark-theme .square {
 
 .report-summary{
  display:grid;
- grid-template-columns:repeat(4,minmax(0,1fr));
+ grid-template-columns:repeat(5,minmax(0,1fr));
  gap:10px;
  margin:18px 0;
 }
@@ -1401,92 +1401,6 @@ onclick="loginAccount()"
 
 </div>
  
-<div id="ban-page" style="
- display:none;
- position:fixed;
- inset:12px;
- padding:75px 35px 35px;
- overflow-y:auto;
- background:#111827;
- border:1px solid #ef4444;
- border-radius:16px;
- z-index:100001;
- color:white;
- text-align:left;
-">
- <button type="button" onclick="closeBanMenu()" style="
-  position:fixed;
-  top:15px;
-  right:15px;
-  z-index:100002;
-  width:48px;
-  height:48px;
-  font-size:24px;
-  background:#374151;
-  color:white;
-  border:1px solid #64748b;
-  border-radius:12px;
- ">
-  ✕
- </button>
-
- <h1 style="color:#ef4444;">🚫 CENTRE DE BANNISSEMENT</h1>
-
- <p>Joueur ciblé :</p>
- <h2 id="ban-target-name"></h2>
-
- <label for="ban-duration">Durée du bannissement :</label>
- <select id="ban-duration" style="
-  display:block;
-  width:100%;
-  padding:14px;
-  margin:12px 0 20px;
-  background:#1f2937;
-  color:white;
-  border:1px solid #64748b;
-  border-radius:8px;
- ">
-  <option value="1d">1 jour</option>
-  <option value="7d">7 jours</option>
-  <option value="30d">30 jours</option>
-  <option value="permanent">Permanent</option>
- </select>
-
- <label for="ban-reason">Raison du bannissement :</label>
- <textarea id="ban-reason" placeholder="Explique la raison..." style="
-  display:block;
-  width:100%;
-  min-height:110px;
-  padding:12px;
-  margin:12px 0 20px;
-  background:#1f2937;
-  color:white;
-  border:1px solid #64748b;
-  border-radius:8px;
- "></textarea>
-
- <button type="button" onclick="confirmBan()" style="
-  background:#dc2626;
-  color:white;
-  padding:14px 20px;
-  border:0;
-  border-radius:8px;
-  cursor:pointer;
- ">
-  🚫 CONFIRMER LE BANNISSEMENT
- </button>
-
- <button type="button" onclick="closeBanMenu()" style="
-  background:#374151;
-  color:white;
-  padding:14px 20px;
-  border:0;
-  border-radius:8px;
-  cursor:pointer;
- ">
-  ANNULER
- </button>
-</div>
 
  
 <div id="ban-page" style="
@@ -1713,15 +1627,15 @@ onclick="loginAccount()"
     <strong id="statErrors">0</strong>
     <span>Erreurs</span>
    </div>
-   <div class="report-stat">
-    <strong id="statBlunders">0</strong>
-    <span>Grosses erreurs</span>
-    <div class="report-stat">
+  <div class="report-stat">
+ <strong id="statBlunders">0</strong>
+ <span>Grosses erreurs</span>
+</div>
+
+<div class="report-stat">
  <strong id="statPrecision">100/100</strong>
  <span>Précision</span>
 </div>
-   </div>
-  </div>
   <div class="report-replay">
    <h3>♟️ RELECTURE DE LA PARTIE</h3>
 
@@ -3782,7 +3696,7 @@ if (tab === "Gameplay") {
       `;
 
       overlay.querySelector("#save-username").onclick = changeUsername;
-     
+     overlay.querySelector("#save-password").onclick = changePassword;
    } else if (tab === "Board & Pieces") {
   description.textContent = "Customize the look and feel of your chess set.";
 
@@ -4381,10 +4295,13 @@ console.log("CONFIRMATION BAN :", selectedPlayer.username);
  const reason =
   document.getElementById("ban-reason").value.trim();
 
- if(!reason){
-  "Tu dois obligatoirement indiquer une raison.");
+if(!reason){
+  showBanNotice(
+    "Tu dois obligatoirement indiquer une raison.",
+    false
+  );
   return;
- }
+}
 
 
 
@@ -4498,7 +4415,15 @@ document.getElementById("player-menu-avatar").src =
 
 document.getElementById("player-menu-description").textContent =
   profile.description || "Aucune description.";
-const classicalMatches = data.history.filter(
+const history = Array.isArray(data.history) ? data.history : [];
+
+const classicalMatches = history.filter(
+  match => match.mode !== "fatality"
+);
+
+const fatalityMatches = history.filter(
+  match => match.mode === "fatality"
+);
  match => match.mode !== "fatality"
 );
 
@@ -4586,7 +4511,7 @@ drawKiloChart("classical-kilo-chart", classicalMatches, classicalKilo);
 drawKiloChart("fatality-kilo-chart", fatalityMatches, fatalityKilo);
   matchList.innerHTML = "";
 
- data.history.forEach(match => {
+history.forEach(match => {
    const item = document.createElement("div");
 
    item.style.padding = "12px 8px";
