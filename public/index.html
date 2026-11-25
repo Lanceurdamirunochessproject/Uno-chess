@@ -4624,10 +4624,12 @@ history.forEach(match => {
 
 
 function openPrivateMessages(){
+  alert("CLIC MESSAGE DÉTECTÉ");
+
   if (!selectedPlayer) {
-  alert("Aucun joueur sélectionné.");
-  return;
-}
+    alert("Aucun joueur sélectionné.");
+    return;
+  }
 
 
   const friendId = Number(selectedPlayer.id);
