@@ -4382,7 +4382,7 @@ console.log("CONFIRMATION BAN :", selectedPlayer.username);
   document.getElementById("ban-reason").value.trim();
 
  if(!reason){
-  alert("Tu dois obligatoirement indiquer une raison.");
+  "Tu dois obligatoirement indiquer une raison.");
   return;
  }
 
@@ -4393,6 +4393,16 @@ console.log("CONFIRMATION BAN :", selectedPlayer.username);
 
 }
  
+
+function showBanNotice(message, success){
+ const status = document.getElementById("player-ban-status");
+
+ if(status){
+  status.textContent = message;
+  status.style.color = success ? "#4ade80" : "#f87171";
+ }
+}
+
 async function executeBan(duration, reason){
  try{
   const result = await apiRequest(
@@ -4403,27 +4413,25 @@ async function executeBan(duration, reason){
    }
   );
 
-  alert(result.message || "Joueur banni !");
-
   await updatePlayerAdminActions(selectedPlayer);
 
+  showBanNotice(
+   result.message || "Joueur banni avec succès !",
+   true
+  );
+
  }catch(error){
-  alert(error.message || "Erreur lors du BAN.");
+  showBanNotice(
+   error.message || "Erreur lors du BAN.",
+   false
+  );
   console.error("Erreur BAN :", error);
  }
 }
 
-
- async function unbanSelectedPlayer(){
+async function unbanSelectedPlayer(){
 
  if(!selectedPlayer) return;
-
- const confirmed = confirm(
-  "Veux-tu vraiment débannir " +
-  selectedPlayer.username + " ?"
- );
-
- if(!confirmed) return;
 
  try{
   const result = await apiRequest(
@@ -4431,12 +4439,18 @@ async function executeBan(duration, reason){
    {}
   );
 
-  alert(result.message || "Joueur débanni !");
-
   await updatePlayerAdminActions(selectedPlayer);
 
+  showBanNotice(
+   result.message || "Joueur débanni avec succès !",
+   true
+  );
+
  }catch(error){
-  alert(error.message || "Erreur lors du UNBAN.");
+  showBanNotice(
+   error.message || "Erreur lors du UNBAN.",
+   false
+  );
   console.error("Erreur UNBAN :", error);
  }
 }
