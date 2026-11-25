@@ -4393,10 +4393,14 @@ async function executeBan(duration, reason){
 
   await updatePlayerAdminActions(selectedPlayer);
 
-  showBanNotice(
-   `Le joueur ${bannedUsername} a été banni avec succès !`,
-   true
-  );
+// Fermer automatiquement le formulaire
+document.getElementById("ban-page").style.display = "none";
+
+// Afficher la confirmation
+showBanNotice(
+ `Le joueur ${bannedUsername} a été banni avec succès !`,
+ true
+);
 
  }catch(error){
   showBanNotice(
