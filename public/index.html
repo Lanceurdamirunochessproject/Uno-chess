@@ -3487,7 +3487,10 @@ alert("Affichage actuel : " + (panel ? getComputedStyle(panel).display : "introu
 panel.style.setProperty("visibility", "visible", "important");
 panel.style.setProperty("opacity", "1", "important");
 panel.style.setProperty("z-index", "999999", "important");
-  panel.style.zIndex = "100001";
+  document.body.appendChild(panel);
+panel.style.position = "fixed";
+panel.style.zIndex = "2147483647";
+panel.style.display = "block";
 
   const list = document.getElementById("inbox-list");
   list.innerHTML = "<h3>Messages</h3><p>Chargement...</p>";
