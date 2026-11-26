@@ -1662,12 +1662,138 @@ onclick="loginAccount()"
     ">
       🔔<span>NOTIFICATIONS</span>
     </button>
+   <button onclick="openRulesCoach()" style="
+  width:75px;min-height:65px;background:#059669;color:white;
+  border:0;border-radius:10px;cursor:pointer;
+">
+  📖<span>RÈGLES</span>
+</button>
   </div>
 </div>
 
 
 
+<div id="rules-coach-panel" style="
+  display:none;
+  position:fixed;
+  inset:10px;
+  z-index:2147483000;
+  background:#111827;
+  border:2px solid #059669;
+  border-radius:16px;
+  padding:20px;
+  color:white;
+  overflow-y:auto;
+  box-shadow:0 0 30px #000;
+">
 
+
+  <button onclick="closeRulesCoach()" title="Quitter la leçon" style="
+  position:absolute;
+  top:15px;
+  right:15px;
+  width:42px;
+  height:42px;
+  background:#374151;
+  color:white;
+  border:1px solid #6b7280;
+  border-radius:50%;
+  font-size:24px;
+  cursor:pointer;
+">
+  ×
+</button>
+
+  <h2 style="color:#34d399;">📖 L'ÉCOLE DES RÈGLES</h2>
+
+  <h3 style="color:#facc15;">🎓 ZOUBIR — GRAND MAÎTRE DES RÈGLES</h3>
+
+  <p>
+    Bienvenue ! Je suis Zoubir. Je vais t'apprendre
+    toutes les règles de UNO.CHESS, des plus simples
+    aux plus complexes.
+  </p>
+
+ <div id="zoubir-rule-content" style="
+  position:relative;
+  min-height:420px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  overflow:hidden;
+  background:#172033;
+  border:1px solid #374151;
+  border-radius:16px;
+  margin:20px 0;
+">
+
+  <div id="zoubir-overlay" style="
+    display:none;
+    position:absolute;
+    inset:0;
+    z-index:10;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    background:rgba(0,0,0,0.82);
+    padding:20px;
+  ">
+
+    <div id="zoubir-speech" style="
+      background:white;
+      color:#111827;
+      padding:18px;
+      border-radius:18px;
+      max-width:500px;
+      font-size:18px;
+      margin-bottom:15px;
+    ">
+      Bonjour ! Je suis Zoubir.
+    </div>
+
+    <div id="zoubir-character" style="
+      width:260px;
+      height:280px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#d1d5db;
+      font-size:14px;
+      border:2px dashed #6b7280;
+      border-radius:14px;
+    ">
+      Animation de Zoubir à ajouter
+    </div>
+
+    <button onclick="continueZoubir()" style="
+      margin-top:15px;
+      padding:12px 25px;
+      background:#059669;
+      color:white;
+      border:0;
+      border-radius:10px;
+      font-weight:bold;
+      cursor:pointer;
+    ">
+      CONTINUER
+    </button>
+
+  </div>
+
+  <h3 style="color:#d1d5db;">
+    Choisis une leçon pour commencer !
+  </h3>
+
+</div>
+
+ <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+  <button onclick="showZoubirLesson('basics')">♟️ Les bases</button>
+  <button onclick="showZoubirLesson('cards')">🃏 Les cartes</button>
+  <button onclick="showZoubirLesson('special')">⚡ Cartes spéciales</button>
+  <button onclick="showZoubirLesson('victory')">🏆 Conditions de victoire</button>
+</div>
+ </div>
+ 
 <h1>UNO.CHESS</h1>
 <p>Les échecs rencontrent UNO !</p>
 
@@ -5219,6 +5345,80 @@ function toggleSocialSidebar() {
   buttons.style.display = isOpen ? "none" : "flex";
   arrow.textContent = isOpen ? "▶" : "◀";
 }
+
+
+let zoubirDialogues = [];
+let zoubirDialogueIndex = 0;
+
+function openRulesCoach() {
+  document.getElementById("rules-coach-panel").style.display = "block";
+}
+
+function closeRulesCoach() {
+  document.getElementById("rules-coach-panel").style.display = "none";
+  document.getElementById("zoubir-overlay").style.display = "none";
+}
+
+function showZoubirLesson(lesson) {
+  const dialogues = {
+    basics: [
+      "Bienvenue dans les bases de UNO.CHESS !",
+      "UNO.CHESS mélange deux univers : les échecs et les cartes UNO.",
+      "Pour jouer, tu dois tenir compte des déplacements des pièces et des règles de tes cartes.",
+      "Voilà ! Tu connais maintenant le principe général de UNO.CHESS."
+    ],
+    cards: [
+      "Passons aux cartes de couleur !",
+      "Le rouge est associé aux tours et aux dames.",
+      "Le bleu est associé aux cavaliers.",
+      "Le vert est associé aux fous.",
+      "Le jaune est associé aux pions.",
+      "Voilà comment sont réparties les pièces par couleur !"
+    ],
+    special: [
+      "Découvrons maintenant les cartes spéciales !",
+      "Le JOKER permet de choisir une couleur.",
+      "La carte +4 entraîne une pénalité de quatre cartes.",
+      "La carte +2 entraîne une pénalité de deux cartes.",
+      "PASSE fait passer le tour.",
+      "La carte ↔ inverse le sens du jeu.",
+      "Excellent ! Tu connais les principales cartes spéciales."
+    ],
+    victory: [
+      "Voyons maintenant les conditions de victoire.",
+      "Dans UNO.CHESS, il faut tenir compte des règles propres au jeu.",
+      "L'échec et mat fait également partie des éléments importants à comprendre.",
+      "Nous approfondirons les conditions exactes dans cette leçon."
+    ]
+  };
+
+  zoubirDialogues = dialogues[lesson] || ["Leçon introuvable."];
+  zoubirDialogueIndex = 0;
+
+  document.getElementById("zoubir-overlay").style.display = "flex";
+  updateZoubirDialogue();
+}
+
+function updateZoubirDialogue() {
+  document.getElementById("zoubir-speech").textContent =
+    zoubirDialogues[zoubirDialogueIndex];
+
+  const button = document.querySelector("#zoubir-overlay button");
+  button.textContent =
+    zoubirDialogueIndex === zoubirDialogues.length - 1
+      ? "TERMINER"
+      : "CONTINUER";
+}
+
+function continueZoubir() {
+  if (zoubirDialogueIndex < zoubirDialogues.length - 1) {
+    zoubirDialogueIndex++;
+    updateZoubirDialogue();
+  } else {
+    document.getElementById("zoubir-overlay").style.display = "none";
+  }
+}
+
 
 function openFriends(){
   if(!currentUser){
