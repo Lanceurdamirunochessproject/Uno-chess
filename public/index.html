@@ -4666,7 +4666,7 @@ function openPrivateMessages(){
   );
 }
 
- async function(friendId, username) {
+ window.openDM = async function(friendId, username) {
   if (!currentUser) {
     alert("Connecte-toi pour utiliser les messages privés.");
     return;
