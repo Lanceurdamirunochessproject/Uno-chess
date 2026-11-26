@@ -1798,21 +1798,56 @@ onclick="loginAccount()"
 
 </div>
 
-<button onclick="showZoubirLesson('classical')">
-  ♟️ RÈGLES CLASSICAL
-</button>
+<div id="academy-categories" style="
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:12px;
+">
+  <button onclick="openAcademyPath('classical')">
+    ♟️ RÈGLES CLASSICAL
+  </button>
 
-<button onclick="showZoubirLesson('fatality')">
-  🔥 RÈGLES FATALITY
-</button>
+  <button onclick="openAcademyPath('fatality')">
+    🔥 RÈGLES FATALITY
+  </button>
 
-<button onclick="showZoubirLesson('problems')">
-  🧩 SITUATIONS-PROBLÈMES
-</button>
+  <button onclick="openAcademyPath('problems')">
+    🧩 SITUATIONS-PROBLÈMES
+  </button>
 
-<button onclick="showZoubirLesson('infinite')">
-  ♾️ PROBLÈMES INFINIS
-</button>
+  <button onclick="openAcademyPath('infinite')">
+    ♾️ PROBLÈMES VARIÉS
+  </button>
+</div>
+
+<div id="academy-path-panel" style="
+  display:none;
+  margin-top:25px;
+  padding:15px;
+  background:#172033;
+  border:1px solid #374151;
+  border-radius:15px;
+">
+  <button onclick="closeAcademyPath()" style="
+    background:#374151;
+    color:white;
+    padding:10px 16px;
+    border:0;
+    border-radius:8px;
+    cursor:pointer;
+  ">← RETOUR</button>
+
+  <h3 id="academy-path-title" style="color:#facc15;"></h3>
+
+  <div id="academy-path-nodes" style="
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:15px;
+    margin-top:20px;
+  "></div>
+</div>
 </div>
  </div>
  
@@ -5430,7 +5465,112 @@ function closeRulesCoach() {
   document.getElementById("rules-coach-panel").style.display = "none";
   document.getElementById("zoubir-overlay").style.display = "none";
 }
+let currentAcademyPath = null;
 
+function openAcademyPath(path){
+  currentAcademyPath = path;
+
+  const categories = document.getElementById("academy-categories");
+  const panel = document.getElementById("academy-path-panel");
+  const title = document.getElementById("academy-path-title");
+  const nodes = document.getElementById("academy-path-nodes");
+
+  categories.style.display = "none";
+  panel.style.display = "block";
+  nodes.innerHTML = "";
+
+ const paths = {
+  classical: {
+    title: "♟️ RÈGLES CLASSICAL",
+    lessons: 1
+  },
+  fatality: {
+    title: "🔥 RÈGLES FATALITY",
+    lessons: 1
+  },
+  problems: {
+    title: "🧩 CHOISIS TON MODE",
+    lessons: 2
+  },
+  "problem-classical": {
+    title: "♟️ PROBLÈMES CLASSICAL",
+    lessons: 10
+  },
+  "problem-fatality": {
+    title: "🔥 PROBLÈMES FATALITY",
+    lessons: 10
+  },
+  infinite: {
+    title: "♾️ PROBLÈMES VARIÉS",
+    lessons: 1
+  }
+};
+
+  const selected = paths[path];
+  title.textContent = selected.title;
+
+  for(let i = 1; i <= selected.lessons; i++){
+    const button = document.createElement("button");
+
+    if(path === "problems"){
+  button.textContent = i === 1 ? "♟️ CLASSICAL" : "🔥 FATALITY";
+  button.style.width = "180px";
+  button.style.borderRadius = "14px";
+} else {
+  button.textContent = path === "infinite" ? "∞" : i;
+}
+
+if(path === "problems"){
+  button.onclick = () => openAcademyPath(
+    i === 1 ? "problem-classical" : "problem-fatality"
+  );
+} else {
+  button.onclick = () => startAcademyLesson(path,i);
+}
+
+    button.style.cssText = `
+      width:65px;
+      height:65px;
+      border-radius:50%;
+      border:3px solid #34d399;
+      background:#1f2937;
+      color:white;
+      font-size:23px;
+      font-weight:bold;
+      cursor:pointer;
+    `;
+
+    button.onclick = () => startAcademyLesson(path,i);
+
+    nodes.appendChild(button);
+  }
+}
+
+function closeAcademyPath(){
+  document.getElementById("academy-path-panel").style.display = "none";
+  document.getElementById("academy-categories").style.display = "flex";
+}
+ function startAcademyLesson(path, number){
+
+  if(path === "classical"){
+    showZoubirLesson("classical");
+    return;
+  }
+
+  if(path === "fatality"){
+    showZoubirLesson("fatality");
+    return;
+  }
+
+  if(path === "problems"){
+    alert("Le problème numéro " + number + " sera bientôt disponible !");
+    return;
+  }
+
+  if(path === "infinite"){
+    alert("Les problèmes variés à l'infini arrivent bientôt !");
+  }
+}
 function showZoubirLesson(lesson) {
   const dialogues = {
    classical: [
