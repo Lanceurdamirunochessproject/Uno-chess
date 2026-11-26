@@ -4649,7 +4649,8 @@ function openPrivateMessages(){
 
   alert("4 - Panneau trouvé");
 
-  openDM(Number(selectedPlayer.id), selectedPlayer.username);
+  alert("openDM existe : " + typeof window.openDM);
+window.openDM(Number(selectedPlayer.id), selectedPlayer.username);
 }
  let currentDMFriendId = null;
 let currentDMFriendUsername = "";
