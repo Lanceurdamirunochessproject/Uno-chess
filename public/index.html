@@ -1780,17 +1780,39 @@ onclick="loginAccount()"
 
   </div>
 
-  <h3 style="color:#d1d5db;">
-    Choisis une leçon pour commencer !
-  </h3>
+ <div id="academy-board" style="
+  display:grid;
+  grid-template-columns:repeat(8,min(8.2vw,60px));
+  grid-template-rows:repeat(8,min(8.2vw,60px));
+  justify-content:center;
+  margin:10px auto;
+  border:4px solid #d1d5db;
+  width:fit-content;
+  max-width:100%;
+">
+</div>
+
+<p id="academy-instructions" style="color:#93c5fd;">
+  Choisis une leçon pour commencer !
+</p>
 
 </div>
 
- <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
-  <button onclick="showZoubirLesson('basics')">♟️ Les bases</button>
-  <button onclick="showZoubirLesson('cards')">🃏 Les cartes</button>
-  <button onclick="showZoubirLesson('special')">⚡ Cartes spéciales</button>
-  <button onclick="showZoubirLesson('victory')">🏆 Conditions de victoire</button>
+<button onclick="showZoubirLesson('classical')">
+  ♟️ RÈGLES CLASSICAL
+</button>
+
+<button onclick="showZoubirLesson('fatality')">
+  🔥 RÈGLES FATALITY
+</button>
+
+<button onclick="showZoubirLesson('problems')">
+  🧩 SITUATIONS-PROBLÈMES
+</button>
+
+<button onclick="showZoubirLesson('infinite')">
+  ♾️ PROBLÈMES INFINIS
+</button>
 </div>
  </div>
  
@@ -2245,8 +2267,52 @@ function renderCards(){
   cardsBox.appendChild(b);
  });
 }
+const academyGame = new Chess();
+function drawAcademyBoard(position){
+  const academyBoard = document.getElementById("academy-board");
+  if(!academyBoard) return;
 
+  academyBoard.innerHTML = "";
 
+  const theme = localStorage.getItem("unoChessPieceTheme") || "gaming";
+
+  for(let r = 0; r < 8; r++){
+    for(let c = 0; c < 8; c++){
+
+      const square = document.createElement("div");
+
+      square.className = "square " +
+        ((r+c)%2===0 ? "light" : "dark");
+
+      square.style.width = "min(8.2vw,60px)";
+      square.style.height = "min(8.2vw,60px)";
+
+      const piece = position[r][c];
+
+      if(theme === "ancien"){
+        square.style.background =
+          (r+c)%2===0 ? "#ffffff" : "#000000";
+      }
+
+      if(piece){
+        square.textContent =
+          pieces[piece.color + piece.type.toUpperCase()];
+
+        if(theme === "dark" || theme === "ancien"){
+          square.style.color =
+            piece.color === "w" ? "#ffffff" : "#5b351f";
+        }
+
+        if(theme === "ancien" && piece.color === "w"){
+          square.style.textShadow =
+            "0 0 2px #000000, 0 0 4px #000000";
+        }
+      }
+
+      academyBoard.appendChild(square);
+    }
+  }
+}
 
  function drawBoard(){
  board.innerHTML="";
@@ -5350,10 +5416,16 @@ function toggleSocialSidebar() {
 let zoubirDialogues = [];
 let zoubirDialogueIndex = 0;
 
-function openRulesCoach() {
+ function openRulesCoach() {
   document.getElementById("rules-coach-panel").style.display = "block";
-}
+drawAcademyBoard(academyGame.board());
+  const modeText = selectedGameMode === "fatality"
+    ? "FATALITY"
+    : "CLASSICAL";
 
+  document.getElementById("zoubir-rule-content").querySelector("h3").textContent =
+    "Mode sélectionné : " + modeText + " — Choisis une leçon pour commencer !";
+}
 function closeRulesCoach() {
   document.getElementById("rules-coach-panel").style.display = "none";
   document.getElementById("zoubir-overlay").style.display = "none";
@@ -5361,6 +5433,22 @@ function closeRulesCoach() {
 
 function showZoubirLesson(lesson) {
   const dialogues = {
+   classical: [
+  "Bienvenue dans le cours des règles CLASSICAL !",
+  "Nous allons étudier les règles exactes du mode CLASSICAL.",
+  "Tu apprendras comment fonctionnent les cartes et les déplacements des pièces.",
+  "Nous verrons également les cartes spéciales disponibles dans ce mode.",
+  "À la fin, tu connaîtras les règles du mode CLASSICAL."
+],
+
+fatality: [
+  "Bienvenue dans le cours des règles FATALITY !",
+  "Le mode FATALITY possède ses propres cartes et particularités.",
+  "Tu découvriras les cartes +2, +4, +6 et +10.",
+  "Nous étudierons aussi les autres cartes spéciales de ce mode.",
+  "Attention : les règles FATALITY sont différentes du mode CLASSICAL.",
+  "Voilà pour cette introduction au mode FATALITY !"
+],
     basics: [
       "Bienvenue dans les bases de UNO.CHESS !",
       "UNO.CHESS mélange deux univers : les échecs et les cartes UNO.",
