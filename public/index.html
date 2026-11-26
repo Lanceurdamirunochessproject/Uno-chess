@@ -1014,7 +1014,7 @@ body[data-interface-theme="chess"] #reportBtn:hover {
   left: 0;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 150000;
+z-index: 2147483647 !important;
 
   display: flex;
   flex-direction: column;
@@ -1025,6 +1025,8 @@ body[data-interface-theme="chess"] #reportBtn:hover {
   border: 1px solid #374151;
   border-left: none;
   border-radius: 0 14px 14px 0;
+   visibility: visible !important;
+  opacity: 1 !important;
 }
 
 #social-sidebar button {
