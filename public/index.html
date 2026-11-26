@@ -1624,46 +1624,45 @@ onclick="loginAccount()"
 </div>
 
 </section>
+
 <div id="social-sidebar" style="
-  position: fixed !important;
-  left: 0 !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  z-index: 2147483647 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 12px !important;
-  padding: 10px !important;
-  background: #1f2937 !important;
-  border-radius: 0 14px 14px 0 !important;
+  position: fixed;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2147483647;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px;
+  background: #1f2937;
+  border-radius: 0 14px 14px 0;
 ">
 
-  <button onclick="openFriends()" style="
-    width: 75px;
-    min-height: 65px;
-    background: #7c3aed;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-  ">
-    👥
-    <span>AMIS</span>
+  <button id="sidebar-toggle" onclick="toggleSocialSidebar()"
+    style="background:#374151;color:white;border:0;border-radius:8px;padding:8px;cursor:pointer;">
+    ◀
   </button>
 
-  <button onclick="openNotifications()" style="
-    width: 75px;
-    min-height: 65px;
-    background: #7c3aed;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
+  <div id="sidebar-buttons" style="
+    display:flex;
+    flex-direction:column;
+    gap:12px;
   ">
-    🔔
-    <span>NOTIFICATIONS</span>
-  </button>
+    <button onclick="openFriends()" style="
+      width:75px;min-height:65px;background:#7c3aed;color:white;
+      border:0;border-radius:10px;cursor:pointer;
+    ">
+      👥<span>AMIS</span>
+    </button>
 
+    <button onclick="openNotifications()" style="
+      width:75px;min-height:65px;background:#7c3aed;color:white;
+      border:0;border-radius:10px;cursor:pointer;
+    ">
+      🔔<span>NOTIFICATIONS</span>
+    </button>
+  </div>
 </div>
 
 
@@ -5210,6 +5209,16 @@ if (gameChatInput) {
  let friendsList = [];
 let friendRequestsList = [];
  let friendsTab = "friends";
+
+function toggleSocialSidebar() {
+  const buttons = document.getElementById("sidebar-buttons");
+  const arrow = document.getElementById("sidebar-toggle");
+
+  const isOpen = buttons.style.display !== "none";
+
+  buttons.style.display = isOpen ? "none" : "flex";
+  arrow.textContent = isOpen ? "▶" : "◀";
+}
 
 function openFriends(){
   if(!currentUser){
