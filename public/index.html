@@ -4715,7 +4715,12 @@ Object.assign(panel.style, {
   margin: "0"
 });
 
-console.log("POSITION DM :", panel.getBoundingClientRect().toJSON());
+const r = panel.getBoundingClientRect();
+
+console.log(
+  "DM POSITION :",
+  r.top, r.left, r.width, r.height, r.bottom, r.right
+);
 
 await loadPrivateMessages();
 
