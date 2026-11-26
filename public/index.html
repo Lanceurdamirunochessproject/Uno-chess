@@ -4453,7 +4453,8 @@ async function unbanSelectedPlayer(){
 
 async function openPlayerProfile(player){
  selectedPlayer = player;
- console.log("JOUEUR SÉLECTIONNÉ POUR DM :", selectedPlayer);
+ console.log("ID DU JOUEUR :", selectedPlayer.id);
+console.log("USERNAME DU JOUEUR :", selectedPlayer.username);
 updatePlayerAdminActions(player);
  const menu = document.getElementById("player-profile-menu");
  const historyBox = document.getElementById("player-menu-history");
