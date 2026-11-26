@@ -4665,7 +4665,11 @@ console.log("ID DU DESTINATAIRE :", selectedPlayer?.id);
   const friendId = Number(selectedPlayer.id);
   const username = selectedPlayer.username || "Joueur";
 
-  window.openDM(friendId, username);
+  console.log("OUVERTURE DU DM :", friendId, username);
+
+window.openDM(friendId, username);
+
+console.log("APPEL OPEN DM TERMINÉ");
 
   document.getElementById("player-profile-menu").style.display = "none";
 }
