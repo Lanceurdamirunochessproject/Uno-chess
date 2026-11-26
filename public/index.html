@@ -1009,7 +1009,51 @@ body[data-interface-theme="chess"] #reportBtn:hover {
 .mode-button.selected{
   border-color:#facc15;
 }
+#social-sidebar {
+  position: fixed;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 150000;
 
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  padding: 10px;
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-left: none;
+  border-radius: 0 14px 14px 0;
+}
+
+#social-sidebar button {
+  width: 65px;
+  min-height: 65px;
+  padding: 8px 4px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+
+  background: #7c3aed;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 23px;
+}
+
+#social-sidebar button span {
+  font-size: 9px;
+  font-weight: bold;
+}
+
+#social-sidebar button:hover {
+  background: #6d28d9;
+}
 </style>
  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 </head>
@@ -1105,12 +1149,18 @@ onclick="loginAccount()"
 
   <button onclick="openSettings()">⚙️ PARAMÈTRES</button>
   <button onclick="logoutAccount()" class="account-secondary">DÉCONNEXION</button>
- <button onclick="openFriends()" style="background:#7c3aed;color:white;">
-  👥 AMIS
-</button>
- <button onclick="openNotifications()" style="background:#7c3aed;color:white;">
-  🔔 NOTIFICATION
-</button>
+<!-- BARRE LATÉRALE -->
+<div id="social-sidebar">
+  <button onclick="openFriends()" title="Amis">
+    👥
+    <span>AMIS</span>
+  </button>
+
+  <button onclick="openNotifications()" title="Notifications">
+    🔔
+    <span>NOTIFICATIONS</span>
+  </button>
+</div>
 </div>
 
  <p id="account-message"></p>
