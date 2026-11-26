@@ -1105,6 +1105,9 @@ onclick="loginAccount()"
 
   <button onclick="openSettings()">⚙️ PARAMÈTRES</button>
   <button onclick="logoutAccount()" class="account-secondary">DÉCONNEXION</button>
+ <button onclick="openNotifications()" style="background:#7c3aed;color:white;">
+  🔔 NOTIFICATION
+</button>
 </div>
 
  <p id="account-message"></p>
@@ -3524,6 +3527,9 @@ async function openInbox() {
     list.innerHTML = "<p>" + error.message + "</p>";
   }
 }
+ function openNotifications() {
+  openInbox();
+}
 
 function openSettings() {
   const old = document.getElementById("settings-window");
@@ -5730,17 +5736,15 @@ updateGameModeButtons();
     font-size:14px;
     cursor:pointer;
 ">⚙️ Paramètres</button>
-  <button onclick="openInbox()" style="
-    width:42px;
-    height:42px;
+<button onclick="openNotifications()" style="
+    padding:10px 14px;
     border-radius:10px;
-    background:#2563eb;
+    background:#7c3aed;
     color:white;
     border:0;
-    font-size:20px;
+    font-size:14px;
     cursor:pointer;
-  ">📥</button>
-
+">🔔 NOTIFICATION</button>
 
 <div id="inbox-panel" style="
   display:none;
