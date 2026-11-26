@@ -1844,6 +1844,32 @@ onclick="loginAccount()"
   ">← RETOUR</button>
 
   <h3 id="academy-path-title" style="color:#facc15;"></h3>
+ <div style="margin:15px auto;">
+  <p style="font-weight:bold;">🎨 THÈME DU PARCOURS</p>
+
+  <div style="
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:10px;
+  ">
+    <button onclick="changeAcademyTheme('green')">
+      🟢 VERT
+    </button>
+
+    <button onclick="changeAcademyTheme('red')">
+      🔴 ROUGE SANGLANT
+    </button>
+
+    <button onclick="changeAcademyTheme('blue')">
+      🔵 BLEU
+    </button>
+
+    <button onclick="changeAcademyTheme('pink')">
+      🩷 ROSE
+    </button>
+  </div>
+</div>
 <div id="academy-mode-choice" style="
   display:none;
   justify-content:center;
@@ -5500,101 +5526,263 @@ function closeRulesCoach() {
   document.getElementById("rules-coach-panel").style.display = "none";
   document.getElementById("zoubir-overlay").style.display = "none";
 }
-let currentAcademyPath = null;
+ let currentAcademyPath = null;
+ let academyTheme = localStorage.getItem("unoChessAcademyTheme") || "green";
 
+const academyThemes = {
+  green: {
+    background: "#14532d",
+    circle: "#166534",
+    border: "#22c55e",
+    line: "#4ade80"
+  },
+
+  red: {
+    background: "#450a0a",
+    circle: "#991b1b",
+    border: "#ef4444",
+    line: "#f87171"
+  },
+
+  blue: {
+    background: "#1e3a8a",
+    circle: "#1d4ed8",
+    border: "#60a5fa",
+    line: "#93c5fd"
+  },
+
+  pink: {
+    background: "#831843",
+    circle: "#be185d",
+    border: "#f472b6",
+    line: "#f9a8d4"
+  }
+};
+let academyProgress = JSON.parse(
+  localStorage.getItem("unoChessAcademyProgress") || "{}"
+);
+ function changeAcademyTheme(theme){
+  if(!academyThemes[theme]) return;
+
+  academyTheme = theme;
+
+  localStorage.setItem(
+    "unoChessAcademyTheme",
+    theme
+  );
+
+  applyAcademyTheme();
+}
+
+function applyAcademyTheme(){
+
+  const colors = academyThemes[academyTheme];
+
+  const panel = document.getElementById("academy-path-panel");
+
+  if(!panel) return;
+
+  panel.style.background = colors.background;
+
+  document.querySelectorAll("#academy-path-nodes button").forEach(button => {
+
+    const status = button.dataset.status;
+
+    if(status === "completed"){
+      button.style.background = "#166534";
+      button.style.borderColor = "#22c55e";
+    }
+
+    else if(status === "locked"){
+      button.style.background = "#374151";
+      button.style.borderColor = "#6b7280";
+    }
+
+    else{
+      button.style.background = colors.circle;
+      button.style.borderColor = colors.border;
+    }
+
+  });
+
+  document.querySelectorAll("#academy-path-nodes div").forEach(line => {
+    line.style.background = colors.line;
+  });
+}
+function saveAcademyProgress(){
+  localStorage.setItem(
+    "unoChessAcademyProgress",
+    JSON.stringify(academyProgress)
+  );
+}
+ 
 function openAcademyPath(path){
+
   currentAcademyPath = path;
 
   const categories = document.getElementById("academy-categories");
   const panel = document.getElementById("academy-path-panel");
- const home = document.getElementById("academy-home-content");
-home.style.display = "none";
+  const home = document.getElementById("academy-home-content");
   const title = document.getElementById("academy-path-title");
   const nodes = document.getElementById("academy-path-nodes");
+  const modeChoice = document.getElementById("academy-mode-choice");
+
+  const colors = academyThemes[academyTheme];
 
   categories.style.display = "none";
+  home.style.display = "none";
+
   panel.style.display = "block";
+  panel.style.background = colors.background;
+
   nodes.innerHTML = "";
- const modeChoice = document.getElementById("academy-mode-choice");
-
-if(path === "problems"){
-  title.textContent = "🧩 CHOISIS TON MODE";
-
-  modeChoice.style.display = "flex";
-  nodes.style.display = "none";
-
-  return;
-}
-
-modeChoice.style.display = "none";
-nodes.style.display = "flex";
-
- const paths = {
-  classical: {
-    title: "♟️ RÈGLES CLASSICAL",
-    lessons: 1
-  },
-  fatality: {
-    title: "🔥 RÈGLES FATALITY",
-    lessons: 1
-  },
-  problems: {
-    title: "🧩 CHOISIS TON MODE",
-    lessons: 2
-  },
-  "problem-classical": {
-    title: "♟️ PROBLÈMES CLASSICAL",
-    lessons: 10
-  },
-  "problem-fatality": {
-    title: "🔥 PROBLÈMES FATALITY",
-    lessons: 10
-  },
-  infinite: {
-    title: "♾️ PROBLÈMES VARIÉS",
-    lessons: 1
+applyAcademyTheme();
+  // Choix du mode des situations-problèmes
+  if(path === "problems"){
+    title.textContent = "🧩 CHOISIS TON MODE";
+    modeChoice.style.display = "flex";
+    nodes.style.display = "none";
+    return;
   }
-};
+
+  modeChoice.style.display = "none";
+
+  nodes.style.display = "flex";
+  nodes.style.flexDirection = "column";
+  nodes.style.alignItems = "center";
+  nodes.style.gap = "0";
+  nodes.style.position = "relative";
+  nodes.style.padding = "20px 0";
+
+  const paths = {
+    classical: {
+      title: "♟️ RÈGLES CLASSICAL",
+      lessons: 1
+    },
+    fatality: {
+      title: "🔥 RÈGLES FATALITY",
+      lessons: 1
+    },
+    "problem-classical": {
+      title: "♟️ PROBLÈMES CLASSICAL",
+      lessons: 10
+    },
+    "problem-fatality": {
+      title: "🔥 PROBLÈMES FATALITY",
+      lessons: 10
+    },
+    infinite: {
+      title: "♾️ PROBLÈMES VARIÉS",
+      lessons: 1
+    }
+  };
 
   const selected = paths[path];
+
+  if(!selected) return;
+
   title.textContent = selected.title;
 
+  // Les règles ouvrent directement Zoubir
+  if(path === "classical" || path === "fatality"){
+    panel.style.display = "none";
+    home.style.display = "flex";
+    startAcademyLesson(path, 1);
+    return;
+  }
+
+  const isProblemPath =
+    path === "problem-classical" ||
+    path === "problem-fatality";
+
+  const completed = academyProgress[path] || [];
+  const unlockedLevel = completed.length + 1;
+
   for(let i = 1; i <= selected.lessons; i++){
+
     const button = document.createElement("button");
 
-    if(path === "problems"){
-  button.textContent = i === 1 ? "♟️ CLASSICAL" : "🔥 FATALITY";
-  button.style.width = "180px";
-  button.style.borderRadius = "14px";
-} else {
-  button.textContent = path === "infinite" ? "∞" : i;
-}
+    button.style.width = "65px";
+    button.style.height = "65px";
+    button.style.borderRadius = "50%";
+    button.style.border = "4px solid " + colors.border;
+    button.style.color = "white";
+    button.style.fontSize = "23px";
+    button.style.fontWeight = "bold";
+    button.style.cursor = "pointer";
+    button.style.position = "relative";
+    button.style.zIndex = "2";
+    button.style.boxShadow = "0 5px 0 #0006, 0 8px 15px #0008";
+    button.style.transition = "transform 0.2s";
+    button.style.marginLeft = i % 2 === 0 ? "90px" : "-90px";
 
-if(path === "problems"){
-  button.onclick = () => openAcademyPath(
-    i === 1 ? "problem-classical" : "problem-fatality"
-  );
-} else {
-  button.onclick = () => startAcademyLesson(path,i);
-}
+    button.onmouseenter = () => {
+      button.style.transform = "scale(1.12)";
+    };
 
-    button.style.cssText = `
-      width:65px;
-      height:65px;
-      border-radius:50%;
-      border:3px solid #34d399;
-      background:#1f2937;
-      color:white;
-      font-size:23px;
-      font-weight:bold;
-      cursor:pointer;
-    `;
+    button.onmouseleave = () => {
+      button.style.transform = "scale(1)";
+    };
 
-    button.onclick = () => startAcademyLesson(path,i);
+    // Apparence des problèmes
+    if(isProblemPath){
+
+      if(completed.includes(i)){
+       button.dataset.status = "completed";
+        button.textContent = "✓";
+        button.style.background = "#166534";
+        button.style.borderColor = "#22c55e";
+        button.title = "Problème terminé";
+      }
+      else if(i === unlockedLevel){
+       button.dataset.status = "available";
+        button.textContent = i;
+        button.style.background = "#ca8a04";
+        button.style.borderColor = "#facc15";
+        button.title = "Problème disponible";
+      }
+      else{
+       button.dataset.status = "locked";
+        button.textContent = "🔒";
+        button.style.background = "#374151";
+        button.style.borderColor = "#6b7280";
+        button.disabled = true;
+        button.title = "Termine le problème précédent";
+      }
+
+    } else {
+     button.dataset.status = "available";
+      button.textContent = path === "infinite" ? "∞" : i;
+      button.style.background = colors.circle;
+    }
+
+    button.onclick = () => {
+      if(isProblemPath && i > unlockedLevel){
+        return;
+      }
+
+      startAcademyLesson(path, i);
+    };
 
     nodes.appendChild(button);
+
+    // Liaison entre les étapes
+    if(i < selected.lessons){
+
+      const connector = document.createElement("div");
+
+      connector.style.width = "5px";
+      connector.style.height = "35px";
+      connector.style.background = colors.line;
+      connector.style.borderRadius = "5px";
+      connector.style.margin = "-2px 0";
+
+      nodes.appendChild(connector);
+    }
   }
+  applyAcademyTheme();
 }
+
 
 function closeAcademyPath(){
   document.getElementById("academy-path-panel").style.display = "none";
@@ -5604,7 +5792,8 @@ function closeAcademyPath(){
   document.getElementById("academy-mode-choice").style.display = "none";
   document.getElementById("academy-path-nodes").style.display = "flex";
 }
- function startAcademyLesson(path, number){
+
+function startAcademyLesson(path, number){
 
   if(path === "classical"){
     showZoubirLesson("classical");
@@ -5616,8 +5805,22 @@ function closeAcademyPath(){
     return;
   }
 
-  if(path === "problems"){
-    alert("Le problème numéro " + number + " sera bientôt disponible !");
+  if(path === "problem-classical" ||
+     path === "problem-fatality"){
+
+    const completed = academyProgress[path] || [];
+    const unlockedLevel = completed.length + 1;
+
+    if(number > unlockedLevel){
+      alert("Termine d'abord le problème précédent !");
+      return;
+    }
+
+    alert(
+      "Chargement du problème " + number +
+      " : " + (path === "problem-classical" ? "CLASSICAL" : "FATALITY")
+    );
+
     return;
   }
 
@@ -5625,6 +5828,7 @@ function closeAcademyPath(){
     alert("Les problèmes variés à l'infini arrivent bientôt !");
   }
 }
+
 function showZoubirLesson(lesson) {
   const dialogues = {
    classical: [
