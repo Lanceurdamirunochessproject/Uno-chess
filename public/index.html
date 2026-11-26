@@ -4665,7 +4665,8 @@ function openPrivateMessages(){
     selectedPlayer.username
   );
 }
-
+let currentDMFriendId = null;
+let currentDMFriendUsername = "";
  window.openDM = async function(friendId, username) {
   if (!currentUser) {
     alert("Connecte-toi pour utiliser les messages privés.");
