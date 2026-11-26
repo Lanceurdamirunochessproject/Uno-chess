@@ -4707,7 +4707,12 @@ panel.style.transform = "translate(-50%, -50%)";
 panel.style.background = "#1f2937";
 panel.style.display = "block";
 panel.style.visibility = "visible";
-
+console.log("POSITION DM :", panel.getBoundingClientRect());
+console.log("ÉCRAN :", window.innerWidth, window.innerHeight);
+console.log("ÉLÉMENT AU CENTRE :", document.elementFromPoint(
+  window.innerWidth / 2,
+  window.innerHeight / 2
+));
 
 await loadPrivateMessages();
 
