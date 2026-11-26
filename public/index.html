@@ -4707,6 +4707,13 @@ panel.style.transform = "translate(-50%, -50%)";
 panel.style.background = "#1f2937";
 panel.style.display = "block";
 panel.style.visibility = "visible";
+  panel.style.zIndex = "2147483647";
+panel.style.pointerEvents = "auto";
+panel.style.opacity = "1";
+panel.style.display = "block";
+panel.style.margin = "0";
+
+panel.scrollIntoView({ block: "center" });
 console.log("POSITION DM :", panel.getBoundingClientRect());
 console.log("ÉCRAN :", window.innerWidth, window.innerHeight);
 console.log("ÉLÉMENT AU CENTRE :", document.elementFromPoint(
