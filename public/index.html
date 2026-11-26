@@ -4685,6 +4685,19 @@ let currentDMFriendUsername = "";
   currentDMFriendUsername = username;
 
   const panel = document.getElementById("dm-panel");
+  let parent = panel;
+
+while (parent) {
+  console.log(
+    "PARENT DM :",
+    parent.tagName,
+    parent.id,
+    getComputedStyle(parent).display,
+    getComputedStyle(parent).visibility
+  );
+
+  parent = parent.parentElement;
+}
 console.log("PANNEAU DM :", panel);
 console.log("TITRE DM :", document.getElementById("dm-title"));
 
