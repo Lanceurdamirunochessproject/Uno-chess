@@ -4677,7 +4677,8 @@ let currentDMFriendUsername = "";
   currentDMFriendUsername = username;
 
   const panel = document.getElementById("dm-panel");
-
+console.log("PANNEAU DM :", panel);
+console.log("AVANT AFFICHAGE :", panel?.style.display);
   if (!panel) {
     alert("Panneau des messages introuvable.");
     return;
@@ -4686,11 +4687,17 @@ let currentDMFriendUsername = "";
   document.getElementById("dm-title").textContent =
     "MESSAGES AVEC " + username;
 
-  panel.style.display = "block";
-  panel.style.zIndex = "999999";
+ console.log("1 - AVANT AFFICHAGE :", panel);
 
-  await loadPrivateMessages();
-};
+panel.style.display = "block";
+panel.style.zIndex = "999999";
+
+console.log("2 - APRÈS AFFICHAGE :", panel.style.display);
+
+await loadPrivateMessages();
+
+console.log("3 - MESSAGES CHARGÉS");
+  };
 async function loadPrivateMessages() {
   if (!currentDMFriendId) return;
 
