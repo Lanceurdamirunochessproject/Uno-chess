@@ -3483,7 +3483,10 @@ alert("Affichage actuel : " + (panel ? getComputedStyle(panel).display : "introu
     return;
   }
 
-  panel.style.display = "block";
+  panel.style.setProperty("display", "block", "important");
+panel.style.setProperty("visibility", "visible", "important");
+panel.style.setProperty("opacity", "1", "important");
+panel.style.setProperty("z-index", "999999", "important");
   panel.style.zIndex = "100001";
 
   const list = document.getElementById("inbox-list");
