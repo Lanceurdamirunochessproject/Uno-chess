@@ -4714,7 +4714,16 @@ panel.style.display = "block";
 panel.style.margin = "0";
 
 panel.scrollIntoView({ block: "center" });
-console.log("POSITION DM :", panel.getBoundingClientRect());
+const rect = panel.getBoundingClientRect();
+
+console.log("POSITION DM :", {
+  top: rect.top,
+  left: rect.left,
+  width: rect.width,
+  height: rect.height,
+  bottom: rect.bottom,
+  right: rect.right
+});
 console.log("ÉCRAN :", window.innerWidth, window.innerHeight);
 console.log("ÉLÉMENT AU CENTRE :", document.elementFromPoint(
   window.innerWidth / 2,
