@@ -4698,37 +4698,24 @@ console.log("TITRE DM :", document.getElementById("dm-title"));
 
 
 
-panel.style.display = "block";
-panel.style.zIndex = "999999";
-panel.style.position = "fixed";
-panel.style.top = "50%";
-panel.style.left = "50%";
-panel.style.transform = "translate(-50%, -50%)";
-panel.style.background = "#1f2937";
-panel.style.display = "block";
-panel.style.visibility = "visible";
-  panel.style.zIndex = "2147483647";
-panel.style.pointerEvents = "auto";
-panel.style.opacity = "1";
-panel.style.display = "block";
-panel.style.margin = "0";
-
-panel.scrollIntoView({ block: "center" });
-const rect = panel.getBoundingClientRect();
-
-console.log("POSITION DM :", {
-  top: rect.top,
-  left: rect.left,
-  width: rect.width,
-  height: rect.height,
-  bottom: rect.bottom,
-  right: rect.right
+Object.assign(panel.style, {
+  display: "block",
+  position: "fixed",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  width: "min(650px, 94vw)",
+  height: "min(600px, 80vh)",
+  background: "#1f2937",
+  color: "white",
+  zIndex: "2147483647",
+  visibility: "visible",
+  pointerEvents: "auto",
+  opacity: "1",
+  margin: "0"
 });
-console.log("ÉCRAN :", window.innerWidth, window.innerHeight);
-console.log("ÉLÉMENT AU CENTRE :", document.elementFromPoint(
-  window.innerWidth / 2,
-  window.innerHeight / 2
-));
+
+console.log("POSITION DM :", panel.getBoundingClientRect().toJSON());
 
 await loadPrivateMessages();
 
