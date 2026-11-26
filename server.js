@@ -2387,6 +2387,59 @@ io.on("connection", async socket => {
   }
 
   socketUsers.set(socket.id, Number(userId));
+  
+// CHARGER LES AMIS ET LES DEMANDES
+socket.on("get-friends-data", async () => {
+  try {
+    const myId = Number(userId);
+
+    const friendsResult = await pool.query(
+      `SELECT
+         u.id,
+         u.username
+       FROM friend_requests fr
+       JOIN users u
+         ON u.id = CASE
+           WHEN fr.sender_id = $1 THEN fr.receiver_id
+           ELSE fr.sender_id
+         END
+       WHERE fr.status = 'accepted'
+         AND (fr.sender_id = $1 OR fr.receiver_id = $1)
+       ORDER BY u.username ASC`,
+      [myId]
+    );
+
+    const requestsResult = await pool.query(
+      `SELECT
+         fr.id AS request_id,
+         u.id AS sender_id,
+         u.username
+       FROM friend_requests fr
+       JOIN users u ON u.id = fr.sender_id
+       WHERE fr.receiver_id = $1
+         AND fr.status = 'pending'
+       ORDER BY fr.id DESC`,
+      [myId]
+    );
+
+    const onlineIds = [...socketUsers.values()];
+
+    const friends = friendsResult.rows.map(friend => ({
+      ...friend,
+      online: onlineIds.includes(Number(friend.id))
+    }));
+
+    socket.emit("friends-data", {
+      friends,
+      requests: requestsResult.rows
+    });
+
+  } catch (error) {
+    console.error("Erreur chargement des amis :", error);
+    socket.emit("friend-request-error", "Impossible de charger les amis.");
+  }
+});
+
 // ENVOYER UNE DEMANDE D'AMI
 socket.on("send-friend-request", async (targetId) => {
   try {
