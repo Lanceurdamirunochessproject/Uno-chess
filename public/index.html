@@ -4624,56 +4624,33 @@ history.forEach(match => {
 
 
 function openPrivateMessages(){
-  
+  alert("1 - Fonction appelée");
 
   if (!selectedPlayer) {
-    alert("Aucun joueur sélectionné.");
+    alert("2 - Aucun joueur sélectionné !");
     return;
   }
 
+  alert("2 - Joueur : " + selectedPlayer.username);
 
-  const friendId = Number(selectedPlayer.id);
-
-  if (!Number.isInteger(friendId) || friendId <= 0) {
-    alert("Identifiant du joueur invalide.");
-    return;
-  }
-
-  openDM(friendId, selectedPlayer.username);
-}
- let currentDMFriendId = null;
-let currentDMFriendUsername = "";
-async function openDM(friendId, username) {
   if (!currentUser) {
-    alert("Connecte-toi pour utiliser les messages privés.");
+    alert("3 - Tu n'es pas connecté !");
     return;
   }
 
-  currentDMFriendId = friendId;
-currentDMFriendUsername = username;
-  document.getElementById("dm-title").textContent =
-    "MESSAGES AVEC " + username;
-const panel = document.getElementById("dm-panel");
+  alert("3 - Compte connecté");
 
+  const panel = document.getElementById("dm-panel");
 
+  if (!panel) {
+    alert("4 - Panneau dm-panel introuvable !");
+    return;
+  }
 
-panel.style.display = "block";
-panel.style.position = "fixed";
-panel.style.top = "50%";
-panel.style.left = "50%";
-panel.style.transform = "translate(-50%, -50%)";
-panel.style.zIndex = "999999";
-panel.style.width = "90%";
-panel.style.maxWidth = "450px";
-panel.style.background = "#1f2937";
-panel.style.border = "2px solid white";
-panel.style.color = "white";
-panel.style.maxHeight = "90vh";
-panel.style.overflowY = "auto";
-panel.style.boxSizing = "border-box";
-  await loadPrivateMessages();
+  alert("4 - Panneau trouvé");
+
+  openDM(Number(selectedPlayer.id), selectedPlayer.username);
 }
-
 async function loadPrivateMessages() {
   if (!currentDMFriendId) return;
 
