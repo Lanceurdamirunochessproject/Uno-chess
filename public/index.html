@@ -4635,41 +4635,38 @@ history.forEach(match => {
   matchList.textContent = "Impossible de charger l'historique.";
  }
 }
-
-
+ 
 function openPrivateMessages(){
-  alert("1 - Fonction appelée");
 
   if (!selectedPlayer) {
-    alert("2 - Aucun joueur sélectionné !");
+    alert("Aucun joueur sélectionné !");
     return;
   }
-
-  alert("2 - Joueur : " + selectedPlayer.username);
 
   if (!currentUser) {
-    alert("3 - Tu n'es pas connecté !");
+    alert("Connecte-toi pour envoyer un message.");
     return;
   }
 
-  alert("3 - Compte connecté");
-
-  const panel = document.getElementById("dm-panel");
-
-  if (!panel) {
-    alert("4 - Panneau dm-panel introuvable !");
+  if (Number(selectedPlayer.id) === Number(currentUser.id)) {
+    alert("Tu ne peux pas t'envoyer un message à toi-même.");
     return;
   }
 
-  alert("4 - Panneau trouvé");
+  if (typeof window.openDM !== "function") {
+    alert("La fonction des messages privés est introuvable.");
+    return;
+  }
 
-  alert("openDM existe : " + typeof window.openDM);
-window.openDM(Number(selectedPlayer.id), selectedPlayer.username);
+  document.getElementById("player-profile-menu").style.display = "none";
+
+  window.openDM(
+    Number(selectedPlayer.id),
+    selectedPlayer.username
+  );
 }
- let currentDMFriendId = null;
-let currentDMFriendUsername = "";
 
-window.openDM = async function(friendId, username) {
+ async function(friendId, username) {
   if (!currentUser) {
     alert("Connecte-toi pour utiliser les messages privés.");
     return;
@@ -5656,9 +5653,9 @@ updateGameModeButtons();
 <div id="dm-panel" style="
   display:none;
   position:fixed;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
+ top:45%;
+left:65px;
+transform:translateY(-50%);
   width:min(650px,94vw);
   height:min(600px,80vh);
   background:#1f2937;
@@ -5760,8 +5757,8 @@ updateGameModeButtons();
   top:50%;
   left:50%;
   transform:translate(-50%,-50%);
-  width:min(950px,94vw);
-  height:min(700px,85vh);
+ width:min(500px,85vw);
+height:min(600px,80vh);
   background:#111827;
   border:1px solid #475569;
   border-radius:16px;
