@@ -3476,7 +3476,8 @@ let selectedPlayer = null;
 async function openInbox() {
  alert("openInbox fonctionne !");
   const panel = document.getElementById("inbox-panel");
-
+alert("Panneau trouvé : " + !!panel);
+alert("Affichage actuel : " + (panel ? getComputedStyle(panel).display : "introuvable"));
   if (panel.style.display !== "none") {
     panel.style.display = "none";
     return;
