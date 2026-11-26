@@ -4651,6 +4651,33 @@ function openPrivateMessages(){
 
   openDM(Number(selectedPlayer.id), selectedPlayer.username);
 }
+ let currentDMFriendId = null;
+let currentDMFriendUsername = "";
+
+window.openDM = async function(friendId, username) {
+  if (!currentUser) {
+    alert("Connecte-toi pour utiliser les messages privés.");
+    return;
+  }
+
+  currentDMFriendId = Number(friendId);
+  currentDMFriendUsername = username;
+
+  const panel = document.getElementById("dm-panel");
+
+  if (!panel) {
+    alert("Panneau des messages introuvable.");
+    return;
+  }
+
+  document.getElementById("dm-title").textContent =
+    "MESSAGES AVEC " + username;
+
+  panel.style.display = "block";
+  panel.style.zIndex = "999999";
+
+  await loadPrivateMessages();
+};
 async function loadPrivateMessages() {
   if (!currentDMFriendId) return;
 
