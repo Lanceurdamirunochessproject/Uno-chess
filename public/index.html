@@ -7,6 +7,17 @@
 <title>UNO.CHESS</title>
 
 <style>
+ @keyframes zoubirCardAppear {
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 *{box-sizing:border-box}
 body{
  margin:0;padding:18px 8px;background:#111827;color:white;
@@ -1727,58 +1738,111 @@ onclick="loginAccount()"
   margin:20px 0;
 ">
 
-  <div id="zoubir-overlay" style="
-    display:none;
-    position:absolute;
-    inset:0;
-    z-index:10;
+ 
+<style>
+@keyframes zoubirFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes zoubirTalk {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+
+#zoubir-character {
+  animation: zoubirFloat 2s ease-in-out infinite;
+}
+
+#zoubir-speech.talking {
+  animation: zoubirTalk 0.8s ease-in-out infinite;
+}
+
+.zoubir-card {
+  width: 65px;
+  height: 95px;
+  border: 3px solid white;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 23px;
+  font-weight: bold;
+  box-shadow: 0 4px 10px #0008;
+}
+</style>
+
+<div id="zoubir-overlay" style="
+  display:none;
+  position:absolute;
+  inset:0;
+  z-index:10;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  background:rgba(0,0,0,0.88);
+  padding:15px;
+  overflow-y:auto;
+">
+
+  <div id="zoubir-speech" style="
+    background:white;
+    color:#111827;
+    padding:18px;
+    border-radius:18px;
+    max-width:500px;
+    width:100%;
+    font-size:18px;
+    margin-bottom:15px;
+    text-align:center;
+  ">
+    Bonjour ! Je suis Zoubir, ton professeur de UNO.CHESS.
+  </div>
+
+  <div id="zoubir-character" style="
+    width:180px;
+    height:180px;
+    display:flex;
     align-items:center;
     justify-content:center;
-    flex-direction:column;
-    background:rgba(0,0,0,0.82);
-    padding:20px;
+    font-size:110px;
+    border-radius:50%;
+    background:linear-gradient(135deg,#1e3a8a,#7c3aed);
+    border:4px solid #facc15;
+    box-shadow:0 0 30px #7c3aed;
   ">
-
-    <div id="zoubir-speech" style="
-      background:white;
-      color:#111827;
-      padding:18px;
-      border-radius:18px;
-      max-width:500px;
-      font-size:18px;
-      margin-bottom:15px;
-    ">
-      Bonjour ! Je suis Zoubir.
-    </div>
-
-    <div id="zoubir-character" style="
-      width:260px;
-      height:280px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:#d1d5db;
-      font-size:14px;
-      border:2px dashed #6b7280;
-      border-radius:14px;
-    ">
-      Animation de Zoubir à ajouter
-    </div>
-
-    <button onclick="continueZoubir()" style="
-      margin-top:15px;
-      padding:12px 25px;
-      background:#059669;
-      color:white;
-      border:0;
-      border-radius:10px;
-      font-weight:bold;
-      cursor:pointer;
-    ">
-      CONTINUER
-    </button>
-
+    👨‍🏫
   </div>
+
+  <h3 style="color:#facc15;margin:12px;">
+    ZOUBIR — GRAND MAÎTRE
+  </h3>
+
+  <div id="zoubir-cards" style="
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:10px;
+    min-height:105px;
+    margin:10px 0;
+  "></div>
+
+  <button onclick="continueZoubir()" style="
+    margin-top:12px;
+    padding:13px 28px;
+    background:#059669;
+    color:white;
+    border:0;
+    border-radius:10px;
+    font-weight:bold;
+    cursor:pointer;
+  ">
+    CONTINUER
+  </button>
+
+</div>
+
 
  <div id="academy-board" style="
   display:grid;
@@ -5511,7 +5575,8 @@ function toggleSocialSidebar() {
 
 let zoubirDialogues = [];
 let zoubirDialogueIndex = 0;
-
+let zoubirDialogueCards = [];
+ 
  function openRulesCoach() {
   document.getElementById("rules-coach-panel").style.display = "block";
 drawAcademyBoard(academyGame.board());
@@ -5829,80 +5894,228 @@ function startAcademyLesson(path, number){
   }
 }
 
-function showZoubirLesson(lesson) {
-  const dialogues = {
-   classical: [
-  "Bienvenue dans le cours des règles CLASSICAL !",
-  "Nous allons étudier les règles exactes du mode CLASSICAL.",
-  "Tu apprendras comment fonctionnent les cartes et les déplacements des pièces.",
-  "Nous verrons également les cartes spéciales disponibles dans ce mode.",
-  "À la fin, tu connaîtras les règles du mode CLASSICAL."
-],
 
-fatality: [
-  "Bienvenue dans le cours des règles FATALITY !",
-  "Le mode FATALITY possède ses propres cartes et particularités.",
-  "Tu découvriras les cartes +2, +4, +6 et +10.",
-  "Nous étudierons aussi les autres cartes spéciales de ce mode.",
-  "Attention : les règles FATALITY sont différentes du mode CLASSICAL.",
-  "Voilà pour cette introduction au mode FATALITY !"
-],
-    basics: [
-      "Bienvenue dans les bases de UNO.CHESS !",
-      "UNO.CHESS mélange deux univers : les échecs et les cartes UNO.",
-      "Pour jouer, tu dois tenir compte des déplacements des pièces et des règles de tes cartes.",
-      "Voilà ! Tu connais maintenant le principe général de UNO.CHESS."
-    ],
-    cards: [
-      "Passons aux cartes de couleur !",
-      "Le rouge est associé aux tours et aux dames.",
-      "Le bleu est associé aux cavaliers.",
-      "Le vert est associé aux fous.",
-      "Le jaune est associé aux pions.",
-      "Voilà comment sont réparties les pièces par couleur !"
-    ],
-    special: [
-      "Découvrons maintenant les cartes spéciales !",
-      "Le JOKER permet de choisir une couleur.",
-      "La carte +4 entraîne une pénalité de quatre cartes.",
-      "La carte +2 entraîne une pénalité de deux cartes.",
-      "PASSE fait passer le tour.",
-      "La carte ↔ inverse le sens du jeu.",
-      "Excellent ! Tu connais les principales cartes spéciales."
-    ],
-    victory: [
-      "Voyons maintenant les conditions de victoire.",
-      "Dans UNO.CHESS, il faut tenir compte des règles propres au jeu.",
-      "L'échec et mat fait également partie des éléments importants à comprendre.",
-      "Nous approfondirons les conditions exactes dans cette leçon."
-    ]
+function showZoubirLesson(lesson) {
+
+  const lessons = {
+
+    classical: {
+      dialogues: [
+        "Bienvenue dans le cours des règles CLASSICAL ! Je suis Zoubir, ton professeur.",
+        "Dans UNO.CHESS, chaque couleur est associée à certaines pièces.",
+        "Le ROUGE autorise les tours et les dames.",
+        "Le BLEU est associé aux cavaliers.",
+        "Le VERT est associé aux fous.",
+        "Le JAUNE est associé aux pions.",
+        "Un JOKER peut autoriser toutes les pièces.",
+        "Une carte est jouable si elle correspond à la couleur active, à la valeur de la défausse ou si c'est un JOKER.",
+        "Bravo ! Tu connais maintenant les associations de couleurs et les règles de correspondance des cartes."
+      ],
+      cards: [
+        [],
+        [],
+        [{label:"TOUR",color:"#dc2626"},{label:"DAME",color:"#dc2626"}],
+        [{label:"CAVALIER",color:"#2563eb"}],
+        [{label:"FOU",color:"#16a34a"}],
+        [{label:"PION",color:"#eab308"}],
+        [{label:"JOKER",color:"#7c3aed"}],
+        [
+          {label:"ROUGE",color:"#dc2626"},
+          {label:"BLEU",color:"#2563eb"},
+          {label:"JOKER",color:"#7c3aed"}
+        ],
+        []
+      ]
+    },
+
+    fatality: {
+      dialogues: [
+        "Bienvenue dans le cours des règles FATALITY ! Prépare-toi à découvrir ses particularités.",
+        "Comme en CLASSICAL, les couleurs déterminent les pièces autorisées.",
+        "Les cartes +2, +4, +6 et +10 imposent une pénalité à l'adversaire.",
+        "La carte +2 fait piocher deux cartes à l'adversaire.",
+        "La carte +4 fait piocher quatre cartes à l'adversaire.",
+        "La carte +6 fait piocher six cartes à l'adversaire.",
+        "La carte +10 fait piocher dix cartes à l'adversaire.",
+        "En FATALITY, les cartes +4 et +10 peuvent être jouées même si leur couleur ne correspond pas.",
+        "La carte PASSE retire une carte de la main adverse.",
+        "La carte ↔ détermine une nouvelle couleur active à partir de ta main.",
+        "Le JOKER fait également déterminer la couleur active selon ta main et autorise toutes les pièces.",
+        "Excellent ! Tu as découvert les principales particularités du mode FATALITY."
+      ],
+      cards: [
+        [],
+        [
+          {label:"ROUGE",color:"#dc2626"},
+          {label:"BLEU",color:"#2563eb"},
+          {label:"VERT",color:"#16a34a"},
+          {label:"JAUNE",color:"#eab308"}
+        ],
+        [
+          {label:"+2",color:"#2563eb"},
+          {label:"+4",color:"#dc2626"},
+          {label:"+6",color:"#16a34a"},
+          {label:"+10",color:"#7c3aed"}
+        ],
+        [{label:"+2",color:"#2563eb"}],
+        [{label:"+4",color:"#dc2626"}],
+        [{label:"+6",color:"#16a34a"}],
+        [{label:"+10",color:"#7c3aed"}],
+        [
+          {label:"+4",color:"#dc2626"},
+          {label:"+10",color:"#7c3aed"}
+        ],
+        [{label:"PASSE",color:"#374151"}],
+        [{label:"↔",color:"#374151"}],
+        [{label:"JOKER",color:"#7c3aed"}],
+        []
+      ]
+    },
+
+    basics: {
+      dialogues: [
+        "Bienvenue dans les bases de UNO.CHESS !",
+        "UNO.CHESS mélange les échecs et les cartes UNO.",
+        "Tu dois tenir compte des déplacements des pièces et des règles de tes cartes.",
+        "Voilà ! Tu connais maintenant le principe général de UNO.CHESS."
+      ],
+      cards: [[],[],[],[]]
+    },
+
+    cards: {
+      dialogues: [
+        "Passons aux cartes de couleur !",
+        "Le rouge est associé aux tours et aux dames.",
+        "Le bleu est associé aux cavaliers.",
+        "Le vert est associé aux fous.",
+        "Le jaune est associé aux pions."
+      ],
+      cards: [
+        [],
+        [{label:"TOUR",color:"#dc2626"},{label:"DAME",color:"#dc2626"}],
+        [{label:"CAVALIER",color:"#2563eb"}],
+        [{label:"FOU",color:"#16a34a"}],
+        [{label:"PION",color:"#eab308"}]
+      ]
+    },
+
+    special: {
+      dialogues: [
+        "Découvrons les cartes spéciales !",
+        "Le JOKER détermine la couleur active selon ta main.",
+        "Les cartes +2, +4, +6 et +10 font piocher des cartes à l'adversaire.",
+        "PASSE retire une carte de la main adverse.",
+        "La carte ↔ détermine une nouvelle couleur active selon ta main."
+      ],
+      cards: [
+        [],
+        [{label:"JOKER",color:"#7c3aed"}],
+        [
+          {label:"+2",color:"#2563eb"},
+          {label:"+4",color:"#dc2626"},
+          {label:"+6",color:"#16a34a"},
+          {label:"+10",color:"#7c3aed"}
+        ],
+        [{label:"PASSE",color:"#374151"}],
+        [{label:"↔",color:"#374151"}]
+      ]
+    },
+
+    victory: {
+      dialogues: [
+        "Voyons maintenant les conditions de victoire.",
+        "Dans UNO.CHESS, il faut tenir compte des règles propres au jeu.",
+        "L'échec et mat fait également partie des éléments importants à comprendre.",
+        "Nous approfondirons les conditions exactes dans une autre leçon."
+      ],
+      cards: [[],[],[],[]]
+    }
   };
 
-  zoubirDialogues = dialogues[lesson] || ["Leçon introuvable."];
+  const selected = lessons[lesson];
+
+  zoubirDialogues = selected
+    ? selected.dialogues
+    : ["Leçon introuvable."];
+
+  zoubirDialogueCards = selected
+    ? selected.cards
+    : [];
+
   zoubirDialogueIndex = 0;
 
   document.getElementById("zoubir-overlay").style.display = "flex";
+
   updateZoubirDialogue();
 }
 
+
 function updateZoubirDialogue() {
+
   document.getElementById("zoubir-speech").textContent =
     zoubirDialogues[zoubirDialogueIndex];
 
-  const button = document.querySelector("#zoubir-overlay button");
+  const button = document.querySelector(
+    "#zoubir-overlay button"
+  );
+
   button.textContent =
     zoubirDialogueIndex === zoubirDialogues.length - 1
       ? "TERMINER"
       : "CONTINUER";
+
+  // Afficher les cartes correspondant à l'explication
+  const cardsBox = document.getElementById("zoubir-cards");
+
+  cardsBox.innerHTML = "";
+
+  const cards =
+    zoubirDialogueCards[zoubirDialogueIndex] || [];
+
+  cards.forEach(card => {
+
+    const element = document.createElement("div");
+
+    element.textContent = card.label;
+
+    element.style.width = "85px";
+    element.style.height = "105px";
+    element.style.background = card.color;
+    element.style.color = "white";
+    element.style.border = "3px solid white";
+    element.style.borderRadius = "12px";
+    element.style.display = "flex";
+    element.style.alignItems = "center";
+    element.style.justifyContent = "center";
+    element.style.fontWeight = "bold";
+    element.style.fontSize = "14px";
+    element.style.textAlign = "center";
+    element.style.boxShadow = "0 5px 12px #0008";
+    element.style.animation = "zoubirCardAppear 0.3s ease-out";
+
+    cardsBox.appendChild(element);
+
+  });
+
 }
 
+
 function continueZoubir() {
-  if (zoubirDialogueIndex < zoubirDialogues.length - 1) {
+
+  if(zoubirDialogueIndex < zoubirDialogues.length - 1){
+
     zoubirDialogueIndex++;
+
     updateZoubirDialogue();
+
   } else {
+
     document.getElementById("zoubir-overlay").style.display = "none";
+
+    document.getElementById("zoubir-cards").innerHTML = "";
+
   }
+
 }
 
 
