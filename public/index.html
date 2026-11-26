@@ -1714,7 +1714,7 @@ onclick="loginAccount()"
     aux plus complexes.
   </p>
 
- <div id="zoubir-rule-content" style="
+<div id="academy-home-content" style="
   position:relative;
   min-height:420px;
   display:flex;
@@ -1823,11 +1823,16 @@ onclick="loginAccount()"
 
 <div id="academy-path-panel" style="
   display:none;
-  margin-top:25px;
-  padding:15px;
-  background:#172033;
-  border:1px solid #374151;
-  border-radius:15px;
+  position:fixed;
+  inset:10px;
+  z-index:2147483001;
+  background:#111827;
+  border:2px solid #059669;
+  border-radius:16px;
+  padding:20px;
+  color:white;
+  overflow-y:auto;
+  box-shadow:0 0 30px #000;
 ">
   <button onclick="closeAcademyPath()" style="
     background:#374151;
@@ -1839,7 +1844,37 @@ onclick="loginAccount()"
   ">← RETOUR</button>
 
   <h3 id="academy-path-title" style="color:#facc15;"></h3>
+<div id="academy-mode-choice" style="
+  display:none;
+  justify-content:center;
+  gap:15px;
+  flex-wrap:wrap;
+  margin:20px 0;
+">
+  <button onclick="openAcademyPath('problem-classical')" style="
+    background:#2563eb;
+    color:white;
+    padding:16px 25px;
+    border:0;
+    border-radius:12px;
+    font-weight:bold;
+    cursor:pointer;
+  ">
+    ♟️ CLASSICAL
+  </button>
 
+  <button onclick="openAcademyPath('problem-fatality')" style="
+    background:#b91c1c;
+    color:white;
+    padding:16px 25px;
+    border:0;
+    border-radius:12px;
+    font-weight:bold;
+    cursor:pointer;
+  ">
+    🔥 FATALITY
+  </button>
+</div>
   <div id="academy-path-nodes" style="
     display:flex;
     flex-wrap:wrap;
@@ -1849,7 +1884,7 @@ onclick="loginAccount()"
   "></div>
 </div>
 </div>
- </div>
+ 
  
 <h1>UNO.CHESS</h1>
 <p>Les échecs rencontrent UNO !</p>
@@ -5472,12 +5507,27 @@ function openAcademyPath(path){
 
   const categories = document.getElementById("academy-categories");
   const panel = document.getElementById("academy-path-panel");
+ const home = document.getElementById("academy-home-content");
+home.style.display = "none";
   const title = document.getElementById("academy-path-title");
   const nodes = document.getElementById("academy-path-nodes");
 
   categories.style.display = "none";
   panel.style.display = "block";
   nodes.innerHTML = "";
+ const modeChoice = document.getElementById("academy-mode-choice");
+
+if(path === "problems"){
+  title.textContent = "🧩 CHOISIS TON MODE";
+
+  modeChoice.style.display = "flex";
+  nodes.style.display = "none";
+
+  return;
+}
+
+modeChoice.style.display = "none";
+nodes.style.display = "flex";
 
  const paths = {
   classical: {
@@ -5548,7 +5598,11 @@ if(path === "problems"){
 
 function closeAcademyPath(){
   document.getElementById("academy-path-panel").style.display = "none";
+ document.getElementById("academy-home-content").style.display = "block";
   document.getElementById("academy-categories").style.display = "flex";
+
+  document.getElementById("academy-mode-choice").style.display = "none";
+  document.getElementById("academy-path-nodes").style.display = "flex";
 }
  function startAcademyLesson(path, number){
 
