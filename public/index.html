@@ -1105,6 +1105,9 @@ onclick="loginAccount()"
 
   <button onclick="openSettings()">⚙️ PARAMÈTRES</button>
   <button onclick="logoutAccount()" class="account-secondary">DÉCONNEXION</button>
+ <button onclick="openFriends()" style="background:#7c3aed;color:white;">
+  👥 AMIS
+</button>
  <button onclick="openNotifications()" style="background:#7c3aed;color:white;">
   🔔 NOTIFICATION
 </button>
@@ -1402,11 +1405,77 @@ onclick="loginAccount()"
 
 
 
-</div>
- 
 
- 
+</div>
+
+<!-- CENTRE D'AMIS UNO.CHESS -->
+<div id="friends-page" style="
+ display:none;
+ position:fixed;
+ inset:12px;
+ padding:75px 35px 35px;
+ overflow-y:auto;
+ background:#111827;
+ border:1px solid #374151;
+ border-radius:16px;
+ z-index:100000;
+ color:white;
+ text-align:left;
+">
+
+ <button onclick="closeFriends()" style="
+  position:fixed;
+  top:15px;
+  right:15px;
+  z-index:100001;
+  width:48px;
+  height:48px;
+  font-size:24px;
+  background:#374151;
+  color:white;
+  border:1px solid #64748b;
+  border-radius:12px;
+ ">
+  ✕
+ </button>
+
+ <h1 style="color:#a78bfa;">👥 CENTRE D'AMIS</h1>
+ <p style="color:#9ca3af;">Retrouve tes amis et rencontre de nouveaux joueurs.</p>
+
+ <div style="display:flex;gap:12px;flex-wrap:wrap;margin:25px 0;">
+  <button onclick="showFriendsTab('friends')" id="friends-tab-button">
+   👥 FRIENDS
+  </button>
+  <button onclick="showFriendsTab('requests')" id="requests-tab-button">
+   📩 REQUESTS
+  </button>
+ </div>
+
+ <input
+  id="friends-search"
+  type="text"
+  placeholder="🔎 Search Friends..."
+  oninput="renderFriendsPanel()"
+  style="
+   width:100%;
+   padding:16px;
+   background:#1f2937;
+   color:white;
+   border:1px solid #475569;
+   border-radius:10px;
+   font-size:16px;
+   margin-bottom:20px;
+  "
+ >
+
+ <div id="friends-content">
+  <p style="color:#9ca3af;">Chargement des amis...</p>
+ </div>
+
+</div>
+
 <div id="ban-page" style="
+
  display:none;
  position:fixed;
  inset:12px;
@@ -5051,6 +5120,154 @@ if (gameChatInput) {
     }
   });
 }
+ let friendsList = [];
+let friendRequestsList = [];
+ let friendsTab = "friends";
+
+function openFriends(){
+  if(!currentUser){
+    accountStatus("Connecte-toi pour voir tes amis.");
+    return;
+  }
+
+  const panel = document.getElementById("friends-page");
+  if(!panel) return;
+
+  panel.style.display = "block";
+  showFriendsTab("friends");
+
+  if(onlineSocket && onlineSocket.connected){
+    onlineSocket.emit("get-friends-data");
+  } else {
+    accountStatus("Connexion au serveur en cours...");
+  }
+}
+
+function closeFriends(){
+  const panel = document.getElementById("friends-page");
+
+  if(panel){
+    panel.style.display = "none";
+  }
+}
+
+function showFriendsTab(tab){
+  friendsTab = tab === "requests" ? "requests" : "friends";
+
+  const friendsButton = document.getElementById("friends-tab-button");
+  const requestsButton = document.getElementById("requests-tab-button");
+
+  if(friendsButton){
+    friendsButton.style.background =
+      friendsTab === "friends" ? "#7c3aed" : "#374151";
+    friendsButton.style.color = "white";
+  }
+
+  if(requestsButton){
+    requestsButton.style.background =
+      friendsTab === "requests" ? "#7c3aed" : "#374151";
+    requestsButton.style.color = "white";
+  }
+
+  renderFriendsPanel();
+}
+ function renderFriendsPanel(){
+  const content = document.getElementById("friends-content");
+  const search = document.getElementById("friends-search");
+
+  if(!content) return;
+
+  const query = (search?.value || "").trim().toLowerCase();
+
+  content.innerHTML = "";
+
+  if(friendsTab === "friends"){
+
+    const filtered = friendsList.filter(friend =>
+      (friend.username || "").toLowerCase().includes(query)
+    );
+
+    if(filtered.length === 0){
+      content.textContent = query
+        ? "Aucun ami trouvé."
+        : "Tu n'as pas encore d'amis.";
+      return;
+    }
+
+    filtered.forEach(friend => {
+      const card = document.createElement("div");
+      card.style.cssText = `
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:12px;
+        padding:16px;
+        margin-bottom:10px;
+        background:#1f2937;
+        border:1px solid #374151;
+        border-radius:12px;
+      `;
+
+      const name = document.createElement("strong");
+      name.textContent = friend.username;
+
+      const status = document.createElement("span");
+      status.textContent = friend.online ? "🟢 En ligne" : "⚫ Hors ligne";
+      status.style.color = friend.online ? "#4ade80" : "#9ca3af";
+
+      card.append(name, status);
+      content.appendChild(card);
+    });
+
+  } else {
+
+    const filtered = friendRequestsList.filter(request =>
+      (request.username || "").toLowerCase().includes(query)
+    );
+
+    if(filtered.length === 0){
+      content.textContent = "Aucune demande d'ami en attente.";
+      return;
+    }
+
+    filtered.forEach(request => {
+      const card = document.createElement("div");
+      card.style.cssText = `
+        padding:16px;
+        margin-bottom:10px;
+        background:#1f2937;
+        border:1px solid #374151;
+        border-radius:12px;
+      `;
+
+      const name = document.createElement("strong");
+      name.textContent = request.username;
+
+      const accept = document.createElement("button");
+      accept.textContent = "✓ Accepter";
+      accept.style.background = "#16a34a";
+      accept.onclick = () => {
+        onlineSocket.emit(
+          "accept-friend-request",
+          Number(request.request_id)
+        );
+      };
+
+      const reject = document.createElement("button");
+      reject.textContent = "✕ Refuser";
+      reject.style.background = "#dc2626";
+      reject.onclick = () => {
+        onlineSocket.emit(
+          "reject-friend-request",
+          Number(request.request_id)
+        );
+      };
+
+      card.append(name, document.createElement("br"), accept, reject);
+      content.appendChild(card);
+    });
+  }
+}
 function connectOnlineSocket(){
  if(onlineSocket){
   onlineSocket.disconnect();
@@ -5065,9 +5282,15 @@ onlineSocket=io(API_BASE,{
   withCredentials:true,
   transports:["polling","websocket"]
 });
- onlineSocket.on("connect",()=>{
+onlineSocket.on("connect",()=>{
   accountStatus("Connecté au serveur en ligne.");
- });
+
+  const friendsPanel = document.getElementById("friends-page");
+
+  if(friendsPanel && friendsPanel.style.display !== "none"){
+    onlineSocket.emit("get-friends-data");
+  }
+});
 
 onlineSocket.on("connect_error",(error)=>{
   console.error("ERREUR SOCKET.IO :",error);
@@ -5132,25 +5355,31 @@ onlineSocket.on("friend-request-error", message => {
  alert(message);
 });
 
-onlineSocket.on("friend-request-received", data => {
- const accepted = confirm(
-  data.username + " veut être ton ami sur UNO.CHESS !\n\n" +
-  "Veux-tu accepter sa demande ?"
- );
+onlineSocket.on("friends-data", data => {
+  friendsList = data.friends || [];
+  friendRequestsList = data.requests || [];
 
- if(accepted){
-  onlineSocket.emit("accept-friend-request", data.requestId);
- }else{
-  onlineSocket.emit("reject-friend-request", data.requestId);
- }
+  console.log("AMIS :", friendsList);
+  console.log("DEMANDES :", friendRequestsList);
+
+  if (typeof renderFriendsPanel === "function") {
+    renderFriendsPanel();
+  }
+});
+
+onlineSocket.on("friend-request-received", data => {
+  alert(data.username + " t'a envoyé une demande d'ami !");
+  onlineSocket.emit("get-friends-data");
 });
 
 onlineSocket.on("friend-request-accepted", data => {
- alert(data.message);
+  alert(data.message);
+  onlineSocket.emit("get-friends-data");
 });
 
 onlineSocket.on("friend-request-rejected", data => {
- alert(data.message);
+  alert(data.message);
+  onlineSocket.emit("get-friends-data");
 });
  // RECEVOIR LES MESSAGES DU CHAT
 onlineSocket.on("game-chat-message", data => {
