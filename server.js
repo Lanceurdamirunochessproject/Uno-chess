@@ -12,13 +12,23 @@ const { Chess } = require("chess.js");
 const {
   UNO_ENGINE,
   evaluatePosition,
-  findBestMove
+  findBestMove,
+  findMateInOne,
+  testMateGenerator
 } = require("./uno-chess-engine");
+
 console.log(
   "🧠 MOTEUR CHARGÉ :",
   UNO_ENGINE.name,
   "| Version :",
   UNO_ENGINE.version
+);
+
+const testResult = testMateGenerator();
+
+console.log(
+  "🧩 TEST DU GÉNÉRATEUR :",
+  testResult
 );
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
