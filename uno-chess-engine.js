@@ -238,8 +238,236 @@ function findBestMove(game, depth = 3) {
 
 
 // =====================================
+// GÉNÉRATEUR DE PROBLÈMES
+// MAT EN 1 COUP
+// =====================================
+
+function findMateInOne(match, side) {
+  const game = new Chess(match.chess.fen());
+
+  if (game.turn() !== side) {
+    return null;
+  }
+
+  const hand = match.hands[side] || [];
+  const moves = game.moves({ verbose: true });
+
+  for (let cardIndex = 0; cardIndex < hand.length; cardIndex++) {
+    const card = hand[cardIndex];
+
+    const cardMatches =
+      card.color === "joker" ||
+      card.color === match.activeColor ||
+      card.value === match.discard.value;
+
+    if (!cardMatches) continue;
+
+    for (const move of moves) {
+      const allowedPiece =
+        card.color === "joker" ||
+        (card.color === "rouge" &&
+          (move.piece === "r" || move.piece === "q")) ||
+        (card.color === "bleu" && move.piece === "n") ||
+        (card.color === "vert" && move.piece === "b") ||
+        (card.color === "jaune" && move.piece === "p");
+
+      if (!allowedPiece) continue;
+
+      const testGame = new Chess(game.fen());
+
+      const played = testGame.move({
+        from: move.from,
+        to: move.to,
+        promotion: "q"
+      });
+
+      if (!played) continue;
+
+      if (testGame.isCheckmate()) {
+        return {
+          type: "mate-in-one",
+          fen: game.fen(),
+          side,
+          card,
+          cardIndex,
+          move: {
+            from: played.from,
+            to: played.to,
+            san: played.san
+          },
+          solution: played.san
+        };
+      }
+    }
+  }
+
+  return null;
+}
+// =====================================
+// TEST DU GÉNÉRATEUR DE MAT
+// =====================================
+
+function testMateGenerator() {
+  const game = new Chess(
+    "7k/6pp/5K2/8/8/8/8/6R1 w - - 0 1"
+  );
+
+  const match = {
+    chess: game,
+    hands: {
+      w: [{ value: "JOKER", color: "joker" }],
+      b: []
+    },
+    activeColor: "rouge",
+    discard: { value: "5", color: "rouge" }
+  };
+
+  return findMateInOne(match, "w");
+}
+// =====================================
 // EXPORTS
 // =====================================
+
+// =====================================
+// GENERATION DES ACTIONS UNO.CHESS
+// =====================================
+
+function generateUnoActions(game, hand, match) {
+  const actions = [];
+  if (
+  !game ||
+  !Array.isArray(hand) ||
+  !match ||
+  !match.discard
+) {
+  return [];
+}
+  const legalMoves = game.moves({ verbose: true });
+
+  for (let cardIndex = 0; cardIndex < hand.length; cardIndex++) {
+    const card = hand[cardIndex];
+
+    const matches =
+      card.color === "joker" ||
+      card.color === match.activeColor ||
+      card.value === match.discard.value;
+
+    if (!matches) continue;
+
+    for (const move of legalMoves) {
+      const piece = move.piece;
+
+      const allowed =
+        card.color === "joker" ||
+        (card.color === "rouge" &&
+          (piece === "r" || piece === "q")) ||
+        (card.color === "bleu" && piece === "n") ||
+        (card.color === "vert" && piece === "b") ||
+        (card.color === "jaune" && piece === "p");
+
+      if (!allowed) continue;
+
+      actions.push({
+        type: "play",
+        cardIndex,
+        card,
+        from: move.from,
+        to: move.to,
+        promotion: move.promotion || null,
+        san: move.san
+      });
+    }
+  }
+
+  if (actions.length === 0) {
+    actions.push({ type: "draw" });
+  }
+
+  return actions;
+}
+
+// =====================================
+// SIMULATION DES ACTIONS UNO.CHESS
+// =====================================
+
+function simulateUnoAction(game, hand, match, action) {
+  if (
+    !game ||
+    !Array.isArray(hand) ||
+    !match ||
+    !action ||
+    action.type !== "play" ||
+    !Number.isInteger(action.cardIndex) ||
+    !hand[action.cardIndex]
+  ) {
+    return null;
+  }
+
+  const card = hand[action.cardIndex];
+
+  const nextGame = new Chess(game.fen());
+  const nextHand = hand.map(c => ({ ...c }));
+
+  const nextMatch = {
+    ...match,
+    discard: { ...match.discard },
+    hands: match.hands
+      ? {
+          w: match.hands.w.map(c => ({ ...c })),
+          b: match.hands.b.map(c => ({ ...c }))
+        }
+      : undefined
+  };
+
+  const move = nextGame.move({
+    from: action.from,
+    to: action.to,
+    promotion: action.promotion || "q"
+  });
+
+  if (!move) return null;
+
+  nextHand.splice(action.cardIndex, 1);
+  nextMatch.discard = { ...card };
+
+  const penalties = {
+    "+2": 2,
+    "+4": 4,
+    "+6": 6,
+    "+10": 10
+  };
+
+  const penalty = penalties[card.value] || 0;
+
+  if (card.value === "PASSE") {
+    if (nextMatch.opponentHand) {
+      nextMatch.opponentHand =
+        nextMatch.opponentHand.slice(1);
+    }
+  }
+
+  if (penalty > 0) {
+    nextMatch.pendingPenalty = penalty;
+  }
+
+  if (
+    card.color === "joker" ||
+    card.value === "↔"
+  ) {
+    nextMatch.activeColor = null;
+  } else {
+    nextMatch.activeColor = card.color;
+  }
+
+  return {
+    game: nextGame,
+    hand: nextHand,
+    match: nextMatch,
+    move,
+    card
+  };
+}
+
 
 module.exports = {
   UNO_ENGINE,
@@ -248,5 +476,9 @@ module.exports = {
   evaluateMobility,
   evaluatePosition,
   minimax,
-  findBestMove
+  findBestMove,
+  findMateInOne,
+  testMateGenerator,
+  generateUnoActions,
+  simulateUnoAction
 };
