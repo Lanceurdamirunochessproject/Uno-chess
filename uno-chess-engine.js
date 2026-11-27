@@ -307,15 +307,17 @@ function findMateInOne(match, side) {
 // TEST DU GÉNÉRATEUR DE MAT
 // =====================================
 
+
+
 function testMateGenerator() {
   const game = new Chess(
-    "7k/6pp/5K2/8/8/8/8/6R1 w - - 0 1"
+    "7k/8/5KQ1/8/8/8/8/8 w - - 0 1"
   );
 
   const match = {
     chess: game,
     hands: {
-      w: [{ value: "JOKER", color: "joker" }],
+      w: [{ value: "5", color: "rouge" }],
       b: []
     },
     activeColor: "rouge",
@@ -324,6 +326,8 @@ function testMateGenerator() {
 
   return findMateInOne(match, "w");
 }
+
+
 // =====================================
 // EXPORTS
 // =====================================
