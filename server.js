@@ -76,6 +76,31 @@ app.use(cors({
   credentials: true
 }));
 
+app.get("/api/academy/problem", (req, res) => {
+  try {
+    const mode = req.query.mode === "fatality"
+      ? "fatality"
+      : "classique";
+
+    const puzzle = generateMateInOnePuzzle(300, mode);
+
+    if(!puzzle){
+      return res.status(404).json({
+        error: "Aucun problème trouvé."
+      });
+    }
+
+    res.json(puzzle);
+
+  } catch(error) {
+    console.error("ERREUR GÉNÉRATION PROBLÈME :", error);
+
+    res.status(500).json({
+      error: "Erreur pendant la génération du problème."
+    });
+  }
+});
+
 
 const sessionMiddleware = session({
   store: new PgSession({
