@@ -242,34 +242,39 @@ function findBestMove(game, depth = 3) {
 // MAT EN 1 COUP
 // =====================================
 
+
 function findMateInOne(match, side) {
   const game = new Chess(match.chess.fen());
 
-  if (game.turn() !== side) {
-    return null;
-  }
+  if (game.turn() !== side) return null;
 
   const hand = match.hands[side] || [];
   const moves = game.moves({ verbose: true });
+  const solutions = [];
 
   for (let cardIndex = 0; cardIndex < hand.length; cardIndex++) {
     const card = hand[cardIndex];
 
-    const cardMatches =
-      card.color === "joker" ||
-      card.color === match.activeColor ||
-      card.value === match.discard.value;
+   const fatalityWild =
+  match.mode === "fatality" &&
+  (card.value === "+4" || card.value === "+10");
 
+const cardMatches =
+  fatalityWild ||
+  card.color === "joker" ||
+  card.color === match.activeColor ||
+  card.value === match.discard.value;
     if (!cardMatches) continue;
 
     for (const move of moves) {
-      const allowedPiece =
-        card.color === "joker" ||
-        (card.color === "rouge" &&
-          (move.piece === "r" || move.piece === "q")) ||
-        (card.color === "bleu" && move.piece === "n") ||
-        (card.color === "vert" && move.piece === "b") ||
-        (card.color === "jaune" && move.piece === "p");
+     const allowedPiece =
+  fatalityWild ||
+  card.color === "joker" ||
+  (card.color === "rouge" &&
+    (move.piece === "r" || move.piece === "q")) ||
+  (card.color === "bleu" && move.piece === "n") ||
+  (card.color === "vert" && move.piece === "b") ||
+  (card.color === "jaune" && move.piece === "p");
 
       if (!allowedPiece) continue;
 
@@ -281,28 +286,31 @@ function findMateInOne(match, side) {
         promotion: "q"
       });
 
-      if (!played) continue;
+      if (!played || !testGame.isCheckmate()) continue;
 
-      if (testGame.isCheckmate()) {
-        return {
-          type: "mate-in-one",
-          fen: game.fen(),
-          side,
-          card,
-          cardIndex,
-          move: {
-            from: played.from,
-            to: played.to,
-            san: played.san
-          },
-          solution: played.san
-        };
-      }
+      solutions.push({
+        card,
+        cardIndex,
+        move: {
+          from: played.from,
+          to: played.to,
+          san: played.san
+        },
+        solution: played.san
+      });
     }
   }
 
-  return null;
+  if (solutions.length === 0) return null;
+
+  return {
+    type: "mate-in-one",
+    fen: game.fen(),
+    side,
+    solutions
+  };
 }
+
 // =====================================
 // TEST DU GÉNÉRATEUR DE MAT
 // =====================================
@@ -314,8 +322,9 @@ function testMateGenerator() {
     "7k/8/5KQ1/8/8/8/8/8 w - - 0 1"
   );
 
-  const match = {
-    chess: game,
+const match = {
+  mode: "classique",
+  chess: game,
     hands: {
       w: [{ value: "5", color: "rouge" }],
       b: []
@@ -327,18 +336,44 @@ function testMateGenerator() {
   return findMateInOne(match, "w");
 }
 
-function generateMateInOnePuzzle(maxAttempts = 300) {
-  const colors = ["rouge", "bleu", "vert", "jaune"];
+
+function generateMateInOnePuzzle(maxAttempts = 300, mode = "classique") {
+const colors = ["rouge", "bleu", "vert", "jaune"];
+
+const deck = [];
+
+const specialCards = mode === "fatality"
+  ? ["+2", "+4", "+6", "+10", "↔", "PASSE"]
+  : ["+2", "↔", "PASSE"];
+
+for (const color of colors) {
+  for (let n = 0; n <= 9; n++) {
+    deck.push({ value: String(n), color });
+  }
+
+  for (const value of specialCards) {
+    deck.push({ value, color });
+  }
+}
+
+for (let i = 0; i < 4; i++) {
+  deck.push({ value: "JOKER", color: "joker" });
+  deck.push({ value: "+4", color: "joker" });
+
+  if (mode === "fatality") {
+    deck.push({ value: "+10", color: "joker" });
+  }
+}
+
+  const maxCards = mode === "fatality" ? 15 : 7;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const game = new Chess();
 
-    // Créer une position légale avec des coups aléatoires
     const randomPlies = 8 + Math.floor(Math.random() * 38);
 
     for (let i = 0; i < randomPlies; i++) {
       const moves = game.moves({ verbose: true });
-
       if (moves.length === 0) break;
 
       const move = moves[Math.floor(Math.random() * moves.length)];
@@ -352,12 +387,24 @@ function generateMateInOnePuzzle(maxAttempts = 300) {
 
     if (game.isGameOver()) continue;
 
-    // Tester les quatre couleurs de cartes
+    const handSize = 1 + Math.floor(Math.random() * maxCards);
+
+   const shuffledDeck = [...deck];
+
+for (let i = shuffledDeck.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [shuffledDeck[i], shuffledDeck[j]] =
+    [shuffledDeck[j], shuffledDeck[i]];
+}
+
+const hand = shuffledDeck.splice(0, handSize);
+
     for (const color of colors) {
       const match = {
+        mode,
         chess: game,
         hands: {
-          [game.turn()]: [{ value: "5", color }]
+          [game.turn()]: hand
         },
         activeColor: color,
         discard: { value: "5", color }
@@ -368,6 +415,8 @@ function generateMateInOnePuzzle(maxAttempts = 300) {
       if (puzzle) {
         return {
           ...puzzle,
+          mode,
+          hand,
           id: "UNO-MATE-" + Date.now(),
           attempts: attempt + 1
         };
@@ -377,6 +426,7 @@ function generateMateInOnePuzzle(maxAttempts = 300) {
 
   return null;
 }
+
 
 
 
