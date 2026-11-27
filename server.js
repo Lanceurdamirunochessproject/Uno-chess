@@ -9,12 +9,15 @@ const session = require("express-session");
 const PgSession = require("connect-pg-simple")(session);
 const cors = require("cors");
 const { Chess } = require("chess.js");
+
+
 const {
   UNO_ENGINE,
   evaluatePosition,
   findBestMove,
   findMateInOne,
-  testMateGenerator
+  testMateGenerator,
+  generateMateInOnePuzzle
 } = require("./uno-chess-engine");
 
 console.log(
@@ -30,6 +33,15 @@ console.log(
   "🧩 TEST DU GÉNÉRATEUR :",
   testResult
 );
+
+const randomPuzzle = generateMateInOnePuzzle();
+
+console.log(
+  "🎲 PROBLÈME AUTOMATIQUE :",
+  randomPuzzle
+);
+
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
