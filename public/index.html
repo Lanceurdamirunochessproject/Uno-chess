@@ -5577,16 +5577,25 @@ let zoubirDialogues = [];
 let zoubirDialogueIndex = 0;
 let zoubirDialogueCards = [];
  
- function openRulesCoach() {
+
+function openRulesCoach() {
   document.getElementById("rules-coach-panel").style.display = "block";
-drawAcademyBoard(academyGame.board());
+
+  drawAcademyBoard(academyGame.board());
+
   const modeText = selectedGameMode === "fatality"
     ? "FATALITY"
     : "CLASSICAL";
 
-  document.getElementById("zoubir-rule-content").querySelector("h3").textContent =
-    "Mode sélectionné : " + modeText + " — Choisis une leçon pour commencer !";
+  const instructions = document.getElementById("academy-instructions");
+
+  if(instructions){
+    instructions.textContent =
+      "Mode sélectionné : " + modeText +
+      " — Choisis une leçon pour commencer !";
+  }
 }
+
 function closeRulesCoach() {
   document.getElementById("rules-coach-panel").style.display = "none";
   document.getElementById("zoubir-overlay").style.display = "none";
