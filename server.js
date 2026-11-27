@@ -34,11 +34,20 @@ console.log(
   testResult
 );
 
-const randomPuzzle = generateMateInOnePuzzle();
+const classicPuzzle = generateMateInOnePuzzle(300, "classique");
+const fatalityPuzzle = generateMateInOnePuzzle(300, "fatality");
+
+console.log("♟️ PROBLÈME CLASSIQUE :", classicPuzzle);
+console.log("☠️ PROBLÈME FATALITY :", fatalityPuzzle);
 
 console.log(
-  "🎲 PROBLÈME AUTOMATIQUE :",
-  randomPuzzle
+  "🎲 NOMBRE DE SOLUTIONS CLASSIQUE :",
+  classicPuzzle ? classicPuzzle.solutions.length : 0
+);
+
+console.log(
+  "🎲 NOMBRE DE SOLUTIONS FATALITY :",
+  fatalityPuzzle ? fatalityPuzzle.solutions.length : 0
 );
 
 
