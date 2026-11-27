@@ -1844,16 +1844,48 @@ onclick="loginAccount()"
 </div>
 
 
- <div id="academy-board" style="
-  display:grid;
-  grid-template-columns:repeat(8,min(8.2vw,60px));
-  grid-template-rows:repeat(8,min(8.2vw,60px));
+<div style="
+  display:flex;
   justify-content:center;
-  margin:10px auto;
-  border:4px solid #d1d5db;
-  width:fit-content;
-  max-width:100%;
+  align-items:center;
+  gap:15px;
+  flex-wrap:nowrap;
+  margin:15px auto;
 ">
+
+
+
+
+  <button id="zoubir-hint-button"
+    onclick="giveZoubirHint()"
+    title="Demander un indice à Zoubir"
+    style="
+      width:65px;
+      height:65px;
+      flex-shrink:0;
+      border-radius:50%;
+      border:2px solid #facc15;
+      background:#374151;
+      color:white;
+      font-size:32px;
+      cursor:pointer;
+      box-shadow:0 0 15px #facc1580;
+    ">
+    💡
+  </button>
+
+  <div id="academy-board" style="
+    display:grid;
+    grid-template-columns:repeat(8,min(8.2vw,60px));
+    grid-template-rows:repeat(8,min(8.2vw,60px));
+    justify-content:center;
+    margin:10px auto;
+    border:4px solid #d1d5db;
+    width:fit-content;
+    max-width:100%;
+  ">
+  </div>
+
 </div>
 
 <p id="academy-instructions" style="color:#93c5fd;">
