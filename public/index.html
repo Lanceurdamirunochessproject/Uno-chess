@@ -3701,6 +3701,61 @@ function accountStatus(message){
 
   accountMessage.textContent = message;
 }
+ 
+async function loadAcademyProblem(path, number){
+
+  const mode = path === "problem-fatality"
+    ? "fatality"
+    : "classique";
+
+  const instructions = document.getElementById("academy-instructions");
+
+  if(instructions){
+    instructions.textContent =
+      "⏳ Chargement du problème " + number + " : " + mode.toUpperCase();
+  }
+
+  try{
+
+    const response = await fetch(
+      API_BASE + "/api/academy/problem?mode=" + mode,
+      { credentials: "include" }
+    );
+
+    const puzzle = await response.json();
+
+    if(!response.ok){
+      throw new Error(puzzle.error || "Erreur de chargement");
+    }
+
+    if(!puzzle.fen || !Array.isArray(puzzle.hand)){
+      throw new Error("Problème reçu incomplet.");
+    }
+
+    academyGame.load(puzzle.fen);
+
+    drawAcademyBoard(academyGame.board());
+
+    if(instructions){
+      instructions.textContent =
+        "Problème " + number + " — " + mode.toUpperCase() +
+        " : trouve le mat en un coup !";
+    }
+
+    console.log("🧩 PROBLÈME REÇU :", puzzle);
+
+  }catch(error){
+
+    console.error("ERREUR ACADÉMIE :", error);
+
+    if(instructions){
+      instructions.textContent =
+        "❌ Impossible de charger le problème : " + error.message;
+    }
+
+  }
+}
+
 
 
 
@@ -5935,12 +5990,8 @@ function startAcademyLesson(path, number){
       return;
     }
 
-    alert(
-      "Chargement du problème " + number +
-      " : " + (path === "problem-classical" ? "CLASSICAL" : "FATALITY")
-    );
-
-    return;
+   loadAcademyProblem(path, number);
+return;
   }
 
   if(path === "infinite"){
