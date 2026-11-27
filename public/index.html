@@ -1677,7 +1677,7 @@ onclick="loginAccount()"
   width:75px;min-height:65px;background:#059669;color:white;
   border:0;border-radius:10px;cursor:pointer;
 ">
-  📖<span>RÈGLES</span>
+ 🎓<span>ACADÉMIE</span>
 </button>
   </div>
 </div>
@@ -1715,16 +1715,14 @@ onclick="loginAccount()"
   ×
 </button>
 
-  <h2 style="color:#34d399;">📖 L'ÉCOLE DES RÈGLES</h2>
+  <h2 style="color:#34d399;font-size:30px;">🎓 ACADÉMIE UNO.CHESS</h2>
 
-  <h3 style="color:#facc15;">🎓 ZOUBIR — GRAND MAÎTRE DES RÈGLES</h3>
+ <h3 style="color:#facc15;">🎓 BIENVENUE À L'ACADÉMIE UNO.CHESS</h3>
 
-  <p>
-    Bienvenue ! Je suis Zoubir. Je vais t'apprendre
-    toutes les règles de UNO.CHESS, des plus simples
-    aux plus complexes.
-  </p>
-
+<p>
+  Apprends les règles, entraîne-toi sur des situations-problèmes
+  et améliore tes compétences grâce à nos parcours.
+</p>
 <div id="academy-home-content" style="
   position:relative;
   min-height:420px;
@@ -5612,9 +5610,24 @@ let zoubirDialogueCards = [];
 
 function openRulesCoach() {
   document.getElementById("rules-coach-panel").style.display = "block";
+const categories = document.getElementById("academy-categories");
 
+if(categories){
+  categories.style.display = "none";
+}
   drawAcademyBoard(academyGame.board());
+const overlay = document.getElementById("zoubir-overlay");
 
+if(overlay){
+  overlay.style.display = "flex";
+
+  const speech = document.getElementById("zoubir-speech");
+
+  if(speech){
+    speech.textContent =
+      "Bienvenue à l'Académie UNO.CHESS ! Je suis Zoubir, ton professeur. Ensemble, nous allons apprendre les règles et résoudre des situations-problèmes. Prêt à commencer ?";
+  }
+}
   const modeText = selectedGameMode === "fatality"
     ? "FATALITY"
     : "CLASSICAL";
@@ -6141,6 +6154,7 @@ function updateZoubirDialogue() {
 }
 
 
+
 function continueZoubir() {
 
   if(zoubirDialogueIndex < zoubirDialogues.length - 1){
@@ -6154,6 +6168,19 @@ function continueZoubir() {
     document.getElementById("zoubir-overlay").style.display = "none";
 
     document.getElementById("zoubir-cards").innerHTML = "";
+
+    const categories = document.getElementById("academy-categories");
+
+    if(categories){
+      categories.style.display = "flex";
+    }
+
+    const instructions = document.getElementById("academy-instructions");
+
+    if(instructions){
+      instructions.textContent =
+        "Choisis ton parcours pour commencer ton entraînement !";
+    }
 
   }
 
