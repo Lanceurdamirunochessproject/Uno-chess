@@ -350,7 +350,7 @@ function generateMateInOnePuzzle(maxAttempts = 300) {
       });
     }
 
-    if (game.game_over()) continue;
+    if (game.isGameOver()) continue;
 
     // Tester les quatre couleurs de cartes
     for (const color of colors) {
