@@ -327,6 +327,58 @@ function testMateGenerator() {
   return findMateInOne(match, "w");
 }
 
+function generateMateInOnePuzzle(maxAttempts = 300) {
+  const colors = ["rouge", "bleu", "vert", "jaune"];
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const game = new Chess();
+
+    // Créer une position légale avec des coups aléatoires
+    const randomPlies = 8 + Math.floor(Math.random() * 38);
+
+    for (let i = 0; i < randomPlies; i++) {
+      const moves = game.moves({ verbose: true });
+
+      if (moves.length === 0) break;
+
+      const move = moves[Math.floor(Math.random() * moves.length)];
+
+      game.move({
+        from: move.from,
+        to: move.to,
+        promotion: "q"
+      });
+    }
+
+    if (game.game_over()) continue;
+
+    // Tester les quatre couleurs de cartes
+    for (const color of colors) {
+      const match = {
+        chess: game,
+        hands: {
+          [game.turn()]: [{ value: "5", color }]
+        },
+        activeColor: color,
+        discard: { value: "5", color }
+      };
+
+      const puzzle = findMateInOne(match, game.turn());
+
+      if (puzzle) {
+        return {
+          ...puzzle,
+          id: "UNO-MATE-" + Date.now(),
+          attempts: attempt + 1
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+
 
 // =====================================
 // EXPORTS
@@ -483,6 +535,7 @@ module.exports = {
   findBestMove,
   findMateInOne,
   testMateGenerator,
+  generateMateInOnePuzzle,
   generateUnoActions,
   simulateUnoAction
 };
