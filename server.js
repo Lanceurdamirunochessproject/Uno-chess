@@ -9,6 +9,17 @@ const session = require("express-session");
 const PgSession = require("connect-pg-simple")(session);
 const cors = require("cors");
 const { Chess } = require("chess.js");
+const {
+  UNO_ENGINE,
+  evaluatePosition,
+  findBestMove
+} = require("./uno-chess-engine");
+console.log(
+  "🧠 MOTEUR CHARGÉ :",
+  UNO_ENGINE.name,
+  "| Version :",
+  UNO_ENGINE.version
+);
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
