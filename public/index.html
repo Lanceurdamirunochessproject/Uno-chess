@@ -2226,7 +2226,7 @@ onclick="loginAccount()"
  </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.min.js"></script>
 
 <script>
 "use strict";
@@ -5875,7 +5875,7 @@ function toggleSocialSidebar() {
   buttons.style.display = isOpen ? "none" : "flex";
   arrow.textContent = isOpen ? "▶" : "◀";
 }
-
+window.toggleSocialSidebar = toggleSocialSidebar;
 
 let zoubirDialogues = [];
 let zoubirDialogueIndex = 0;
@@ -6567,6 +6567,7 @@ function openFriends(){
     accountStatus("Connexion au serveur en cours...");
   }
 }
+ window.openFriends = openFriends;
 
 function closeFriends(){
   const panel = document.getElementById("friends-page");
