@@ -1871,6 +1871,64 @@ onclick="loginAccount()"
     ">
     💡
   </button>
+ <div id="academy-problem-page" style="
+  display:none;
+  width:100%;
+  max-width:700px;
+  margin:20px auto;
+  padding:20px;
+  background:#1e293b;
+  border:2px solid #facc15;
+  border-radius:16px;
+">
+
+  <h2 id="academy-problem-title" style="color:#facc15;">
+    PROBLÈME 1
+  </h2>
+
+  <p id="academy-problem-instructions">
+    Trouve le mat en un coup !
+  </p>
+
+  <div id="academy-problem-cards" style="
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:8px;
+    margin:15px 0;
+  "></div>
+
+  <div id="academy-problem-board"></div>
+
+  <button id="academy-hint-button" onclick="giveAcademyHint()" style="
+    margin-top:15px;
+    padding:12px 20px;
+    background:#ca8a04;
+    color:white;
+    border:0;
+    border-radius:10px;
+    cursor:pointer;
+  ">
+    💡 LAMPE DE ZOUBIR
+  </button>
+
+  <p id="academy-problem-feedback"></p>
+
+  <button id="academy-next-problem" onclick="goToNextAcademyProblem()" style="
+    display:none;
+    margin-top:15px;
+    padding:14px 22px;
+    background:#16a34a;
+    color:white;
+    border:0;
+    border-radius:10px;
+    font-weight:bold;
+    cursor:pointer;
+  ">
+    PROBLÈME SUIVANT
+  </button>
+
+</div>
 
   <div id="academy-board" style="
     display:grid;
@@ -2458,11 +2516,26 @@ function renderCards(){
  });
 }
 const academyGame = new Chess();
-function drawAcademyBoard(position){
-  const academyBoard = document.getElementById("academy-board");
+ let currentAcademyPuzzle = null;
+let currentAcademyProblemNumber = 1;
+let selectedAcademyCardIndex = null;
+let selectedAcademySquare = null;
+
+function drawAcademyBoard(position, targetId = "academy-board"){
+
+  const academyBoard = document.getElementById(targetId);
   if(!academyBoard) return;
 
   academyBoard.innerHTML = "";
+
+  academyBoard.style.display = "grid";
+  academyBoard.style.gridTemplateColumns = "repeat(8, min(8.2vw, 60px))";
+  academyBoard.style.gridTemplateRows = "repeat(8, min(8.2vw, 60px))";
+  academyBoard.style.justifyContent = "center";
+  academyBoard.style.width = "fit-content";
+  academyBoard.style.maxWidth = "100%";
+  academyBoard.style.margin = "10px auto";
+  academyBoard.style.border = "4px solid #d1d5db";
 
   const theme = localStorage.getItem("unoChessPieceTheme") || "gaming";
 
@@ -2498,9 +2571,94 @@ function drawAcademyBoard(position){
             "0 0 2px #000000, 0 0 4px #000000";
         }
       }
+if(targetId === "academy-problem-board"){
 
+  const squareName =
+    "abcdefgh"[c] + (8 - r);
+
+  square.style.cursor = "pointer";
+
+  square.onclick = () => {
+    handleAcademySquareClick(squareName);
+  };
+}
       academyBoard.appendChild(square);
     }
+  }
+}
+ function handleAcademySquareClick(square){
+
+  if(!currentAcademyPuzzle) return;
+
+  if(selectedAcademyCardIndex === null){
+    document.getElementById("academy-problem-feedback").textContent =
+      "Choisis d'abord une carte UNO !";
+    return;
+  }
+
+  if(!selectedAcademySquare){
+
+    const piece = academyGame.get(square);
+
+    if(!piece){
+      document.getElementById("academy-problem-feedback").textContent =
+        "Choisis une case contenant une pièce.";
+      return;
+    }
+
+    if(piece.color !== currentAcademyPuzzle.side){
+      document.getElementById("academy-problem-feedback").textContent =
+        "Tu ne peux déplacer que tes propres pièces.";
+      return;
+    }
+
+    selectedAcademySquare = square;
+
+    document.getElementById("academy-problem-feedback").textContent =
+      "Pièce sélectionnée en " + square +
+      ". Choisis sa destination.";
+
+    return;
+  }
+
+  const from = selectedAcademySquare;
+  const to = square;
+
+  selectedAcademySquare = null;
+
+  const cardIndex = selectedAcademyCardIndex;
+
+  const solution = currentAcademyPuzzle.solutions.find(s =>
+    s.cardIndex === cardIndex &&
+    s.move.from === from &&
+    s.move.to === to
+  );
+
+  if(!solution){
+    document.getElementById("academy-problem-feedback").textContent =
+      "❌ Ce n'est pas la bonne combinaison. Réessaie !";
+    return;
+  }
+
+  const move = academyGame.move({
+    from,
+    to,
+    promotion: "q"
+  });
+
+  if(!move){
+    document.getElementById("academy-problem-feedback").textContent =
+      "Déplacement impossible.";
+    return;
+  }
+
+  drawAcademyBoard(
+    academyGame.board(),
+    "academy-problem-board"
+  );
+
+  if(academyGame.isCheckmate()){
+    completeAcademyProblem();
   }
 }
 
@@ -3734,7 +3892,66 @@ async function loadAcademyProblem(path, number){
 
     academyGame.load(puzzle.fen);
 
-    drawAcademyBoard(academyGame.board());
+    drawAcademyBoard(
+  academyGame.board(),
+  "academy-problem-board"
+);
+   currentAcademyPuzzle = puzzle;
+   document.getElementById("academy-problem-title").textContent =
+  "PROBLÈME " + number;
+
+document.getElementById("academy-next-problem").style.display =
+  "none";
+
+document.getElementById("academy-problem-feedback").textContent = "";
+selectedAcademyCardIndex = null;
+selectedAcademySquare = null;
+
+const cardsBox = document.getElementById("academy-problem-cards");
+
+if(cardsBox){
+  cardsBox.innerHTML = "";
+
+  puzzle.hand.forEach((card, index) => {
+
+    const button = document.createElement("button");
+
+    button.textContent = card.value;
+
+    const cardColors = {
+      rouge: "#dc2626",
+      bleu: "#2563eb",
+      vert: "#16a34a",
+      jaune: "#ca8a04",
+      joker: "#7c3aed"
+    };
+
+    button.style.background = cardColors[card.color] || "#374151";
+    button.style.color = "white";
+    button.style.fontWeight = "bold";
+    button.style.fontSize = "18px";
+    button.style.padding = "12px 17px";
+    button.style.border = "3px solid white";
+    button.style.borderRadius = "10px";
+    button.style.cursor = "pointer";
+
+    button.onclick = () => {
+      selectedAcademyCardIndex = index;
+
+      cardsBox.querySelectorAll("button").forEach(b => {
+        b.style.outline = "none";
+      });
+
+      button.style.outline = "4px solid #facc15";
+
+      document.getElementById("academy-problem-feedback").textContent =
+        "Carte sélectionnée : " + card.value +
+        " (" + card.color + "). Choisis maintenant ton coup !";
+    };
+
+    cardsBox.appendChild(button);
+  });
+}
 
     if(instructions){
       instructions.textContent =
@@ -5790,6 +6007,58 @@ function saveAcademyProgress(){
   );
 }
  
+function completeAcademyProblem(){
+
+  const path = currentAcademyPath;
+  const number = currentAcademyProblemNumber;
+
+  if(!academyProgress[path]){
+    academyProgress[path] = [];
+  }
+
+  if(!academyProgress[path].includes(number)){
+    academyProgress[path].push(number);
+    academyProgress[path].sort((a,b) => a-b);
+  }
+
+  saveAcademyProgress();
+
+  const feedback = document.getElementById("academy-problem-feedback");
+  const nextButton = document.getElementById("academy-next-problem");
+
+  if(feedback){
+    feedback.textContent =
+      "🏆 BRAVO ! ÉCHEC ET MAT ! Problème réussi !";
+    feedback.style.color = "#4ade80";
+    feedback.style.fontWeight = "bold";
+  }
+
+  if(nextButton){
+    nextButton.style.display = "inline-block";
+
+    nextButton.textContent =
+      number >= 10
+        ? "TERMINER LE PARCOURS"
+        : "PROBLÈME SUIVANT";
+  }
+
+  selectedAcademyCardIndex = null;
+  selectedAcademySquare = null;
+}
+
+function goToNextAcademyProblem(){
+
+  const nextNumber = currentAcademyProblemNumber + 1;
+
+  if(nextNumber > 10){
+    alert("🎓 Félicitations ! Tu as terminé ce parcours !");
+    return;
+  }
+
+  startAcademyLesson(currentAcademyPath, nextNumber);
+}
+
+ 
 function openAcademyPath(path){
 
   currentAcademyPath = path;
@@ -5979,20 +6248,31 @@ function startAcademyLesson(path, number){
     return;
   }
 
-  if(path === "problem-classical" ||
-     path === "problem-fatality"){
+ if(path === "problem-classical" ||
+   path === "problem-fatality"){
 
-    const completed = academyProgress[path] || [];
-    const unlockedLevel = completed.length + 1;
+  const completed = academyProgress[path] || [];
+  const unlockedLevel = completed.length + 1;
 
-    if(number > unlockedLevel){
-      alert("Termine d'abord le problème précédent !");
-      return;
-    }
-
-   loadAcademyProblem(path, number);
-return;
+  if(number > unlockedLevel){
+    alert("Termine d'abord le problème précédent !");
+    return;
   }
+
+  currentAcademyPath = path;
+  currentAcademyProblemNumber = number;
+
+  const page = document.getElementById("academy-problem-page");
+  const nodes = document.getElementById("academy-path-nodes");
+  const modeChoice = document.getElementById("academy-mode-choice");
+
+  if(page) page.style.display = "block";
+  if(nodes) nodes.style.display = "none";
+  if(modeChoice) modeChoice.style.display = "none";
+
+  loadAcademyProblem(path, number);
+  return;
+}
 
   if(path === "infinite"){
     alert("Les problèmes variés à l'infini arrivent bientôt !");
