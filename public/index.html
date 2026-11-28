@@ -3908,6 +3908,8 @@ selectedAcademyCardIndex = null;
 selectedAcademySquare = null;
 
 const cardsBox = document.getElementById("academy-problem-cards");
+   console.log("CONTENEUR CARTES :", cardsBox);
+console.log("CARTES REÇUES :", puzzle.hand);
 
 if(cardsBox){
   cardsBox.innerHTML = "";
@@ -6225,6 +6227,35 @@ applyAcademyTheme();
   }
   applyAcademyTheme();
 }
+ 
+function giveAcademyHint(){
+
+  if(!currentAcademyPuzzle ||
+     !currentAcademyPuzzle.solutions ||
+     currentAcademyPuzzle.solutions.length === 0){
+    return;
+  }
+
+  const solution = currentAcademyPuzzle.solutions[0];
+
+  const piece = academyGame.get(solution.move.from);
+
+  const pieceNames = {
+    p: "un pion",
+    n: "un cavalier",
+    b: "un fou",
+    r: "une tour",
+    q: "une dame",
+    k: "un roi"
+  };
+
+  document.getElementById("academy-problem-feedback").textContent =
+    "💡 Zoubir : observe " +
+    (pieceNames[piece.type] || "ta pièce") +
+    " situé(e) en " + solution.move.from +
+    ". Choisis une carte qui permet son déplacement !";
+}
+
 
 
 function closeAcademyPath(){
